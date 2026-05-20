@@ -214,5 +214,5 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
       page++;
     }
 
-    return { ok: true, totalFetched, totalUpserted, profilesUpdated };
+    return { ok: true, totalFetched, totalUpserted, profilesUpdated, pharmaciesCreated };
   });
