@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Sparkles, TrendingUp, Gift, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { StatusBar } from "@/components/StatusBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { tierFor } from "@/lib/tiers";
@@ -46,10 +47,15 @@ function Dashboard() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <p className="text-sm text-muted-foreground">Welcome back</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{profile?.full_name || user?.email}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Welcome back</p>
+            <h1 className="text-3xl font-semibold tracking-tight">{profile?.full_name || user?.email}</h1>
+          </div>
+          <StatusBar />
         </div>
+
+
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2 overflow-hidden rounded-2xl bg-gradient-hero p-6 text-primary-foreground shadow-glow">
