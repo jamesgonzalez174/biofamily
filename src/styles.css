@@ -144,3 +144,88 @@
     color: transparent;
   }
 }
+
+/* ===== 3D Auth Scene ===== */
+.auth-scene { perspective: 1400px; }
+.auth-stage { transform-style: preserve-3d; }
+
+.auth-card-wrap { perspective: 1600px; }
+.auth-card-3d {
+  --rx: 0deg; --ry: 0deg; --mx: 0px; --my: 0px;
+  transform: rotateX(var(--rx)) rotateY(var(--ry)) translate3d(var(--mx), var(--my), 0);
+  transform-style: preserve-3d;
+  transition: transform 200ms cubic-bezier(.2,.8,.2,1);
+  will-change: transform;
+}
+.auth-card-3d > * { transform-style: preserve-3d; }
+
+/* Floating shapes */
+.shape { position: absolute; transform-style: preserve-3d; opacity: .55; }
+.shape-cube { width: 120px; height: 120px; animation: spin3d 18s linear infinite; }
+.shape-cube span {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary) 70%, transparent), color-mix(in oklch, var(--primary-glow) 50%, transparent));
+  border: 1px solid color-mix(in oklch, var(--primary) 50%, transparent);
+  box-shadow: 0 0 40px color-mix(in oklch, var(--primary) 35%, transparent);
+  backdrop-filter: blur(2px);
+}
+.shape-cube span:nth-child(1) { transform: translateZ(60px); }
+.shape-cube span:nth-child(2) { transform: rotateY(180deg) translateZ(60px); }
+.shape-cube span:nth-child(3) { transform: rotateY(90deg) translateZ(60px); }
+.shape-cube span:nth-child(4) { transform: rotateY(-90deg) translateZ(60px); }
+.shape-cube span:nth-child(5) { transform: rotateX(90deg) translateZ(60px); }
+.shape-cube span:nth-child(6) { transform: rotateX(-90deg) translateZ(60px); }
+
+.shape-a { top: 12%; left: 8%; animation-duration: 22s; }
+.shape-b { bottom: 14%; right: 10%; width: 90px; height: 90px; animation-duration: 28s; animation-direction: reverse; }
+.shape-b span:nth-child(1) { transform: translateZ(45px); }
+.shape-b span:nth-child(2) { transform: rotateY(180deg) translateZ(45px); }
+.shape-b span:nth-child(3) { transform: rotateY(90deg) translateZ(45px); }
+.shape-b span:nth-child(4) { transform: rotateY(-90deg) translateZ(45px); }
+.shape-b span:nth-child(5) { transform: rotateX(90deg) translateZ(45px); }
+.shape-b span:nth-child(6) { transform: rotateX(-90deg) translateZ(45px); }
+
+.shape-ring {
+  width: 260px; height: 260px; border-radius: 999px;
+  border: 2px solid color-mix(in oklch, var(--primary) 45%, transparent);
+  box-shadow: 0 0 60px color-mix(in oklch, var(--primary) 25%, transparent), inset 0 0 40px color-mix(in oklch, var(--primary-glow) 25%, transparent);
+  opacity: .4;
+}
+.shape-c { top: 18%; right: 14%; transform: rotateX(70deg) rotateZ(20deg); animation: float3d 12s ease-in-out infinite; }
+.shape-d { bottom: 8%; left: 12%; width: 360px; height: 360px; transform: rotateX(75deg) rotateZ(-15deg); animation: float3d 16s ease-in-out infinite reverse; }
+
+.shape-pyramid { width: 100px; height: 100px; top: 60%; left: 6%; animation: spin3d 26s linear infinite; }
+.shape-pyramid span {
+  position: absolute; left: 50%; top: 0; width: 0; height: 0;
+  border-left: 50px solid transparent; border-right: 50px solid transparent;
+  border-bottom: 86px solid color-mix(in oklch, var(--primary-glow) 55%, transparent);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 20px color-mix(in oklch, var(--primary) 40%, transparent));
+}
+.shape-pyramid span:nth-child(1) { transform: translateX(-50%) rotateY(0deg) rotateX(-20deg); }
+.shape-pyramid span:nth-child(2) { transform: translateX(-50%) rotateY(90deg) rotateX(-20deg); }
+.shape-pyramid span:nth-child(3) { transform: translateX(-50%) rotateY(180deg) rotateX(-20deg); }
+.shape-pyramid span:nth-child(4) { transform: translateX(-50%) rotateY(270deg) rotateX(-20deg); }
+
+@keyframes spin3d {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
+}
+@keyframes float3d {
+  0%, 100% { transform: rotateX(70deg) rotateZ(20deg) translateZ(0); }
+  50% { transform: rotateX(70deg) rotateZ(220deg) translateZ(40px); }
+}
+
+/* Glass card surface used inside AuthScene */
+.auth-card-3d .auth-glass {
+  background: color-mix(in oklch, var(--card) 70%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  box-shadow:
+    0 30px 80px -20px color-mix(in oklch, var(--primary) 35%, transparent),
+    0 10px 30px -10px rgba(0,0,0,.35),
+    inset 0 1px 0 color-mix(in oklch, white 30%, transparent);
+}
+.auth-card-3d .auth-pop { transform: translateZ(40px); }
+.auth-card-3d .auth-pop-sm { transform: translateZ(20px); }
