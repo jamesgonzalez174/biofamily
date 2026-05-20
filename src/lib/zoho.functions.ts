@@ -45,39 +45,52 @@ async function requestZohoAccessToken(dc: string, clientId: string, clientSecret
     grant_type: "refresh_token",
   });
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      Accept: "application/json",
-    },
-    body,
-  });
-
-  const raw = await res.text();
-  let json: any = null;
   try {
-    json = raw ? JSON.parse(raw) : null;
-  } catch {
-    json = null;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        Accept: "application/json",
+      },
+      body,
+    });
+
+    const raw = await res.text();
+    let json: any = null;
+    try {
+      json = raw ? JSON.parse(raw) : null;
+    } catch {
+      json = null;
+    }
+
+    const accessToken = json?.access_token;
+    const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
+    const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
+
+    return {
+      ok: res.ok && Boolean(accessToken),
+      dc,
+      url,
+      accessToken: accessToken as string | undefined,
+      apiDomain: typeof json?.api_domain === "string" && json.api_domain.length > 0
+        ? json.api_domain
+        : `https://www.zohoapis.${dc}`,
+      status: res.status,
+      errorCode,
+      errorDescription,
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      dc,
+      url,
+      accessToken: undefined,
+      apiDomain: `https://www.zohoapis.${dc}`,
+      status: 0,
+      errorCode: "fetch_failed",
+      errorDescription: error?.message ?? "Network request failed",
+    };
   }
-
-  const accessToken = json?.access_token;
-  const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
-  const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
-
-  return {
-    ok: res.ok && Boolean(accessToken),
-    dc,
-    url,
-    accessToken: accessToken as string | undefined,
-    apiDomain: typeof json?.api_domain === "string" && json.api_domain.length > 0
-      ? json.api_domain
-      : `https://www.zohoapis.${dc}`,
-    status: res.status,
-    errorCode,
-    errorDescription,
-  };
 }
 
 async function getZohoAccessToken() {
