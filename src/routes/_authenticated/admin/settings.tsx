@@ -261,7 +261,7 @@ function ZohoSync() {
     setBusy(true);
     try {
       const res = await sync({});
-      setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated });
+      setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated, pharmaciesCreated: res.pharmaciesCreated });
       toast.success(`Synced ${res.totalUpserted} of ${res.totalFetched} customers`);
       qc.invalidateQueries({ queryKey: ["zoho-customers"] });
     } catch (e: any) {
