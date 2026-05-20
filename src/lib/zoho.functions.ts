@@ -13,8 +13,31 @@ async function assertAdmin(userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+function normalizeZohoDc(input?: string) {
+  const raw = (input || "com").trim().toLowerCase();
+  const withoutProtocol = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
+  if (withoutProtocol.startsWith("accounts.zoho.")) {
+    return withoutProtocol.slice("accounts.zoho.".length);
+  }
+
+  if (withoutProtocol.startsWith("www.zohoapis.")) {
+    return withoutProtocol.slice("www.zohoapis.".length);
+  }
+
+  if (withoutProtocol.startsWith("zohoapis.")) {
+    return withoutProtocol.slice("zohoapis.".length);
+  }
+
+  if (withoutProtocol.startsWith("zoho.")) {
+    return withoutProtocol.slice("zoho.".length);
+  }
+
+  return withoutProtocol.replace(/^\.+/, "") || "com";
+}
+
 async function getZohoAccessToken() {
-  const dc = (process.env.ZOHO_DC || "com").replace(/^\.+/, "");
+  const dc = normalizeZohoDc(process.env.ZOHO_DC);
   const clientId = process.env.ZOHO_CLIENT_ID;
   const clientSecret = process.env.ZOHO_CLIENT_SECRET;
   const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
@@ -28,12 +51,49 @@ async function getZohoAccessToken() {
     client_secret: clientSecret,
     grant_type: "refresh_token",
   });
-  const res = await fetch(url, { method: "POST", body });
-  const json: any = await res.json();
-  if (!res.ok || !json.access_token) {
-    throw new Error(`Zoho token error: ${json.error || res.statusText}`);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      Accept: "application/json",
+    },
+    body,
+  });
+  const raw = await res.text();
+  let json: any = null;
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    json = null;
   }
-  return { accessToken: json.access_token as string, dc };
+
+  if (!res.ok || !json.access_token) {
+    const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
+    const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
+
+    console.error("Zoho token request failed", {
+      status: res.status,
+      dc,
+      errorCode,
+      errorDescription,
+    });
+
+    if (errorCode === "general_error") {
+      throw new Error(
+        `Zoho token error: general_error. Check that ZOHO_DC matches your Zoho region and that ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, and ZOHO_REFRESH_TOKEN all come from the same Zoho self client. Current token URL: ${url}`,
+      );
+    }
+
+    throw new Error(`Zoho token error: ${errorCode}${errorDescription ? ` (${errorDescription})` : ""}`);
+  }
+
+  return {
+    accessToken: json.access_token as string,
+    dc,
+    apiDomain: typeof json.api_domain === "string" && json.api_domain.length > 0
+      ? json.api_domain
+      : `https://www.zohoapis.${dc}`,
+  };
 }
 
 /**
@@ -47,8 +107,8 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
     const orgId = process.env.ZOHO_ORGANIZATION_ID;
     if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
 
-    const { accessToken, dc } = await getZohoAccessToken();
-    const apiBase = `https://www.zohoapis.${dc}/books/v3`;
+    const { accessToken, apiDomain } = await getZohoAccessToken();
+    const apiBase = `${apiDomain}/books/v3`;
 
     let page = 1;
     let fetched = 0;
