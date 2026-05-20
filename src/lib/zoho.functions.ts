@@ -157,6 +157,38 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         }
         totalUpserted++;
 
+        // Upsert as a pharmacy. Use company_name if present, otherwise the contact name.
+        const pharmacyName = (company ?? fullName ?? "").toString().trim();
+        if (pharmacyName) {
+          const address = [
+            full?.billing_address?.address,
+            full?.billing_address?.city,
+            full?.billing_address?.state,
+            full?.billing_address?.country,
+          ]
+            .filter(Boolean)
+            .join(", ") || null;
+
+          const { data: existingPharm } = await supabaseAdmin
+            .from("pharmacies")
+            .select("id")
+            .ilike("name", pharmacyName)
+            .maybeSingle();
+
+          if (!existingPharm) {
+            const { error: phErr } = await supabaseAdmin
+              .from("pharmacies")
+              .insert({ name: pharmacyName, address, is_active: true });
+            if (!phErr) pharmaciesCreated++;
+            else console.error("pharmacy insert failed", phErr);
+          } else if (address) {
+            await supabaseAdmin
+              .from("pharmacies")
+              .update({ address })
+              .eq("id", existingPharm.id);
+          }
+        }
+
         // If history_points is present and a matching profile exists, sync lifetime_points
         if (email && history !== null) {
           const { data: profile } = await supabaseAdmin
