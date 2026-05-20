@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
         }
 
         // Find user by email
-        const { data: profile } = await supabaseAdmin.from("profiles").select("id, points_balance, lifetime_points").ilike("email", email).maybeSingle();
+        const { data: profile } = await supabaseAdmin.from("profiles").select("id, points_balance, lifetime_points, pharmacy_id").ilike("email", email).maybeSingle();
         if (!profile) {
           await supabaseAdmin.from("zoho_events").update({ error: "user not found" }).eq("event_id", eventId);
           return new Response(JSON.stringify({ ok: false, error: "User not found" }), { status: 200 });
