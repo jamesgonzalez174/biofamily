@@ -1,0 +1,106 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Shield, ShieldOff, Plus, Minus, X } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { listUsers, adjustPoints, setUserRole } from "@/lib/admin.functions";
+
+export const Route = createFileRoute("/_authenticated/admin/users")({
+  component: UsersPage,
+});
+
+function UsersPage() {
+  const qc = useQueryClient();
+  const fetchUsers = useServerFn(listUsers);
+  const adjust = useServerFn(adjustPoints);
+  const setRole = useServerFn(setUserRole);
+  const [adj, setAdj] = useState<{ id: string; name: string } | null>(null);
+  const [delta, setDelta] = useState(0);
+  const [reason, setReason] = useState("");
+
+  const { data: users } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => fetchUsers({}),
+  });
+
+  const toggleAdmin = async (id: string, isAdmin: boolean) => {
+    await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
+    toast.success(isAdmin ? "Admin revoked" : "Admin granted");
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const submitAdjust = async () => {
+    if (!adj || delta === 0 || !reason.trim()) return;
+    try {
+      await adjust({ data: { targetUserId: adj.id, delta, reason } });
+      toast.success("Points adjusted");
+      setAdj(null); setDelta(0); setReason("");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  return (
+    <AppShell admin>
+      <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
+      <p className="text-sm text-muted-foreground">Adjust balances and manage admin access.</p>
+
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="p-3">User</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
+          </thead>
+          <tbody>
+            {(users ?? []).map((u: any) => {
+              const isAdmin = u.roles.includes("admin");
+              return (
+                <tr key={u.id} className="border-t border-border">
+                  <td className="p-3">
+                    <div className="font-medium">{u.full_name || "—"}</div>
+                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                  </td>
+                  <td className="p-3">{u.tier}</td>
+                  <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
+                  <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
+                  <td className="p-3">{isAdmin ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Admin</span> : <span className="text-xs text-muted-foreground">User</span>}</td>
+                  <td className="p-3 text-right">
+                    <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">Adjust</button>
+                    <button onClick={() => toggleAdmin(u.id, isAdmin)} className="ml-1 rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">
+                      {isAdmin ? <ShieldOff className="inline h-3.5 w-3.5" /> : <Shield className="inline h-3.5 w-3.5" />}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {(users ?? []).length === 0 && <tr><td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {adj && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAdj(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Adjust points</h2>
+              <button onClick={() => setAdj(null)} className="rounded-lg p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">For: {adj.name}</p>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setDelta((d) => d - 100)} className="rounded-lg border border-border p-2 hover:bg-muted"><Minus className="h-4 w-4" /></button>
+                <input type="number" value={delta} onChange={(e) => setDelta(Number(e.target.value))} className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-center text-lg font-semibold tabular-nums" />
+                <button onClick={() => setDelta((d) => d + 100)} className="rounded-lg border border-border p-2 hover:bg-muted"><Plus className="h-4 w-4" /></button>
+              </div>
+              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button onClick={() => setAdj(null)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
+              <button onClick={submitAdjust} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
+  );
+}
