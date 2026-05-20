@@ -36,14 +36,7 @@ function normalizeZohoDc(input?: string) {
   return withoutProtocol.replace(/^\.+/, "") || "com";
 }
 
-async function getZohoAccessToken() {
-  const dc = normalizeZohoDc(process.env.ZOHO_DC);
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Missing Zoho credentials (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)");
-  }
+async function requestZohoAccessToken(dc: string, clientId: string, clientSecret: string, refreshToken: string) {
   const url = `https://accounts.zoho.${dc}/oauth/v2/token`;
   const body = new URLSearchParams({
     refresh_token: refreshToken,
@@ -51,6 +44,7 @@ async function getZohoAccessToken() {
     client_secret: clientSecret,
     grant_type: "refresh_token",
   });
+
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -59,6 +53,7 @@ async function getZohoAccessToken() {
     },
     body,
   });
+
   const raw = await res.text();
   let json: any = null;
   try {
@@ -67,33 +62,73 @@ async function getZohoAccessToken() {
     json = null;
   }
 
-  if (!res.ok || !json.access_token) {
-    const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
-    const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
-
-    console.error("Zoho token request failed", {
-      status: res.status,
-      dc,
-      errorCode,
-      errorDescription,
-    });
-
-    if (errorCode === "general_error") {
-      throw new Error(
-        `Zoho token error: general_error. Check that ZOHO_DC matches your Zoho region and that ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, and ZOHO_REFRESH_TOKEN all come from the same Zoho self client. Current token URL: ${url}`,
-      );
-    }
-
-    throw new Error(`Zoho token error: ${errorCode}${errorDescription ? ` (${errorDescription})` : ""}`);
-  }
+  const accessToken = json?.access_token;
+  const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
+  const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
 
   return {
-    accessToken: json.access_token as string,
+    ok: res.ok && Boolean(accessToken),
     dc,
-    apiDomain: typeof json.api_domain === "string" && json.api_domain.length > 0
+    url,
+    accessToken: accessToken as string | undefined,
+    apiDomain: typeof json?.api_domain === "string" && json.api_domain.length > 0
       ? json.api_domain
       : `https://www.zohoapis.${dc}`,
+    status: res.status,
+    errorCode,
+    errorDescription,
   };
+}
+
+async function getZohoAccessToken() {
+  const configuredDc = normalizeZohoDc(process.env.ZOHO_DC);
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Missing Zoho credentials (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)");
+  }
+  const dcCandidates = Array.from(new Set([
+    configuredDc,
+    "com",
+    "eu",
+    "in",
+    "com.au",
+    "jp",
+    "ca",
+    "sa",
+    "com.cn",
+  ]));
+
+  const failures: string[] = [];
+
+  for (const dc of dcCandidates) {
+    const result = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
+
+    if (result.ok && result.accessToken) {
+      if (dc !== configuredDc) {
+        console.warn(`Zoho token worked with ${dc} instead of configured DC ${configuredDc}`);
+      }
+
+      return {
+        accessToken: result.accessToken,
+        dc,
+        apiDomain: result.apiDomain,
+      };
+    }
+
+    failures.push(`${dc}: ${result.errorCode}`);
+    console.error("Zoho token request failed", {
+      status: result.status,
+      dc,
+      errorCode: result.errorCode,
+      errorDescription: result.errorDescription,
+    });
+  }
+
+  throw new Error(
+    `Zoho token error: could not refresh the token in any common Zoho region (${failures.join(", ")}). Your client ID, client secret, and refresh token likely do not belong to the same Zoho self client.`,
+  );
 }
 
 /**
@@ -102,57 +137,67 @@ async function getZohoAccessToken() {
 export const syncZohoCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
+    try {
+      await assertAdmin(context.userId);
 
-    const orgId = process.env.ZOHO_ORGANIZATION_ID;
-    if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
+      const orgId = process.env.ZOHO_ORGANIZATION_ID;
+      if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
 
-    const { accessToken, apiDomain } = await getZohoAccessToken();
-    const apiBase = `${apiDomain}/books/v3`;
+      const { accessToken, apiDomain } = await getZohoAccessToken();
+      const apiBase = `${apiDomain}/books/v3`;
 
-    let page = 1;
-    let fetched = 0;
-    let upserted = 0;
-    const errors: string[] = [];
+      let page = 1;
+      let fetched = 0;
+      let upserted = 0;
+      const errors: string[] = [];
 
-    while (true) {
-      const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
-      });
-      const json: any = await res.json();
-      if (!res.ok) {
-        errors.push(`page ${page}: ${json.message || res.statusText}`);
-        break;
+      while (true) {
+        const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+        });
+        const json: any = await res.json();
+        if (!res.ok) {
+          errors.push(`page ${page}: ${json.message || res.statusText}`);
+          break;
+        }
+        const contacts: any[] = json.contacts ?? [];
+        fetched += contacts.length;
+
+        if (contacts.length > 0) {
+          const rows = contacts.map((c) => ({
+            zoho_contact_id: String(c.contact_id),
+            email: c.email || null,
+            full_name: c.contact_name || null,
+            company_name: c.company_name || null,
+            loyalty_points: c.cf_loyalty_points ?? null,
+            history_points: c.cf_history_points ?? null,
+            raw: c,
+            last_synced_at: new Date().toISOString(),
+          }));
+          const { error } = await supabaseAdmin
+            .from("zoho_customers")
+            .upsert(rows, { onConflict: "zoho_contact_id" });
+          if (error) errors.push(`page ${page} upsert: ${error.message}`);
+          else upserted += rows.length;
+        }
+
+        const hasMore = json.page_context?.has_more_page;
+        if (!hasMore) break;
+        page++;
+        if (page > 100) break;
       }
-      const contacts: any[] = json.contacts ?? [];
-      fetched += contacts.length;
 
-      if (contacts.length > 0) {
-        const rows = contacts.map((c) => ({
-          zoho_contact_id: String(c.contact_id),
-          email: c.email || null,
-          full_name: c.contact_name || null,
-          company_name: c.company_name || null,
-          loyalty_points: c.cf_loyalty_points ?? null,
-          history_points: c.cf_history_points ?? null,
-          raw: c,
-          last_synced_at: new Date().toISOString(),
-        }));
-        const { error } = await supabaseAdmin
-          .from("zoho_customers")
-          .upsert(rows, { onConflict: "zoho_contact_id" });
-        if (error) errors.push(`page ${page} upsert: ${error.message}`);
-        else upserted += rows.length;
-      }
-
-      const hasMore = json.page_context?.has_more_page;
-      if (!hasMore) break;
-      page++;
-      if (page > 100) break; // safety
+      return { ok: true, fetched, upserted, pages: page, errors: errors.slice(0, 10) };
+    } catch (error: any) {
+      return {
+        ok: false,
+        fetched: 0,
+        upserted: 0,
+        pages: 0,
+        errors: [error?.message ?? "Zoho sync failed"],
+      };
     }
-
-    return { ok: true, fetched, upserted, pages: page, errors: errors.slice(0, 10) };
   });
 
 /**

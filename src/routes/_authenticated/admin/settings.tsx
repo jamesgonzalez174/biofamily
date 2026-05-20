@@ -399,9 +399,15 @@ function SyncCustomers() {
     try {
       const res = await sync({});
       setLast({ fetched: res.fetched, upserted: res.upserted, errors: res.errors });
-      if (res.errors.length) toast.warning(`Synced ${res.upserted} (with ${res.errors.length} errors)`);
-      else toast.success(`Synced ${res.upserted} customers from Zoho`);
-      qc.invalidateQueries({ queryKey: ["zoho-customers"] });
+      if (!res.ok) {
+        toast.error(res.errors[0] ?? "Sync failed");
+      } else if (res.errors.length) {
+        toast.warning(`Synced ${res.upserted} (with ${res.errors.length} errors)`);
+        qc.invalidateQueries({ queryKey: ["zoho-customers"] });
+      } else {
+        toast.success(`Synced ${res.upserted} customers from Zoho`);
+        qc.invalidateQueries({ queryKey: ["zoho-customers"] });
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
     } finally {
