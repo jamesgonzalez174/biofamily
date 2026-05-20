@@ -300,6 +300,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zoho_customers: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          history_points: number | null
+          id: string
+          last_synced_at: string
+          loyalty_points: number | null
+          raw: Json | null
+          zoho_contact_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          history_points?: number | null
+          id?: string
+          last_synced_at?: string
+          loyalty_points?: number | null
+          raw?: Json | null
+          zoho_contact_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          history_points?: number | null
+          id?: string
+          last_synced_at?: string
+          loyalty_points?: number | null
+          raw?: Json | null
+          zoho_contact_id?: string
+        }
+        Relationships: []
+      }
       zoho_events: {
         Row: {
           created_at: string
