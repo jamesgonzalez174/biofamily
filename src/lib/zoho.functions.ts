@@ -13,6 +13,88 @@ async function assertAdmin(userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+async function getZohoAccessToken() {
+  const dc = (process.env.ZOHO_DC || "com").replace(/^\.+/, "");
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Missing Zoho credentials (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)");
+  }
+  const url = `https://accounts.zoho.${dc}/oauth/v2/token`;
+  const body = new URLSearchParams({
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "refresh_token",
+  });
+  const res = await fetch(url, { method: "POST", body });
+  const json: any = await res.json();
+  if (!res.ok || !json.access_token) {
+    throw new Error(`Zoho token error: ${json.error || res.statusText}`);
+  }
+  return { accessToken: json.access_token as string, dc };
+}
+
+/**
+ * Pull customers (contacts) from Zoho Books and upsert into zoho_customers.
+ */
+export const syncZohoCustomers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    const orgId = process.env.ZOHO_ORGANIZATION_ID;
+    if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
+
+    const { accessToken, dc } = await getZohoAccessToken();
+    const apiBase = `https://www.zohoapis.${dc}/books/v3`;
+
+    let page = 1;
+    let fetched = 0;
+    let upserted = 0;
+    const errors: string[] = [];
+
+    while (true) {
+      const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+      });
+      const json: any = await res.json();
+      if (!res.ok) {
+        errors.push(`page ${page}: ${json.message || res.statusText}`);
+        break;
+      }
+      const contacts: any[] = json.contacts ?? [];
+      fetched += contacts.length;
+
+      if (contacts.length > 0) {
+        const rows = contacts.map((c) => ({
+          zoho_contact_id: String(c.contact_id),
+          email: c.email || null,
+          full_name: c.contact_name || null,
+          company_name: c.company_name || null,
+          loyalty_points: c.cf_loyalty_points ?? null,
+          history_points: c.cf_history_points ?? null,
+          raw: c,
+          last_synced_at: new Date().toISOString(),
+        }));
+        const { error } = await supabaseAdmin
+          .from("zoho_customers")
+          .upsert(rows, { onConflict: "zoho_contact_id" });
+        if (error) errors.push(`page ${page} upsert: ${error.message}`);
+        else upserted += rows.length;
+      }
+
+      const hasMore = json.page_context?.has_more_page;
+      if (!hasMore) break;
+      page++;
+      if (page > 100) break; // safety
+    }
+
+    return { ok: true, fetched, upserted, pages: page, errors: errors.slice(0, 10) };
+  });
+
 /**
  * Re-run the points logic for unprocessed (or errored) Zoho webhook events.
  * Useful when a payload arrived before the user existed, or to retry failures.
