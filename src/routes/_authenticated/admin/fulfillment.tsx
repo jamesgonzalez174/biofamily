@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { updateRedemptionStatus } from "@/lib/redemption.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/fulfillment")({
   component: Fulfillment,
@@ -13,6 +15,7 @@ const STATUSES = ["pending", "shipped", "claimed", "cancelled"] as const;
 
 function Fulfillment() {
   const qc = useQueryClient();
+  const updateStatus = useServerFn(updateRedemptionStatus);
   const [filter, setFilter] = useState<string>("pending");
 
   const { data: items } = useQuery({
@@ -25,11 +28,23 @@ function Fulfillment() {
     },
   });
 
-  const update = async (id: string, patch: any) => {
-    const { error } = await supabase.from("redemptions").update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Updated");
-    qc.invalidateQueries({ queryKey: ["admin-fulfillment"] });
+  const update = async (id: string, patch: { status?: string; tracking_info?: string }) => {
+    try {
+      const current = items?.find((r) => r.id === id);
+      await updateStatus({
+        data: {
+          redemptionId: id,
+          status: (patch.status ?? current?.status ?? "pending") as any,
+          tracking_info: patch.tracking_info,
+        },
+      });
+      toast.success(patch.status === "claimed" ? "Marked claimed — points deducted" : "Updated");
+      qc.invalidateQueries({ queryKey: ["admin-fulfillment"] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["ledger"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Update failed");
+    }
   };
 
   return (
@@ -37,7 +52,7 @@ function Fulfillment() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Fulfillment</h1>
-          <p className="text-sm text-muted-foreground">Update statuses and add tracking info.</p>
+          <p className="text-sm text-muted-foreground">Points are deducted only when status is set to <strong>claimed</strong>.</p>
         </div>
         <div className="flex gap-1 rounded-xl border border-border bg-card p-1 shadow-soft">
           {(["all", ...STATUSES] as const).map((s) => (
