@@ -7,6 +7,7 @@ import { AuthScene } from "@/components/AuthScene";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     const { data: { session } } = await supabase.auth.getSession();
     if (session) throw redirect({ to: "/dashboard" });
   },
