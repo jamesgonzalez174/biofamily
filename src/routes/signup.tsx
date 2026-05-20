@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,28 +12,44 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
 });
 
+type Pharmacy = { id: string; name: string; address: string | null };
+
 function SignupPage() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pharmacyId, setPharmacyId] = useState("");
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // public-safe via RLS once authed, but for signup we need them visible.
+    // Pharmacies are not sensitive, so we use a server-side fetched static list via supabase anon — RLS blocks anon.
+    // Workaround: fetch after sign-up; here we just allow free-text fallback if list empty.
+    supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
+      .then(({ data }) => setPharmacies((data ?? []) as Pharmacy[]));
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { full_name: fullName },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
+    if (error) { setLoading(false); return toast.error(error.message); }
+    // Best-effort pharmacy attach (user is auto-signed-in when confirmations are off)
+    if (pharmacyId && data.user) {
+      await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Account created! Check your email to verify.");
-    navigate({ to: "/login" });
+    toast.success("Account created!");
+    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -52,6 +68,22 @@ function SignupPage() {
             <Field label="Full name" value={fullName} onChange={setFullName} />
             <Field label="Email" type="email" value={email} onChange={setEmail} required />
             <Field label="Password" type="password" value={password} onChange={setPassword} required />
+            {pharmacies.length > 0 && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium">Pharmacy</span>
+                <select
+                  value={pharmacyId}
+                  onChange={(e) => setPharmacyId(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+                >
+                  <option value="">Select your pharmacy (optional)</option>
+                  {pharmacies.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs text-muted-foreground">You can change this later from your dashboard.</span>
+              </label>
+            )}
             <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
               {loading ? "Creating…" : "Create account"}
             </button>

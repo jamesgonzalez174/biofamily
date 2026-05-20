@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sparkles, TrendingUp, Gift, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBar } from "@/components/StatusBar";
+import { PharmacyBanner } from "@/components/PharmacyBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { tierFor } from "@/lib/tiers";
@@ -54,6 +55,9 @@ function Dashboard() {
           </div>
           <StatusBar />
         </div>
+
+        <PharmacyBanner />
+
 
 
 
