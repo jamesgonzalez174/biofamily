@@ -37,9 +37,9 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
     exact ? loc.pathname === to : loc.pathname === to || loc.pathname.startsWith(to + "/");
 
   const SidebarInner = () => (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-gradient-to-b from-primary/15 via-primary/5 to-primary-glow/10">
       <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2 px-5 py-5">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
           <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
         <span className="font-semibold tracking-tight leading-tight">
@@ -55,34 +55,37 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
               key={n.to}
               to={n.to}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                active
+                  ? "bg-gradient-primary text-primary-foreground shadow-glow"
+                  : "text-foreground/70 hover:bg-white/60 hover:text-foreground"
               }`}
             >
-              <n.icon className="h-4 w-4 shrink-0" />
+              <n.icon className={`h-4 w-4 shrink-0 ${active ? "" : "text-primary"}`} />
               <span className="truncate">{n.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="space-y-1 border-t border-border p-3">
+      <div className="space-y-1 border-t border-primary/15 p-3">
         {isAdmin && !admin && (
-          <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-            <ShieldCheck className="h-4 w-4" /> Admin
+          <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-white/60 hover:text-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" /> Admin
           </Link>
         )}
         {admin && (
-          <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-            <Eye className="h-4 w-4" /> User view
+          <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-white/60 hover:text-foreground">
+            <Eye className="h-4 w-4 text-primary" /> User view
           </Link>
         )}
-        <button onClick={signOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+        <button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground/70 hover:bg-destructive/10 hover:text-destructive">
           <LogOut className="h-4 w-4" /> Sign out
         </button>
       </div>
     </div>
   );
+
 
   return (
     <div className="min-h-screen bg-background">
