@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthScene } from "@/components/AuthScene";
 
 export const Route = createFileRoute("/signup")({
   beforeLoad: async () => {
