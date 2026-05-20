@@ -13,38 +13,51 @@ async function assertAdmin(userId: string) {
 }
 
 async function getAccessToken(): Promise<{ token: string; domain: string }> {
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+  const clientId = process.env.ZOHO_CLIENT_ID?.trim();
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET?.trim();
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN?.trim();
+  const dc = process.env.ZOHO_DC?.trim().toLowerCase();
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing Zoho credentials in backend secrets");
   }
 
-  // Try multiple regional accounts endpoints (com, eu, in, com.au, jp)
-  const regions = [
-    { accounts: "https://accounts.zoho.com", api: "https://www.zohoapis.com" },
-    { accounts: "https://accounts.zoho.eu", api: "https://www.zohoapis.eu" },
-    { accounts: "https://accounts.zoho.in", api: "https://www.zohoapis.in" },
-    { accounts: "https://accounts.zoho.com.au", api: "https://www.zohoapis.com.au" },
-    { accounts: "https://accounts.zoho.jp", api: "https://www.zohoapis.jp" },
+  const allRegions = [
+    { dc: "com", accounts: "https://accounts.zoho.com", api: "https://www.zohoapis.com" },
+    { dc: "eu", accounts: "https://accounts.zoho.eu", api: "https://www.zohoapis.eu" },
+    { dc: "in", accounts: "https://accounts.zoho.in", api: "https://www.zohoapis.in" },
+    { dc: "au", accounts: "https://accounts.zoho.com.au", api: "https://www.zohoapis.com.au" },
+    { dc: "jp", accounts: "https://accounts.zoho.jp", api: "https://www.zohoapis.jp" },
+    { dc: "ca", accounts: "https://accounts.zohocloud.ca", api: "https://www.zohoapis.ca" },
   ];
+  const regions = dc ? allRegions.filter((r) => r.dc === dc) : allRegions;
+  if (regions.length === 0) {
+    throw new Error(`Unknown ZOHO_DC "${dc}". Use one of: com, eu, in, au, jp, ca`);
+  }
 
-  let lastErr = "";
+  const errors: string[] = [];
   for (const r of regions) {
-    const params = new URLSearchParams({
+    const body = new URLSearchParams({
       refresh_token: refreshToken,
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: "refresh_token",
     });
-    const res = await fetch(`${r.accounts}/oauth/v2/token?${params.toString()}`, { method: "POST" });
+    const res = await fetch(`${r.accounts}/oauth/v2/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
     const json: any = await res.json().catch(() => ({}));
     if (res.ok && json.access_token) {
       return { token: json.access_token, domain: r.api };
     }
-    lastErr = `${r.accounts}: ${json.error ?? res.statusText}`;
+    errors.push(`${r.dc}: ${json.error ?? res.statusText}`);
   }
-  throw new Error(`Failed to refresh Zoho token. ${lastErr}`);
+  throw new Error(
+    `Zoho token refresh failed (${errors.join(" | ")}). ` +
+      `"invalid_client" usually means the Client ID/Secret are wrong or were copied with extra whitespace. ` +
+      `If your Zoho org is in a specific data center, set ZOHO_DC (com, eu, in, au, jp, ca).`,
+  );
 }
 
 function readCustomField(contact: any, ...names: string[]): number | null {
