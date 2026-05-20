@@ -238,3 +238,101 @@ function StatusManager() {
     </div>
   );
 }
+
+function ZohoSync() {
+  const qc = useQueryClient();
+  const sync = useServerFn(syncZohoCustomers);
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number } | null>(null);
+
+  const { data: customers } = useQuery({
+    queryKey: ["zoho-customers"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("zoho_customers")
+        .select("id, email, full_name, company_name, loyalty_points, history_points, last_synced_at")
+        .order("last_synced_at", { ascending: false })
+        .limit(20);
+      return data ?? [];
+    },
+  });
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await sync({});
+      setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated });
+      toast.success(`Synced ${res.totalUpserted} of ${res.totalFetched} customers`);
+      qc.invalidateQueries({ queryKey: ["zoho-customers"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Zoho customers</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pull customers from Zoho Books. Custom fields "Loyalty Points" and "History Points" are imported and matching profiles get their lifetime points updated.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+          {busy ? "Syncing…" : "Sync customers"}
+        </button>
+      </div>
+
+      {last && (
+        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.totalFetched}</div>
+            <div className="text-xs text-muted-foreground">Fetched</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.totalUpserted}</div>
+            <div className="text-xs text-muted-foreground">Saved</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.profilesUpdated}</div>
+            <div className="text-xs text-muted-foreground">Profiles updated</div>
+          </div>
+        </div>
+      )}
+
+      {(customers ?? []).length > 0 && (
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="pb-2 pr-3">Name</th>
+                <th className="pb-2 pr-3">Email</th>
+                <th className="pb-2 pr-3">Company</th>
+                <th className="pb-2 pr-3 text-right">Loyalty</th>
+                <th className="pb-2 text-right">History</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers!.map((c: any) => (
+                <tr key={c.id} className="border-t border-border">
+                  <td className="py-2 pr-3">{c.full_name ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{c.email ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{c.company_name ?? "—"}</td>
+                  <td className="py-2 pr-3 text-right">{c.loyalty_points ?? "—"}</td>
+                  <td className="py-2 text-right">{c.history_points ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
