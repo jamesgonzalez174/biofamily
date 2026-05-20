@@ -14,16 +14,279 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      points_ledger: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          reason: string
+          reference: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          reference?: string | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          reference?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      prizes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          point_cost: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          point_cost: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          point_cost?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          lifetime_points: number
+          points_balance: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          lifetime_points?: number
+          points_balance?: number
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          lifetime_points?: number
+          points_balance?: number
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          points_spent: number
+          prize_id: string
+          prize_name: string
+          status: Database["public"]["Enums"]["redemption_status"]
+          tracking_info: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_spent: number
+          prize_id: string
+          prize_name: string
+          status?: Database["public"]["Enums"]["redemption_status"]
+          tracking_info?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_spent?: number
+          prize_id?: string
+          prize_name?: string
+          status?: Database["public"]["Enums"]["redemption_status"]
+          tracking_info?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemptions_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          enable_invoice_total_fallback: boolean
+          id: number
+          points_per_dollar: number
+          updated_at: string
+        }
+        Insert: {
+          enable_invoice_total_fallback?: boolean
+          id?: number
+          points_per_dollar?: number
+          updated_at?: string
+        }
+        Update: {
+          enable_invoice_total_fallback?: boolean
+          id?: number
+          points_per_dollar?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sku_points: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string | null
+          points_per_unit: number
+          sku: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          points_per_unit?: number
+          sku: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          points_per_unit?: number
+          sku?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zoho_events: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          error: string | null
+          event_id: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          points_awarded: number | null
+          processed: boolean
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          error?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          payload: Json
+          points_awarded?: number | null
+          processed?: boolean
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          error?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          points_awarded?: number | null
+          processed?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      redemption_status: "pending" | "shipped" | "claimed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +413,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      redemption_status: ["pending", "shipped", "claimed", "cancelled"],
+    },
   },
 } as const
