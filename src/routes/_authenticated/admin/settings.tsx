@@ -243,7 +243,7 @@ function ZohoSync() {
   const qc = useQueryClient();
   const sync = useServerFn(syncZohoCustomers);
   const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number } | null>(null);
+  const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number; pharmaciesCreated: number } | null>(null);
 
   const { data: customers } = useQuery({
     queryKey: ["zoho-customers"],
@@ -261,7 +261,7 @@ function ZohoSync() {
     setBusy(true);
     try {
       const res = await sync({});
-      setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated });
+      setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated, pharmaciesCreated: res.pharmaciesCreated });
       toast.success(`Synced ${res.totalUpserted} of ${res.totalFetched} customers`);
       qc.invalidateQueries({ queryKey: ["zoho-customers"] });
     } catch (e: any) {
@@ -291,7 +291,7 @@ function ZohoSync() {
       </div>
 
       {last && (
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+        <div className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
           <div className="rounded-lg border border-border bg-muted/30 p-3">
             <div className="text-2xl font-semibold">{last.totalFetched}</div>
             <div className="text-xs text-muted-foreground">Fetched</div>
@@ -299,6 +299,10 @@ function ZohoSync() {
           <div className="rounded-lg border border-border bg-muted/30 p-3">
             <div className="text-2xl font-semibold">{last.totalUpserted}</div>
             <div className="text-xs text-muted-foreground">Saved</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.pharmaciesCreated}</div>
+            <div className="text-xs text-muted-foreground">New pharmacies</div>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-3">
             <div className="text-2xl font-semibold">{last.profilesUpdated}</div>
