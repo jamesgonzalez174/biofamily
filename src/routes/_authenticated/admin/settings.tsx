@@ -243,7 +243,7 @@ function ZohoSync() {
   const qc = useQueryClient();
   const sync = useServerFn(syncZohoCustomers);
   const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number } | null>(null);
+  const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number; pharmaciesCreated: number } | null>(null);
 
   const { data: customers } = useQuery({
     queryKey: ["zoho-customers"],
