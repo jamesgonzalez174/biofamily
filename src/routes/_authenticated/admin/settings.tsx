@@ -375,3 +375,108 @@ function ReprocessEvents() {
     </div>
   );
 }
+
+function SyncCustomers() {
+  const qc = useQueryClient();
+  const sync = useServerFn(syncZohoCustomers);
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState<{ fetched: number; upserted: number; errors: string[] } | null>(null);
+
+  const { data: customers } = useQuery({
+    queryKey: ["zoho-customers"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("zoho_customers")
+        .select("zoho_contact_id, email, full_name, company_name, loyalty_points, last_synced_at")
+        .order("last_synced_at", { ascending: false })
+        .limit(20);
+      return data ?? [];
+    },
+  });
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await sync({});
+      setLast({ fetched: res.fetched, upserted: res.upserted, errors: res.errors });
+      if (res.errors.length) toast.warning(`Synced ${res.upserted} (with ${res.errors.length} errors)`);
+      else toast.success(`Synced ${res.upserted} customers from Zoho`);
+      qc.invalidateQueries({ queryKey: ["zoho-customers"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Sync customers from Zoho</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pulls contacts from Zoho Books using your stored refresh token and stores them in the customers table.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+          {busy ? "Syncing…" : "Sync customers"}
+        </button>
+      </div>
+
+      {last && (
+        <div className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.fetched}</div>
+            <div className="text-xs text-muted-foreground">Fetched</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.upserted}</div>
+            <div className="text-xs text-muted-foreground">Saved</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.errors.length}</div>
+            <div className="text-xs text-muted-foreground">Errors</div>
+          </div>
+        </div>
+      )}
+
+      {last?.errors.length ? (
+        <ul className="mt-3 list-inside list-disc space-y-1 text-xs text-destructive">
+          {last.errors.map((er, i) => <li key={i}>{er}</li>)}
+        </ul>
+      ) : null}
+
+      {(customers ?? []).length > 0 && (
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="pb-2 pr-3">Name</th>
+                <th className="pb-2 pr-3">Company</th>
+                <th className="pb-2 pr-3">Email</th>
+                <th className="pb-2 pr-3 text-right">Loyalty pts</th>
+                <th className="pb-2 text-right">Synced</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers!.map((c: any) => (
+                <tr key={c.zoho_contact_id} className="border-t border-border">
+                  <td className="py-2 pr-3">{c.full_name ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{c.company_name ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{c.email ?? "—"}</td>
+                  <td className="py-2 pr-3 text-right">{c.loyalty_points ?? "—"}</td>
+                  <td className="py-2 text-right text-muted-foreground">{c.last_synced_at ? new Date(c.last_synced_at).toLocaleString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
