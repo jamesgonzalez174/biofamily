@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenticated/admin/prizes'
+import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_authenticated/admin/pharmacies'
 import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_authenticated/admin/fulfillment'
 
 const SignupRoute = SignupRouteImport.update({
@@ -96,6 +97,12 @@ const AuthenticatedAdminPrizesRoute =
     path: '/prizes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPharmaciesRoute =
+  AuthenticatedAdminPharmaciesRouteImport.update({
+    id: '/pharmacies',
+    path: '/pharmacies',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFulfillmentRoute =
   AuthenticatedAdminFulfillmentRouteImport.update({
     id: '/fulfillment',
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
@@ -145,6 +154,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/_authenticated/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/_authenticated/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/skus': typeof AuthenticatedAdminSkusRoute
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/admin/fulfillment'
+    | '/admin/pharmacies'
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/history'
     | '/admin/fulfillment'
+    | '/admin/pharmacies'
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
@@ -195,6 +207,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
     | '/_authenticated/admin/fulfillment'
+    | '/_authenticated/admin/pharmacies'
     | '/_authenticated/admin/prizes'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/skus'
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPrizesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/pharmacies': {
+      id: '/_authenticated/admin/pharmacies'
+      path: '/pharmacies'
+      fullPath: '/admin/pharmacies'
+      preLoaderRoute: typeof AuthenticatedAdminPharmaciesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/fulfillment': {
       id: '/_authenticated/admin/fulfillment'
       path: '/fulfillment'
@@ -323,6 +343,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFulfillmentRoute: typeof AuthenticatedAdminFulfillmentRoute
+  AuthenticatedAdminPharmaciesRoute: typeof AuthenticatedAdminPharmaciesRoute
   AuthenticatedAdminPrizesRoute: typeof AuthenticatedAdminPrizesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSkusRoute: typeof AuthenticatedAdminSkusRoute
@@ -332,6 +353,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFulfillmentRoute: AuthenticatedAdminFulfillmentRoute,
+  AuthenticatedAdminPharmaciesRoute: AuthenticatedAdminPharmaciesRoute,
   AuthenticatedAdminPrizesRoute: AuthenticatedAdminPrizesRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSkusRoute: AuthenticatedAdminSkusRoute,

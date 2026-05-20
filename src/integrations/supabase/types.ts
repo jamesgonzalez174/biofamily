@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      pharmacies: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       points_ledger: {
         Row: {
           created_at: string
@@ -88,6 +115,7 @@ export type Database = {
           full_name: string | null
           id: string
           lifetime_points: number
+          pharmacy_id: string | null
           points_balance: number
           tier: string
           updated_at: string
@@ -99,6 +127,7 @@ export type Database = {
           full_name?: string | null
           id: string
           lifetime_points?: number
+          pharmacy_id?: string | null
           points_balance?: number
           tier?: string
           updated_at?: string
@@ -110,11 +139,20 @@ export type Database = {
           full_name?: string | null
           id?: string
           lifetime_points?: number
+          pharmacy_id?: string | null
           points_balance?: number
           tier?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       redemptions: {
         Row: {
