@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Upload, Trash2, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Upload, Trash2, Image as ImageIcon, RefreshCw, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -246,6 +246,42 @@ function ZohoSync() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number; pharmaciesCreated: number } | null>(null);
 
+  const errorCard = (() => {
+    if (!syncError) return null;
+
+    if (syncError.toLowerCase().includes("invalid_code")) {
+      return {
+        title: "Zoho refresh token needs to be replaced",
+        description:
+          "The saved Zoho refresh token is no longer valid for this app or region, so sync cannot start.",
+        steps: [
+          "Generate a new refresh token from the same Zoho app.",
+          "Make sure it belongs to the same data center as your Zoho account.",
+          "Update the backend secret for the refresh token, then run sync again.",
+        ],
+      };
+    }
+
+    if (syncError.toLowerCase().includes("invalid_client")) {
+      return {
+        title: "Zoho app credentials need review",
+        description:
+          "The client ID or client secret stored for Zoho does not match the app that issued the refresh token.",
+        steps: [
+          "Re-copy the Zoho client ID exactly as shown in your Zoho app.",
+          "Re-copy the Zoho client secret without extra spaces.",
+          "Confirm the app and the selected data center are the same one used to create the refresh token.",
+        ],
+      };
+    }
+
+    return {
+      title: "Zoho sync could not complete",
+      description: syncError,
+      steps: [],
+    };
+  })();
+
   const { data: customers } = useQuery({
     queryKey: ["zoho-customers"],
     queryFn: async () => {
@@ -297,9 +333,24 @@ function ZohoSync() {
         </button>
       </div>
 
-      {syncError && (
-        <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {syncError}
+      {errorCard && (
+        <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0 space-y-2">
+              <p className="font-semibold leading-5">{errorCard.title}</p>
+              <p className="break-words leading-6 text-destructive/90">{errorCard.description}</p>
+              {errorCard.steps.length > 0 && (
+                <ol className="list-decimal space-y-1 pl-4 text-destructive/90">
+                  {errorCard.steps.map((step) => (
+                    <li key={step} className="break-words leading-6">
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
