@@ -243,6 +243,7 @@ function ZohoSync() {
   const qc = useQueryClient();
   const sync = useServerFn(syncZohoCustomers);
   const [busy, setBusy] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [last, setLast] = useState<{ totalFetched: number; totalUpserted: number; profilesUpdated: number; pharmaciesCreated: number } | null>(null);
 
   const { data: customers } = useQuery({
@@ -259,8 +260,14 @@ function ZohoSync() {
 
   const run = async () => {
     setBusy(true);
+    setSyncError(null);
     try {
       const res = await sync({});
+      if (!res.ok) {
+        setSyncError(res.error ?? "Sync failed");
+        toast.error(res.error ?? "Sync failed");
+        return;
+      }
       setLast({ totalFetched: res.totalFetched, totalUpserted: res.totalUpserted, profilesUpdated: res.profilesUpdated, pharmaciesCreated: res.pharmaciesCreated });
       toast.success(`Synced ${res.totalUpserted} of ${res.totalFetched} customers`);
       qc.invalidateQueries({ queryKey: ["zoho-customers"] });
@@ -289,6 +296,12 @@ function ZohoSync() {
           {busy ? "Syncing…" : "Sync customers"}
         </button>
       </div>
+
+      {syncError && (
+        <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {syncError}
+        </div>
+      )}
 
       {last && (
         <div className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
