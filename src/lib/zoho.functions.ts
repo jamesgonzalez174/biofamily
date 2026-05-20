@@ -97,6 +97,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
     let totalFetched = 0;
     let totalUpserted = 0;
     let profilesUpdated = 0;
+    let pharmaciesCreated = 0;
     const maxPages = 50;
 
     while (page <= maxPages) {
