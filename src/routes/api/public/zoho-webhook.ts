@@ -141,7 +141,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
             for (const r of recipients) {
               await supabaseAdmin.from("profiles").update({
                 points_balance: r.points_balance + share,
-                lifetime_points: r.lifetime_points + share,
+                lifetime_points: historyPoints !== null ? Math.floor(historyPoints) : r.lifetime_points + share,
               }).eq("id", r.id);
               await supabaseAdmin.from("points_ledger").insert({
                 user_id: r.id, delta: share,
