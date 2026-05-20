@@ -64,9 +64,8 @@ function SettingsPage() {
           </p>
         </section>
 
-        <section className="lg:col-span-2">
-          <ZohoSync />
-        </section>
+
+
 
         <section className="lg:col-span-2">
           <StatusManager />
