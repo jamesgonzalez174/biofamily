@@ -44,7 +44,7 @@ function Catalog() {
     setBusy(true);
     try {
       const res = await redeem({ data: { prizeId: selected.id } });
-      toast.success(`Redeemed ${selected.name}!`);
+      toast.success(`Reserved ${selected.name}! Points deduct when admin marks it claimed.`);
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["prizes"] });
       qc.invalidateQueries({ queryKey: ["redemptions"] });
@@ -134,10 +134,10 @@ function Catalog() {
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Balance after</span>
-              <span className="font-semibold tabular-nums">{(balance - selected.point_cost).toLocaleString()} pts</span>
+            <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              Points are reserved now and deducted from your balance once the admin marks your reward as <strong>claimed</strong>.
             </div>
+
             <div className="mt-6 flex gap-2">
               <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
               <button onClick={confirm} disabled={busy} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
