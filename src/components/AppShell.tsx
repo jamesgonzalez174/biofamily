@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin } from "lucide-react";
+import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin, Eye } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
 
   const nav = admin
     ? [
-        { to: "/admin", label: "Overview", icon: LayoutDashboard },
+        { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
         { to: "/admin/prizes", label: "Prizes", icon: Gift },
         { to: "/admin/fulfillment", label: "Fulfillment", icon: History },
         { to: "/admin/users", label: "Users", icon: ShieldCheck },
@@ -33,57 +33,90 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
     navigate({ to: "/login" });
   };
 
+  const isActive = (to: string, exact?: boolean) =>
+    exact ? loc.pathname === to : loc.pathname === to || loc.pathname.startsWith(to + "/");
+
+  const SidebarInner = () => (
+    <div className="flex h-full flex-col">
+      <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2 px-5 py-5">
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
+          <Sparkles className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <span className="font-semibold tracking-tight leading-tight">
+          Prizely{admin ? <span className="block text-xs font-normal text-muted-foreground">Admin</span> : ""}
+        </span>
+      </Link>
+
+      <nav className="flex-1 space-y-1 px-3">
+        {nav.map((n) => {
+          const active = isActive(n.to, (n as any).exact);
+          return (
+            <Link
+              key={n.to}
+              to={n.to}
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <n.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{n.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="space-y-1 border-t border-border p-3">
+        {isAdmin && !admin && (
+          <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            <ShieldCheck className="h-4 w-4" /> Admin
+          </Link>
+        )}
+        {admin && (
+          <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            <Eye className="h-4 w-4" /> User view
+          </Link>
+        )}
+        <button onClick={signOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold tracking-tight">Prizely{admin ? " · Admin" : ""}</span>
-          </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {nav.map((n) => {
-              const active = loc.pathname === n.to || (n.to !== "/admin" && loc.pathname.startsWith(n.to));
-              return (
-                <Link key={n.to} to={n.to} className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                  <n.icon className="h-4 w-4" />{n.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="flex items-center gap-2">
-            {isAdmin && !admin && (
-              <Link to="/admin" className="hidden rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted md:inline-flex">Admin</Link>
-            )}
-            {admin && (
-              <Link to="/dashboard" className="hidden rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted md:inline-flex">User view</Link>
-            )}
-            <button onClick={signOut} className="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex">
-              <LogOut className="h-4 w-4" /> Sign out
-            </button>
-            <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted md:hidden">
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-card/50 backdrop-blur md:block">
+        <SidebarInner />
+      </aside>
+
+      {/* Mobile header */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur md:hidden">
+        <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2">
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
-        </div>
-        {open && (
-          <div className="border-t border-border md:hidden">
-            <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-              {nav.map((n) => (
-                <Link key={n.to} to={n.to} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted">
-                  <n.icon className="h-4 w-4" />{n.label}
-                </Link>
-              ))}
-              <button onClick={signOut} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
-                <LogOut className="h-4 w-4" /> Sign out
-              </button>
-            </nav>
-          </div>
-        )}
+          <span className="font-semibold tracking-tight">Prizely{admin ? " · Admin" : ""}</span>
+        </Link>
+        <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">{children}</main>
+
+      {/* Mobile drawer */}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card md:hidden">
+            <SidebarInner />
+          </aside>
+        </>
+      )}
+
+      <main className="px-4 py-6 md:ml-64 md:px-8 md:py-10">
+        <div className="mx-auto max-w-6xl">{children}</div>
+      </main>
     </div>
   );
 }
