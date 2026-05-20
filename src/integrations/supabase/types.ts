@@ -214,6 +214,33 @@ export type Database = {
         }
         Relationships: []
       }
+      statuses: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
