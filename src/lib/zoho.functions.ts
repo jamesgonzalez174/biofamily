@@ -1,0 +1,172 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+async function assertAdmin(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) throw new Error("Forbidden");
+}
+
+async function getAccessToken(): Promise<{ token: string; domain: string }> {
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Missing Zoho credentials in backend secrets");
+  }
+
+  // Try multiple regional accounts endpoints (com, eu, in, com.au, jp)
+  const regions = [
+    { accounts: "https://accounts.zoho.com", api: "https://www.zohoapis.com" },
+    { accounts: "https://accounts.zoho.eu", api: "https://www.zohoapis.eu" },
+    { accounts: "https://accounts.zoho.in", api: "https://www.zohoapis.in" },
+    { accounts: "https://accounts.zoho.com.au", api: "https://www.zohoapis.com.au" },
+    { accounts: "https://accounts.zoho.jp", api: "https://www.zohoapis.jp" },
+  ];
+
+  let lastErr = "";
+  for (const r of regions) {
+    const params = new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "refresh_token",
+    });
+    const res = await fetch(`${r.accounts}/oauth/v2/token?${params.toString()}`, { method: "POST" });
+    const json: any = await res.json().catch(() => ({}));
+    if (res.ok && json.access_token) {
+      return { token: json.access_token, domain: r.api };
+    }
+    lastErr = `${r.accounts}: ${json.error ?? res.statusText}`;
+  }
+  throw new Error(`Failed to refresh Zoho token. ${lastErr}`);
+}
+
+function readCustomField(contact: any, ...names: string[]): number | null {
+  const wanted = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+  const fields: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  for (const cf of fields) {
+    const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+      .toLowerCase()
+      .replace(/[\s_-]/g, "");
+    if (wanted.includes(label)) {
+      const v = Number(cf?.value ?? cf?.value_formatted ?? 0);
+      if (!Number.isNaN(v)) return v;
+    }
+  }
+  for (const n of names) {
+    const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+    const v = contact?.[key];
+    if (v !== undefined && v !== null && v !== "") {
+      const num = Number(v);
+      if (!Number.isNaN(num)) return num;
+    }
+  }
+  return null;
+}
+
+export const syncZohoCustomers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    const orgId = process.env.ZOHO_ORGANIZATION_ID;
+    if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
+
+    const { token, domain } = await getAccessToken();
+
+    let page = 1;
+    let totalFetched = 0;
+    let totalUpserted = 0;
+    let profilesUpdated = 0;
+    const maxPages = 50;
+
+    while (page <= maxPages) {
+      const listUrl = `${domain}/books/v3/contacts?organization_id=${orgId}&contact_type=customer&page=${page}&per_page=200`;
+      const listRes = await fetch(listUrl, {
+        headers: { Authorization: `Zoho-oauthtoken ${token}` },
+      });
+      if (!listRes.ok) {
+        const text = await listRes.text();
+        throw new Error(`Zoho contacts list failed (${listRes.status}): ${text.slice(0, 200)}`);
+      }
+      const listJson: any = await listRes.json();
+      const contacts: any[] = listJson?.contacts ?? [];
+      if (contacts.length === 0) break;
+      totalFetched += contacts.length;
+
+      for (const c of contacts) {
+        // Fetch full contact to get custom fields
+        let full: any = c;
+        try {
+          const detailRes = await fetch(
+            `${domain}/books/v3/contacts/${c.contact_id}?organization_id=${orgId}`,
+            { headers: { Authorization: `Zoho-oauthtoken ${token}` } },
+          );
+          if (detailRes.ok) {
+            const dj: any = await detailRes.json();
+            full = dj?.contact ?? c;
+          }
+        } catch {
+          /* fall back to list payload */
+        }
+
+        const email = String(full?.email ?? c?.email ?? "").toLowerCase().trim() || null;
+        const fullName = full?.contact_name ?? c?.contact_name ?? null;
+        const company = full?.company_name ?? c?.company_name ?? null;
+        const loyalty = readCustomField(full, "Loyalty Points", "loyalty_points");
+        const history = readCustomField(full, "History Points", "history_points");
+
+        const { error: upErr } = await supabaseAdmin
+          .from("zoho_customers")
+          .upsert(
+            {
+              zoho_contact_id: String(c.contact_id),
+              email,
+              full_name: fullName,
+              company_name: company,
+              loyalty_points: loyalty,
+              history_points: history,
+              raw: full,
+              last_synced_at: new Date().toISOString(),
+            },
+            { onConflict: "zoho_contact_id" },
+          );
+        if (upErr) {
+          console.error("zoho_customers upsert failed", upErr);
+          continue;
+        }
+        totalUpserted++;
+
+        // If history_points is present and a matching profile exists, sync lifetime_points
+        if (email && history !== null) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("id, lifetime_points")
+            .ilike("email", email)
+            .maybeSingle();
+          if (profile) {
+            const hp = Math.floor(history);
+            if (profile.lifetime_points !== hp) {
+              await supabaseAdmin
+                .from("profiles")
+                .update({ lifetime_points: hp })
+                .eq("id", profile.id);
+              profilesUpdated++;
+            }
+          }
+        }
+      }
+
+      const hasMore = listJson?.page_context?.has_more_page === true;
+      if (!hasMore) break;
+      page++;
+    }
+
+    return { ok: true, totalFetched, totalUpserted, profilesUpdated };
+  });
