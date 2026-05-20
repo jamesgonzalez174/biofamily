@@ -16,7 +16,7 @@ async function getAccessToken(): Promise<{ token: string; domain: string }> {
   const clientId = process.env.ZOHO_CLIENT_ID?.trim();
   const clientSecret = process.env.ZOHO_CLIENT_SECRET?.trim();
   const refreshToken = process.env.ZOHO_REFRESH_TOKEN?.trim();
-  const dc = process.env.ZOHO_DC?.trim().toLowerCase();
+  const dc = process.env.ZOHO_DC?.trim().toLowerCase().replace(/^\.+/, "");
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing Zoho credentials in backend secrets");
   }
