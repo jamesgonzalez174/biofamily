@@ -22,27 +22,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
+    const fetchRoles = async (userId: string) => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      if (!mounted) return;
+      setRoles((data ?? []).map((r) => r.role as Role));
+    };
+
+    // Single source of truth: onAuthStateChange fires once with the initial
+    // session on subscribe, so we don't need a separate getSession() call.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
+      setLoading(false);
       if (s?.user) {
-        // defer role fetch
-        setTimeout(async () => {
-          const { data } = await supabase.from("user_roles").select("role").eq("user_id", s.user.id);
-          setRoles((data ?? []).map((r) => r.role as Role));
-        }, 0);
+        // defer to avoid deadlocks inside the auth callback
+        setTimeout(() => fetchRoles(s.user.id), 0);
       } else {
         setRoles([]);
       }
     });
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) {
-        const { data } = await supabase.from("user_roles").select("role").eq("user_id", s.user.id);
-        setRoles((data ?? []).map((r) => r.role as Role));
-      }
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
