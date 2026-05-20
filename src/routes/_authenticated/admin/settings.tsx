@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Upload, Trash2, Image as ImageIcon } from "lucide-react";
+import { Upload, Trash2, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { reprocessZohoEvents } from "@/lib/zoho.functions";
+
 
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
@@ -63,6 +66,11 @@ function SettingsPage() {
             Optional: add <code className="rounded bg-muted px-1">ZOHO_WEBHOOK_SECRET</code> in backend secrets, then send it in header <code className="rounded bg-muted px-1">x-zoho-webhook-secret</code>. If unset, the endpoint accepts all calls (use only for testing).
           </p>
         </section>
+
+        <section className="lg:col-span-2">
+          <ReprocessEvents />
+        </section>
+
 
 
 
@@ -239,3 +247,127 @@ function StatusManager() {
 
 
 
+
+function ReprocessEvents() {
+  const qc = useQueryClient();
+  const reprocess = useServerFn(reprocessZohoEvents);
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState<{
+    scanned: number;
+    processed: number;
+    pointsAwarded: number;
+    userNotFound: number;
+    noEmail: number;
+    failures: { eventId: string; reason: string }[];
+  } | null>(null);
+
+  const { data: events } = useQuery({
+    queryKey: ["zoho-events"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("zoho_events")
+        .select("event_id, event_type, customer_email, processed, points_awarded, error, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data ?? [];
+    },
+  });
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await reprocess({});
+      setLast({
+        scanned: res.scanned,
+        processed: res.processed,
+        pointsAwarded: res.pointsAwarded,
+        userNotFound: res.userNotFound,
+        noEmail: res.noEmail,
+        failures: res.failures,
+      });
+      toast.success(`Reprocessed ${res.processed} of ${res.scanned} events (+${res.pointsAwarded} points)`);
+      qc.invalidateQueries({ queryKey: ["zoho-events"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Reprocess failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Reprocess webhook events</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Re-run the points logic for unprocessed or failed Zoho webhook events. Use this when a payload arrived before the user existed, or after fixing SKU mappings.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+          {busy ? "Syncing…" : "Sync from webhook"}
+        </button>
+      </div>
+
+      {last && (
+        <div className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.scanned}</div>
+            <div className="text-xs text-muted-foreground">Scanned</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.processed}</div>
+            <div className="text-xs text-muted-foreground">Processed</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.pointsAwarded}</div>
+            <div className="text-xs text-muted-foreground">Points awarded</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-2xl font-semibold">{last.userNotFound + last.noEmail}</div>
+            <div className="text-xs text-muted-foreground">Skipped</div>
+          </div>
+        </div>
+      )}
+
+      {(events ?? []).length > 0 && (
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="pb-2 pr-3">When</th>
+                <th className="pb-2 pr-3">Event</th>
+                <th className="pb-2 pr-3">Email</th>
+                <th className="pb-2 pr-3">Status</th>
+                <th className="pb-2 text-right">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events!.map((e: any) => (
+                <tr key={e.event_id} className="border-t border-border">
+                  <td className="py-2 pr-3 text-muted-foreground">{new Date(e.created_at).toLocaleString()}</td>
+                  <td className="py-2 pr-3">{e.event_type ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{e.customer_email ?? "—"}</td>
+                  <td className="py-2 pr-3">
+                    {e.processed ? (
+                      <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">Processed</span>
+                    ) : e.error ? (
+                      <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">{e.error}</span>
+                    ) : (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Pending</span>
+                    )}
+                  </td>
+                  <td className="py-2 text-right">{e.points_awarded ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
