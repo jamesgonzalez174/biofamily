@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
         }
 
         // Find user by email
-        const { data: profile } = await supabaseAdmin.from("profiles").select("id, points_balance, lifetime_points").ilike("email", email).maybeSingle();
+        const { data: profile } = await supabaseAdmin.from("profiles").select("id, points_balance, lifetime_points, pharmacy_id").ilike("email", email).maybeSingle();
         if (!profile) {
           await supabaseAdmin.from("zoho_events").update({ error: "user not found" }).eq("event_id", eventId);
           return new Response(JSON.stringify({ ok: false, error: "User not found" }), { status: 200 });
@@ -90,15 +90,34 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
         }
 
         if (pointsAwarded > 0) {
-          await supabaseAdmin.from("profiles").update({
-            points_balance: profile.points_balance + pointsAwarded,
-            lifetime_points: profile.lifetime_points + pointsAwarded,
-          }).eq("id", profile.id);
-          await supabaseAdmin.from("points_ledger").insert({
-            user_id: profile.id, delta: pointsAwarded,
-            reason: `Zoho purchase (${breakdown.join(", ")})`,
-            source: "zoho", reference: eventId,
-          });
+          // Find all profiles in same pharmacy (including buyer). If buyer has no pharmacy, only buyer gets points.
+          let recipients: { id: string; points_balance: number; lifetime_points: number }[] = [];
+          if (profile.pharmacy_id) {
+            const { data: members } = await supabaseAdmin
+              .from("profiles")
+              .select("id, points_balance, lifetime_points")
+              .eq("pharmacy_id", profile.pharmacy_id);
+            recipients = members ?? [];
+          }
+          if (recipients.length === 0) {
+            recipients = [{ id: profile.id, points_balance: profile.points_balance, lifetime_points: profile.lifetime_points }];
+          }
+
+          const share = Math.floor(pointsAwarded / recipients.length);
+          if (share > 0) {
+            const splitNote = recipients.length > 1 ? ` — split across ${recipients.length} pharmacy members` : "";
+            for (const r of recipients) {
+              await supabaseAdmin.from("profiles").update({
+                points_balance: r.points_balance + share,
+                lifetime_points: r.lifetime_points + share,
+              }).eq("id", r.id);
+              await supabaseAdmin.from("points_ledger").insert({
+                user_id: r.id, delta: share,
+                reason: `Zoho purchase (${breakdown.join(", ")})${splitNote}`,
+                source: "zoho", reference: eventId,
+              });
+            }
+          }
         }
 
         await supabaseAdmin.from("zoho_events").update({ processed: true, points_awarded: pointsAwarded }).eq("event_id", eventId);
