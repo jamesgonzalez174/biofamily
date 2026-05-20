@@ -63,7 +63,39 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
         let pointsAwarded = 0;
         const breakdown: string[] = [];
 
-        if (lineItems.length > 0) {
+        // Read Zoho customer custom fields: "Loyalty Points" (to award/divide) and "History Points" (lifetime total).
+        const contact = invoice?.contact ?? invoice?.customer ?? invoice ?? {};
+        const customerCustomFields: any[] = [
+          ...(Array.isArray(contact?.custom_fields) ? contact.custom_fields : []),
+          ...(Array.isArray(invoice?.custom_fields) ? invoice.custom_fields : []),
+        ];
+        const readCF = (...names: string[]): number | null => {
+          const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+          for (const cf of customerCustomFields) {
+            const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "").toLowerCase().replace(/[\s_-]/g, "");
+            if (lower.includes(label)) {
+              const v = Number(cf?.value ?? cf?.value_formatted ?? 0);
+              if (!Number.isNaN(v)) return v;
+            }
+          }
+          for (const n of names) {
+            const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+            const v = contact?.[key] ?? invoice?.[key];
+            if (v !== undefined && v !== null && v !== "") {
+              const num = Number(v);
+              if (!Number.isNaN(num)) return num;
+            }
+          }
+          return null;
+        };
+
+        const loyaltyPoints = readCF("Loyalty Points", "loyalty_points", "LoyaltyPoints");
+        const historyPoints = readCF("History Points", "history_points", "HistoryPoints");
+
+        if (loyaltyPoints !== null && loyaltyPoints > 0) {
+          pointsAwarded = Math.floor(loyaltyPoints);
+          breakdown.push(`Loyalty Points = ${pointsAwarded}`);
+        } else if (lineItems.length > 0) {
           const skus = lineItems.map((li) => String(li.sku ?? li.item_sku ?? "")).filter(Boolean);
           if (skus.length > 0) {
             const { data: mappings } = await supabaseAdmin.from("sku_points").select("*").in("sku", skus).eq("is_active", true);
@@ -81,7 +113,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
           }
         }
 
-        if (pointsAwarded === 0) {
+        if (pointsAwarded === 0 && loyaltyPoints === null) {
           const { data: settings } = await supabaseAdmin.from("settings").select("*").eq("id", 1).single();
           if (settings?.enable_invoice_total_fallback && total > 0) {
             pointsAwarded = Math.floor(total * Number(settings.points_per_dollar));
