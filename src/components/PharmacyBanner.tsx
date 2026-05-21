@@ -75,6 +75,16 @@ export function PharmacyBanner() {
                 {saving ? "Saving…" : "Save"}
               </button>
             </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
+                <div className="text-sm font-semibold tabular-nums">{profile.lifetime_points.toLocaleString()}</div>
+              </div>
+              <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
+                <div className="text-sm font-semibold tabular-nums">{profile.points_balance.toLocaleString()}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -84,13 +94,23 @@ export function PharmacyBanner() {
   // Has pharmacy — compact chip with change action
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-soft">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-accent-foreground">
           <MapPin className="h-3.5 w-3.5" />
         </div>
         <div>
           <span className="text-xs text-muted-foreground">Your pharmacy</span>
           <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
+            <div className="text-sm font-semibold tabular-nums">{profile.lifetime_points.toLocaleString()}</div>
+          </div>
+          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
+            <div className="text-sm font-semibold tabular-nums">{profile.points_balance.toLocaleString()}</div>
+          </div>
         </div>
       </div>
       {picking ? (
