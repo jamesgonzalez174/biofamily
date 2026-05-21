@@ -80,10 +80,10 @@ function Catalog() {
             const afford = balance >= p.point_cost && p.stock > 0;
             return (
               <button
-                key={p.id} onClick={() => afford && setSelected(p)}
-                className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-card text-left shadow-soft transition ${afford ? "hover:-translate-y-0.5 hover:shadow-glow cursor-pointer" : "opacity-70"}`}
+                key={p.id} onClick={() => setSelected(p)}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-gradient-card text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-glow cursor-pointer"
               >
-                <div className="aspect-[5/3] w-full bg-muted">
+                <div className="relative aspect-[5/3] w-full bg-muted">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
                   ) : (
@@ -92,9 +92,9 @@ function Catalog() {
                     </div>
                   )}
                   {!afford && (
-                    <div className="absolute inset-0 grid place-items-center bg-black/40 backdrop-blur-sm">
-                      <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-foreground">
-                        <Lock className="h-3.5 w-3.5" />
+                    <div className="absolute right-2 top-2">
+                      <div className="flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                        <Lock className="h-3 w-3" />
                         {p.stock <= 0 ? "Out of stock" : `${(p.point_cost - balance).toLocaleString()} more pts`}
                       </div>
                     </div>
@@ -135,13 +135,15 @@ function Catalog() {
               </div>
             </div>
             <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              Points are reserved now and deducted from your balance once the admin marks your reward as <strong>claimed</strong>.
+              {balance < selected.point_cost
+                ? `You need ${(selected.point_cost - balance).toLocaleString()} more points to redeem this prize.`
+                : "Points are reserved now and deducted from your balance once the admin marks your reward as claimed."}
             </div>
 
             <div className="mt-6 flex gap-2">
               <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
-              <button onClick={confirm} disabled={busy} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
-                {busy ? "Redeeming…" : "Confirm"}
+              <button onClick={confirm} disabled={busy || balance < selected.point_cost || selected.stock <= 0} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
+                {busy ? "Redeeming…" : balance < selected.point_cost ? "Not enough points" : "Confirm"}
               </button>
             </div>
           </div>
