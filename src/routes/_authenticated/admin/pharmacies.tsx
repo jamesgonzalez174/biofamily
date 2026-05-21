@@ -167,33 +167,47 @@ function PharmaciesPage() {
         </div>
 
         <div className="space-y-2">
+          {(items ?? []).length > 0 && (
+            <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_auto] items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+              <div>Pharmacy</div>
+              <div className="text-right">History</div>
+              <div className="text-right">Loyalty</div>
+              <div className="text-right">Actions</div>
+            </div>
+          )}
           {(items ?? []).length === 0 && <p className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">No pharmacies yet.</p>}
           {items?.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className={`grid h-9 w-9 place-items-center rounded-lg ${p.is_active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
-                  <MapPin className="h-4 w-4" />
+            <div key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_120px_auto] md:items-center">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`grid h-9 w-9 place-items-center rounded-lg ${p.is_active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{p.name}</div>
+                    {p.address && <div className="truncate text-xs text-muted-foreground">{p.address}</div>}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{p.name}</div>
-                  {p.address && <div className="truncate text-xs text-muted-foreground">{p.address}</div>}
+
+                <div className="grid grid-cols-2 gap-3 md:contents">
+                  <div className="rounded-lg bg-muted/50 px-3 py-2 md:rounded-none md:bg-transparent md:px-0 md:py-0 md:text-right">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">History</div>
+                    <div className="text-sm font-semibold tabular-nums">{p.history_points.toLocaleString()}</div>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 px-3 py-2 md:rounded-none md:bg-transparent md:px-0 md:py-0 md:text-right">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">Loyalty</div>
+                    <div className="text-sm font-semibold tabular-nums">{p.loyalty_points.toLocaleString()}</div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="hidden text-right sm:block">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
-                  <div className="text-sm font-semibold tabular-nums">{p.history_points.toLocaleString()}</div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                    {p.is_active ? "Disable" : "Enable"}
+                  </button>
+                  <button onClick={() => remove(p.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="hidden text-right sm:block">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
-                  <div className="text-sm font-semibold tabular-nums">{p.loyalty_points.toLocaleString()}</div>
-                </div>
-                <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
-                  {p.is_active ? "Disable" : "Enable"}
-                </button>
-                <button onClick={() => remove(p.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </div>
             </div>
           ))}
