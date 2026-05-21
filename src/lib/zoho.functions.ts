@@ -239,7 +239,7 @@ export const reprocessZohoEvents = createServerFn({ method: "POST" })
 
     for (const ev of events ?? []) {
       try {
-        const res = await processZohoPayload(ev.payload);
+        const res = await processZohoPayload(ev.payload, ev.event_id ?? undefined);
         if (res.ok) {
           processed++;
           totalPoints += res.pointsAwarded;
