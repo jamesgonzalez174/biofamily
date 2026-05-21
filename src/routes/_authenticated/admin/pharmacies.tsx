@@ -234,6 +234,7 @@ function PharmaciesPage() {
                     className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
                   >
                     <Coins className="h-3.5 w-3.5" /> Points
+                  </button>
                   <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                     {p.is_active ? "Disable" : "Enable"}
                   </button>
