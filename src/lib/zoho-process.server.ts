@@ -148,13 +148,30 @@ export async function processZohoPayload(
     if (share > 0) {
       const splitNote = recipients.length > 1 ? ` — split across ${recipients.length} pharmacy members` : "";
       for (const r of recipients) {
+        // Only the invoice owner's lifetime_points should be synced from Zoho's
+        // History Points; other pharmacy members keep their own lifetime total.
+        const isOwner = r.id === profile.id;
         await supabaseAdmin
           .from("profiles")
           .update({
             points_balance: r.points_balance + share,
-            lifetime_points: historyPoints !== null ? Math.floor(historyPoints) : r.lifetime_points + share,
+            lifetime_points:
+              isOwner && historyPoints !== null
+                ? Math.floor(historyPoints)
+                : r.lifetime_points + share,
           })
           .eq("id", r.id);
+
+        // Skip if a ledger row already exists (unique index also enforces this).
+        const { data: existingLedger } = await supabaseAdmin
+          .from("points_ledger")
+          .select("id")
+          .eq("source", "zoho")
+          .eq("reference", eventId)
+          .eq("user_id", r.id)
+          .maybeSingle();
+        if (existingLedger) continue;
+
         await supabaseAdmin.from("points_ledger").insert({
           user_id: r.id,
           delta: share,
@@ -165,6 +182,7 @@ export async function processZohoPayload(
       }
     }
   }
+
 
   await supabaseAdmin
     .from("zoho_events")
