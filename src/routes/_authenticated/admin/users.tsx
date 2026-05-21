@@ -51,6 +51,13 @@ function UsersPage() {
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
+  const changePharmacy = async (userId: string, pharmacyId: string) => {
+    const { error } = await supabase.from("profiles").update({ pharmacy_id: pharmacyId || null }).eq("id", userId);
+    if (error) return toast.error(error.message);
+    toast.success("Pharmacy updated");
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
   const submitAdjust = async () => {
     if (!adj || delta === 0 || !reason.trim()) return;
     try {
