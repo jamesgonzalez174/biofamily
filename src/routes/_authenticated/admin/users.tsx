@@ -64,9 +64,15 @@ function UsersPage() {
   return (
     <AppShell admin>
       <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
-      <p className="text-sm text-muted-foreground">Adjust balances and manage admin access.</p>
+      <p className="text-sm text-muted-foreground">Adjust loyalty balances and manage admin access.</p>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      {currentPharmacy && (
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+          <span>Filtered to <span className="font-semibold">{currentPharmacy.name}</span> — {users?.length ?? 0} member{users?.length === 1 ? "" : "s"}</span>
+          <button onClick={() => navigate({ search: {} })} className="text-xs font-medium text-primary hover:underline">Clear filter</button>
+        </div>
+      )}
+
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="p-3">User</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
