@@ -92,16 +92,6 @@ export function PharmacyBanner() {
           <span className="text-xs text-muted-foreground">Your pharmacy</span>
           <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
-            <div className="text-sm font-semibold tabular-nums">{profile.lifetime_points.toLocaleString()}</div>
-          </div>
-          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
-            <div className="text-sm font-semibold tabular-nums">{profile.points_balance.toLocaleString()}</div>
-          </div>
-        </div>
       </div>
       {picking ? (
         <div className="flex items-center gap-2">
