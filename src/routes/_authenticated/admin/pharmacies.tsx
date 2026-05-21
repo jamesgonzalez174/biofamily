@@ -55,6 +55,21 @@ function PharmaciesPage() {
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const setTotal = useServerFn(setPharmacyTotal);
+  const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
+  const [newTotal, setNewTotal] = useState(0);
+  const [reason, setReason] = useState("");
+
+  const submitTotal = async () => {
+    if (!adj || !reason.trim()) return;
+    try {
+      await setTotal({ data: { pharmacyId: adj.id, newTotal, reason } });
+      toast.success("Pharmacy points redistributed");
+      setAdj(null); setNewTotal(0); setReason("");
+      qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
+  };
 
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
