@@ -247,6 +247,33 @@ function PharmaciesPage() {
           ))}
         </div>
       </div>
+
+      {adj && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAdj(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Set pharmacy total</h2>
+              <button onClick={() => setAdj(null)} className="rounded-lg p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{adj.name} — {adj.members} member{adj.members === 1 ? "" : "s"} · current {adj.current.toLocaleString()}</p>
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">New total points</span>
+                <input type="number" min={0} value={newTotal} onChange={(e) => setNewTotal(Math.max(0, Number(e.target.value)))} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-center text-lg font-semibold tabular-nums" />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Splits evenly: ~{Math.floor(newTotal / Math.max(1, adj.members)).toLocaleString()} per member
+                {newTotal % adj.members !== 0 && ` (+1 to first ${newTotal % adj.members})`}
+              </p>
+              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button onClick={() => setAdj(null)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
+              <button onClick={submitTotal} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
