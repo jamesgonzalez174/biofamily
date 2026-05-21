@@ -22,6 +22,7 @@ export type Database = {
           is_active: boolean
           name: string
           updated_at: string
+          zoho_contact_id: string | null
         }
         Insert: {
           address?: string | null
@@ -30,6 +31,7 @@ export type Database = {
           is_active?: boolean
           name: string
           updated_at?: string
+          zoho_contact_id?: string | null
         }
         Update: {
           address?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           updated_at?: string
+          zoho_contact_id?: string | null
         }
         Relationships: []
       }

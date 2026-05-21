@@ -193,6 +193,28 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
             .upsert(rows, { onConflict: "zoho_contact_id" });
           if (error) errors.push(`page ${page} upsert: ${error.message}`);
           else upserted += rows.length;
+
+          // Also mirror each Zoho contact into the pharmacies table so every
+          // synced customer shows up as a pharmacy. Dedupe via zoho_contact_id.
+          const pharmacyRows = contacts
+            .map((c) => {
+              const name = (c.company_name || c.contact_name || "").toString().trim();
+              if (!name) return null;
+              return {
+                zoho_contact_id: String(c.contact_id),
+                name,
+                address: c.billing_address?.address || null,
+                is_active: true,
+              };
+            })
+            .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean } => r !== null);
+
+          if (pharmacyRows.length > 0) {
+            const { error: pErr } = await supabaseAdmin
+              .from("pharmacies")
+              .upsert(pharmacyRows, { onConflict: "zoho_contact_id" });
+            if (pErr) errors.push(`page ${page} pharmacies upsert: ${pErr.message}`);
+          }
         }
 
         const hasMore = json.page_context?.has_more_page;
