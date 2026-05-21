@@ -197,14 +197,6 @@ function PharmaciesPage() {
               </div>
             </div>
           ))}
-                  {p.is_active ? "Disable" : "Enable"}
-                </button>
-                <button onClick={() => remove(p.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </AppShell>
