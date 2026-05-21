@@ -5,7 +5,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * Idempotent — if the event is already processed, returns early.
  * Returns a short status string + points awarded (or 0 / -1 on skip/error).
  */
-export async function processZohoPayload(payload: any): Promise<{
+export async function processZohoPayload(
+  payload: any,
+  eventIdOverride?: string,
+): Promise<{
   ok: boolean;
   status: string;
   pointsAwarded: number;
@@ -14,7 +17,11 @@ export async function processZohoPayload(payload: any): Promise<{
 }> {
   const invoice = payload?.invoice ?? payload?.payment ?? payload;
   const eventId = String(
-    invoice?.invoice_id ?? invoice?.payment_id ?? payload?.event_id ?? crypto.randomUUID(),
+    eventIdOverride ??
+      invoice?.invoice_id ??
+      invoice?.payment_id ??
+      payload?.event_id ??
+      crypto.randomUUID(),
   );
   const email = (invoice?.email ?? invoice?.customer_email ?? invoice?.contact?.email ?? "")
     .toString()
@@ -23,10 +30,27 @@ export async function processZohoPayload(payload: any): Promise<{
   const lineItems: any[] = invoice?.line_items ?? invoice?.invoice_items ?? [];
   const total = Number(invoice?.total ?? invoice?.amount ?? 0);
 
+  // Idempotency guard — never double-credit on retries / reprocess
+  const { data: existingEvent } = await supabaseAdmin
+    .from("zoho_events")
+    .select("processed, points_awarded")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (existingEvent?.processed) {
+    return {
+      ok: true,
+      status: "already processed",
+      pointsAwarded: existingEvent.points_awarded ?? 0,
+      email,
+      eventId,
+    };
+  }
+
   if (!email) {
     await supabaseAdmin.from("zoho_events").update({ error: "no email" }).eq("event_id", eventId);
     return { ok: false, status: "no email", pointsAwarded: 0, eventId };
   }
+
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
@@ -124,13 +148,30 @@ export async function processZohoPayload(payload: any): Promise<{
     if (share > 0) {
       const splitNote = recipients.length > 1 ? ` — split across ${recipients.length} pharmacy members` : "";
       for (const r of recipients) {
+        // Only the invoice owner's lifetime_points should be synced from Zoho's
+        // History Points; other pharmacy members keep their own lifetime total.
+        const isOwner = r.id === profile.id;
         await supabaseAdmin
           .from("profiles")
           .update({
             points_balance: r.points_balance + share,
-            lifetime_points: historyPoints !== null ? Math.floor(historyPoints) : r.lifetime_points + share,
+            lifetime_points:
+              isOwner && historyPoints !== null
+                ? Math.floor(historyPoints)
+                : r.lifetime_points + share,
           })
           .eq("id", r.id);
+
+        // Skip if a ledger row already exists (unique index also enforces this).
+        const { data: existingLedger } = await supabaseAdmin
+          .from("points_ledger")
+          .select("id")
+          .eq("source", "zoho")
+          .eq("reference", eventId)
+          .eq("user_id", r.id)
+          .maybeSingle();
+        if (existingLedger) continue;
+
         await supabaseAdmin.from("points_ledger").insert({
           user_id: r.id,
           delta: share,
@@ -141,6 +182,7 @@ export async function processZohoPayload(payload: any): Promise<{
       }
     }
   }
+
 
   await supabaseAdmin
     .from("zoho_events")

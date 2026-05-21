@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
           return new Response(JSON.stringify({ ok: true, skipped: "already processed" }), { status: 200 });
         }
 
-        const result = await processZohoPayload(payload);
+        const result = await processZohoPayload(payload, eventId);
 
         return new Response(
           JSON.stringify({ ok: result.ok, status: result.status, pointsAwarded: result.pointsAwarded }),
