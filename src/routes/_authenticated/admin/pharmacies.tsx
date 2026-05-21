@@ -77,7 +77,27 @@ function PharmaciesPage() {
 
   const { data: items } = useQuery({
     queryKey: ["admin-pharmacies"],
-    queryFn: async () => (await supabase.from("pharmacies").select("*").order("name")).data ?? [],
+    queryFn: async () => {
+      const [pharmRes, profRes] = await Promise.all([
+        supabase.from("pharmacies").select("*").order("name"),
+        supabase.from("profiles").select("pharmacy_id, points_balance, lifetime_points"),
+      ]);
+      const totals = new Map<string, { loyalty: number; history: number; members: number }>();
+      (profRes.data ?? []).forEach((p: any) => {
+        if (!p.pharmacy_id) return;
+        const t = totals.get(p.pharmacy_id) ?? { loyalty: 0, history: 0, members: 0 };
+        t.loyalty += p.points_balance ?? 0;
+        t.history += p.lifetime_points ?? 0;
+        t.members += 1;
+        totals.set(p.pharmacy_id, t);
+      });
+      return (pharmRes.data ?? []).map((ph: any) => ({
+        ...ph,
+        loyalty_points: totals.get(ph.id)?.loyalty ?? 0,
+        history_points: totals.get(ph.id)?.history ?? 0,
+        member_count: totals.get(ph.id)?.members ?? 0,
+      }));
+    },
   });
 
   const create = async (e: React.FormEvent) => {
@@ -150,16 +170,24 @@ function PharmaciesPage() {
           {(items ?? []).length === 0 && <p className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">No pharmacies yet.</p>}
           {items?.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className={`grid h-9 w-9 place-items-center rounded-lg ${p.is_active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
                   <MapPin className="h-4 w-4" />
                 </div>
-                <div>
-                  <div className="font-medium">{p.name}</div>
-                  {p.address && <div className="text-xs text-muted-foreground">{p.address}</div>}
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{p.name}</div>
+                  {p.address && <div className="truncate text-xs text-muted-foreground">{p.address}</div>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <div className="hidden text-right sm:block">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
+                  <div className="text-sm font-semibold tabular-nums">{p.history_points.toLocaleString()}</div>
+                </div>
+                <div className="hidden text-right sm:block">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
+                  <div className="text-sm font-semibold tabular-nums">{p.loyalty_points.toLocaleString()}</div>
+                </div>
                 <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                   {p.is_active ? "Disable" : "Enable"}
                 </button>
