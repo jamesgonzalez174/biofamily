@@ -186,7 +186,7 @@ function PharmaciesPage() {
 
         <div className="space-y-2 lg:col-span-2">
           {(items ?? []).length > 0 && (
-            <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_auto] items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_auto] items-center gap-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
               <div>Pharmacy</div>
               <div className="text-right">History</div>
               <div className="text-right">Loyalty</div>
