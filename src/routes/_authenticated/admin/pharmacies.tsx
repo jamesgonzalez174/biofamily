@@ -227,6 +227,13 @@ function PharmaciesPage() {
                   >
                     <Users className="h-3.5 w-3.5" /> Members
                   </Link>
+                  <button
+                    onClick={() => { setAdj({ id: p.id, name: p.name, current: p.loyalty_points, members: p.member_count }); setNewTotal(p.loyalty_points); }}
+                    disabled={p.member_count === 0}
+                    title={p.member_count === 0 ? "No members assigned" : "Set pharmacy total — splits evenly across members"}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                  >
+                    <Coins className="h-3.5 w-3.5" /> Points
                   <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                     {p.is_active ? "Disable" : "Enable"}
                   </button>
