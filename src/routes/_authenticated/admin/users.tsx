@@ -51,6 +51,13 @@ function UsersPage() {
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
+  const changePharmacy = async (userId: string, pharmacyId: string) => {
+    const { error } = await supabase.from("profiles").update({ pharmacy_id: pharmacyId || null }).eq("id", userId);
+    if (error) return toast.error(error.message);
+    toast.success("Pharmacy updated");
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
   const submitAdjust = async () => {
     if (!adj || delta === 0 || !reason.trim()) return;
     try {
@@ -78,7 +85,7 @@ function UsersPage() {
 
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="p-3">User</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
+            <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
           </thead>
           <tbody>
             {(users ?? []).map((u: any) => {
@@ -88,6 +95,18 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="font-medium">{u.full_name || "—"}</div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
+                  </td>
+                  <td className="p-3">
+                    <select
+                      value={u.pharmacy_id ?? ""}
+                      onChange={(e) => changePharmacy(u.id, e.target.value)}
+                      className="rounded-lg border border-input bg-background px-2 py-1 text-xs max-w-[160px]"
+                    >
+                      <option value="">— None —</option>
+                      {(pharmacies ?? []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="p-3">{u.tier}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
@@ -102,7 +121,7 @@ function UsersPage() {
                 </tr>
               );
             })}
-            {(users ?? []).length === 0 && <tr><td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+            {(users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
           </tbody>
         </table>
       </div>
