@@ -129,6 +129,22 @@ function PharmaciesPage() {
           </div>
         </form>
 
+        <div className="rounded-2xl border border-dashed border-border bg-card p-5 shadow-soft lg:col-start-1">
+          <h2 className="font-semibold">Bulk import (CSV)</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Upload a CSV with columns <code className="rounded bg-muted px-1">name</code> and optional <code className="rounded bg-muted px-1">address</code>. First row can be a header.
+          </p>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleFile} className="hidden" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+          >
+            <Upload className="h-4 w-4" /> {importing ? "Importing…" : "Upload CSV"}
+          </button>
+        </div>
+
         <div className="space-y-2">
           {(items ?? []).length === 0 && <p className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">No pharmacies yet.</p>}
           {items?.map((p) => (
