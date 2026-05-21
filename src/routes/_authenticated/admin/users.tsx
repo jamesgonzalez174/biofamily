@@ -1,18 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Shield, ShieldOff, Plus, Minus, X } from "lucide-react";
+import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listUsers, adjustPoints, setUserRole } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
+  validateSearch: z.object({ pharmacy: z.string().uuid().optional() }),
   component: UsersPage,
 });
 
 function UsersPage() {
   const qc = useQueryClient();
+  const { pharmacy } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const fetchUsers = useServerFn(listUsers);
   const adjust = useServerFn(adjustPoints);
   const setRole = useServerFn(setUserRole);
@@ -20,10 +25,25 @@ function UsersPage() {
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
 
-  const { data: users } = useQuery({
+  const { data: allUsers } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
   });
+
+  const { data: pharmacies } = useQuery({
+    queryKey: ["pharmacies-all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pharmacies").select("id, name").order("name");
+      return data ?? [];
+    },
+  });
+
+  const users = useMemo(
+    () => (pharmacy ? (allUsers ?? []).filter((u: any) => u.pharmacy_id === pharmacy) : allUsers),
+    [allUsers, pharmacy],
+  );
+  const currentPharmacy = pharmacies?.find((p) => p.id === pharmacy);
+
 
   const toggleAdmin = async (id: string, isAdmin: boolean) => {
     await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
@@ -44,9 +64,18 @@ function UsersPage() {
   return (
     <AppShell admin>
       <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
-      <p className="text-sm text-muted-foreground">Adjust balances and manage admin access.</p>
+      <p className="text-sm text-muted-foreground">Adjust loyalty balances and manage admin access.</p>
+
+      {currentPharmacy && (
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+          <span>Filtered to <span className="font-semibold">{currentPharmacy.name}</span> — {users?.length ?? 0} member{users?.length === 1 ? "" : "s"}</span>
+          <button onClick={() => navigate({ search: {} })} className="text-xs font-medium text-primary hover:underline">Clear filter</button>
+        </div>
+      )}
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+
+
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="p-3">User</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
