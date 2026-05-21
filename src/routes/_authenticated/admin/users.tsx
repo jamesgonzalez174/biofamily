@@ -73,6 +73,9 @@ function UsersPage() {
         </div>
       )}
 
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+
+
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="p-3">User</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
