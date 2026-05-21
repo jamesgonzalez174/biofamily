@@ -135,13 +135,15 @@ function Catalog() {
               </div>
             </div>
             <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              Points are reserved now and deducted from your balance once the admin marks your reward as <strong>claimed</strong>.
+              {balance < selected.point_cost
+                ? `You need ${(selected.point_cost - balance).toLocaleString()} more points to redeem this prize.`
+                : "Points are reserved now and deducted from your balance once the admin marks your reward as claimed."}
             </div>
 
             <div className="mt-6 flex gap-2">
               <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
-              <button onClick={confirm} disabled={busy} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
-                {busy ? "Redeeming…" : "Confirm"}
+              <button onClick={confirm} disabled={busy || balance < selected.point_cost || selected.stock <= 0} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
+                {busy ? "Redeeming…" : balance < selected.point_cost ? "Not enough points" : "Confirm"}
               </button>
             </div>
           </div>
