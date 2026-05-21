@@ -24,13 +24,22 @@ function SettingsPage() {
 
   const [rate, setRate] = useState<number>(1);
   const [fallback, setFallback] = useState<boolean>(true);
+  const [expireAt, setExpireAt] = useState<string>("");
 
   useEffect(() => {
-    if (settings) { setRate(Number(settings.points_per_dollar)); setFallback(settings.enable_invoice_total_fallback); }
+    if (settings) {
+      setRate(Number(settings.points_per_dollar));
+      setFallback(settings.enable_invoice_total_fallback);
+      setExpireAt((settings as any).points_expire_at ? new Date((settings as any).points_expire_at).toISOString().slice(0, 10) : "");
+    }
   }, [settings]);
 
   const save = async () => {
-    const { error } = await supabase.from("settings").update({ points_per_dollar: rate, enable_invoice_total_fallback: fallback }).eq("id", 1);
+    const { error } = await supabase.from("settings").update({
+      points_per_dollar: rate,
+      enable_invoice_total_fallback: fallback,
+      points_expire_at: expireAt ? new Date(expireAt).toISOString() : null,
+    } as any).eq("id", 1);
     if (error) return toast.error(error.message);
     toast.success("Saved");
     qc.invalidateQueries({ queryKey: ["settings"] });
@@ -53,6 +62,16 @@ function SettingsPage() {
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={fallback} onChange={(e) => setFallback(e.target.checked)} /> Use invoice-total fallback when no SKU matches
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Points expiration date</span>
+              <div className="flex items-center gap-2">
+                <input type="date" value={expireAt} onChange={(e) => setExpireAt(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                {expireAt && (
+                  <button type="button" onClick={() => setExpireAt("")} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+                )}
+              </div>
+              <span className="mt-1 block text-xs text-muted-foreground">All accumulated points expire on this date. Leave empty for no expiration.</span>
             </label>
             <button onClick={save} className="mt-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">Save</button>
           </div>

@@ -205,18 +205,21 @@ export type Database = {
         Row: {
           enable_invoice_total_fallback: boolean
           id: number
+          points_expire_at: string | null
           points_per_dollar: number
           updated_at: string
         }
         Insert: {
           enable_invoice_total_fallback?: boolean
           id?: number
+          points_expire_at?: string | null
           points_per_dollar?: number
           updated_at?: string
         }
         Update: {
           enable_invoice_total_fallback?: boolean
           id?: number
+          points_expire_at?: string | null
           points_per_dollar?: number
           updated_at?: string
         }
