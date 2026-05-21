@@ -121,7 +121,7 @@ function UsersPage() {
                 </tr>
               );
             })}
-            {(users ?? []).length === 0 && <tr><td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+            {(users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
           </tbody>
         </table>
       </div>
