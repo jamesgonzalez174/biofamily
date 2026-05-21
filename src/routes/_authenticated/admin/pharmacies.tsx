@@ -10,6 +10,41 @@ export const Route = createFileRoute("/_authenticated/admin/pharmacies")({
   component: PharmaciesPage,
 });
 
+function parseCSV(text: string): Array<{ name: string; address: string | null }> {
+  const rows: Array<Array<string>> = [];
+  let cur: Array<string> = [];
+  let field = "";
+  let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ",") { cur.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (field.length || cur.length) { cur.push(field); rows.push(cur); cur = []; field = ""; }
+        if (c === "\r" && text[i + 1] === "\n") i++;
+      } else field += c;
+    }
+  }
+  if (field.length || cur.length) { cur.push(field); rows.push(cur); }
+  if (!rows.length) return [];
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const nameIdx = header.indexOf("name");
+  const addrIdx = header.indexOf("address");
+  const hasHeader = nameIdx !== -1;
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  return dataRows
+    .map((r) => ({
+      name: (hasHeader ? r[nameIdx] : r[0])?.trim() || "",
+      address: (hasHeader && addrIdx !== -1 ? r[addrIdx] : r[1])?.trim() || null,
+    }))
+    .filter((p) => p.name);
+}
+
 function PharmaciesPage() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
@@ -18,40 +53,6 @@ function PharmaciesPage() {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const parseCSV = (text: string): { name: string; address: string | null }[] => {
-    const rows: string[][] = [];
-    let cur: string[] = [];
-    let field = "";
-    let inQ = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (inQ) {
-        if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-        else if (c === '"') inQ = false;
-        else field += c;
-      } else {
-        if (c === '"') inQ = true;
-        else if (c === ",") { cur.push(field); field = ""; }
-        else if (c === "\n" || c === "\r") {
-          if (field.length || cur.length) { cur.push(field); rows.push(cur); cur = []; field = ""; }
-          if (c === "\r" && text[i + 1] === "\n") i++;
-        } else field += c;
-      }
-    }
-    if (field.length || cur.length) { cur.push(field); rows.push(cur); }
-    if (!rows.length) return [];
-    const header = rows[0].map((h) => h.trim().toLowerCase());
-    const nameIdx = header.indexOf("name");
-    const addrIdx = header.indexOf("address");
-    const hasHeader = nameIdx !== -1;
-    const dataRows = hasHeader ? rows.slice(1) : rows;
-    return dataRows
-      .map((r) => ({
-        name: (hasHeader ? r[nameIdx] : r[0])?.trim() || "",
-        address: (hasHeader && addrIdx !== -1 ? r[addrIdx] : r[1])?.trim() || null,
-      }))
-      .filter((p) => p.name);
-  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
