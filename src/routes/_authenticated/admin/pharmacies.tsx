@@ -73,6 +73,8 @@ function PharmaciesPage() {
       if (fileRef.current) fileRef.current.value = "";
     }
   };
+
+  const { data: items } = useQuery({
     queryKey: ["admin-pharmacies"],
     queryFn: async () => (await supabase.from("pharmacies").select("*").order("name")).data ?? [],
   });
