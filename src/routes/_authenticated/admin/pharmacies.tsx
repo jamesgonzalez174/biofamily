@@ -132,7 +132,7 @@ function PharmaciesPage() {
       <h1 className="text-3xl font-semibold tracking-tight">Pharmacies</h1>
       <p className="text-sm text-muted-foreground">Manage the list of pharmacies users can belong to.</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <form onSubmit={create} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="font-semibold">Add pharmacy</h2>
           <div className="mt-4 space-y-3">
