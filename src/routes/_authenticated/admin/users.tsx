@@ -96,6 +96,18 @@ function UsersPage() {
                     <div className="font-medium">{u.full_name || "—"}</div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </td>
+                  <td className="p-3">
+                    <select
+                      value={u.pharmacy_id ?? ""}
+                      onChange={(e) => changePharmacy(u.id, e.target.value)}
+                      className="rounded-lg border border-input bg-background px-2 py-1 text-xs max-w-[160px]"
+                    >
+                      <option value="">— None —</option>
+                      {(pharmacies ?? []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="p-3">{u.tier}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
