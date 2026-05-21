@@ -77,7 +77,27 @@ function PharmaciesPage() {
 
   const { data: items } = useQuery({
     queryKey: ["admin-pharmacies"],
-    queryFn: async () => (await supabase.from("pharmacies").select("*").order("name")).data ?? [],
+    queryFn: async () => {
+      const [pharmRes, profRes] = await Promise.all([
+        supabase.from("pharmacies").select("*").order("name"),
+        supabase.from("profiles").select("pharmacy_id, points_balance, lifetime_points"),
+      ]);
+      const totals = new Map<string, { loyalty: number; history: number; members: number }>();
+      (profRes.data ?? []).forEach((p: any) => {
+        if (!p.pharmacy_id) return;
+        const t = totals.get(p.pharmacy_id) ?? { loyalty: 0, history: 0, members: 0 };
+        t.loyalty += p.points_balance ?? 0;
+        t.history += p.lifetime_points ?? 0;
+        t.members += 1;
+        totals.set(p.pharmacy_id, t);
+      });
+      return (pharmRes.data ?? []).map((ph: any) => ({
+        ...ph,
+        loyalty_points: totals.get(ph.id)?.loyalty ?? 0,
+        history_points: totals.get(ph.id)?.history ?? 0,
+        member_count: totals.get(ph.id)?.members ?? 0,
+      }));
+    },
   });
 
   const create = async (e: React.FormEvent) => {
