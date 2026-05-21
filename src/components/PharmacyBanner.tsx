@@ -75,16 +75,6 @@ export function PharmacyBanner() {
                 {saving ? "Saving…" : "Save"}
               </button>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
-                <div className="text-sm font-semibold tabular-nums">{profile.lifetime_points.toLocaleString()}</div>
-              </div>
-              <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
-                <div className="text-sm font-semibold tabular-nums">{profile.points_balance.toLocaleString()}</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -101,16 +91,6 @@ export function PharmacyBanner() {
         <div>
           <span className="text-xs text-muted-foreground">Your pharmacy</span>
           <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">History</div>
-            <div className="text-sm font-semibold tabular-nums">{profile.lifetime_points.toLocaleString()}</div>
-          </div>
-          <div className="rounded-lg bg-muted/60 px-2.5 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Loyalty</div>
-            <div className="text-sm font-semibold tabular-nums">{profile.points_balance.toLocaleString()}</div>
-          </div>
         </div>
       </div>
       {picking ? (
