@@ -82,7 +82,7 @@ function PharmaciesPage() {
         supabase.from("pharmacies").select("*").order("name"),
         supabase.from("profiles").select("pharmacy_id, points_balance, lifetime_points"),
       ]);
-      const totals = new Map<string, { loyalty: number; history: number; members: number }>();
+      const totals = new Map();
       (profRes.data ?? []).forEach((p: any) => {
         if (!p.pharmacy_id) return;
         const t = totals.get(p.pharmacy_id) ?? { loyalty: 0, history: 0, members: 0 };
