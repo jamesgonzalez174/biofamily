@@ -202,6 +202,14 @@ function PharmaciesPage() {
                 </div>
 
                 <div className="flex items-center justify-end gap-2">
+                  <Link
+                    to="/admin/users"
+                    search={{ pharmacy: p.id }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                    title="Adjust loyalty points for members"
+                  >
+                    <Users className="h-3.5 w-3.5" /> Members
+                  </Link>
                   <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                     {p.is_active ? "Disable" : "Enable"}
                   </button>
