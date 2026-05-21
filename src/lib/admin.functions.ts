@@ -45,6 +45,41 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setPharmacyTotal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    pharmacyId: z.string().uuid(),
+    newTotal: z.number().int().min(0),
+    reason: z.string().min(1).max(200),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: members, error } = await supabaseAdmin
+      .from("profiles")
+      .select("id, points_balance, lifetime_points")
+      .eq("pharmacy_id", data.pharmacyId);
+    if (error) throw new Error(error.message);
+    if (!members || members.length === 0) throw new Error("Pharmacy has no members to distribute to");
+
+    const n = members.length;
+    const base = Math.floor(data.newTotal / n);
+    const remainder = data.newTotal - base * n;
+
+    for (let i = 0; i < n; i++) {
+      const m = members[i];
+      const newBalance = base + (i < remainder ? 1 : 0);
+      const delta = newBalance - m.points_balance;
+      const newLifetime = delta > 0 ? m.lifetime_points + delta : m.lifetime_points;
+      await supabaseAdmin.from("profiles").update({ points_balance: newBalance, lifetime_points: newLifetime }).eq("id", m.id);
+      if (delta !== 0) {
+        await supabaseAdmin.from("points_ledger").insert({
+          user_id: m.id, delta, reason: data.reason, source: "pharmacy_split",
+        });
+      }
+    }
+    return { ok: true, members: n, perMember: base };
+  });
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
