@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef } from "react";
-import { Plus, Trash2, MapPin, Upload, Users } from "lucide-react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { setPharmacyTotal } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pharmacies")({
   component: PharmaciesPage,
