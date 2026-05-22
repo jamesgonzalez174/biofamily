@@ -111,8 +111,8 @@ function PharmaciesPage() {
       });
       return (pharmRes.data ?? []).map((ph: any) => ({
         ...ph,
-        loyalty_points: totals.get(ph.id)?.loyalty ?? 0,
-        history_points: totals.get(ph.id)?.history ?? 0,
+        loyalty_points: ph.loyalty_points || totals.get(ph.id)?.loyalty || 0,
+        history_points: ph.history_points || totals.get(ph.id)?.history || 0,
         member_count: totals.get(ph.id)?.members ?? 0,
       }));
     },

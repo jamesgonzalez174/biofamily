@@ -42,19 +42,52 @@ export async function processZohoContact(
   }
   const address = addressParts.join(", ").trim() || null;
 
-  // 1) Upsert pharmacy by zoho_contact_id (only if we have an id + a name)
+  // Read Loyalty Points / History Points from contact custom fields.
+  // Zoho api_name: cf_loyalty_points -> loyalty, cf_history_points -> history.
+  const customFields: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  const readCF = (...names: string[]): number | null => {
+    const wanted = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, "").replace(/^cf/, ""));
+    for (const cf of customFields) {
+      const candidates = [cf?.label, cf?.api_name, cf?.placeholder]
+        .map((x) => String(x ?? "").toLowerCase().replace(/[\s_-]/g, "").replace(/^cf/, ""));
+      if (candidates.some((c) => c && wanted.includes(c))) {
+        const v = Number(cf?.value ?? cf?.value_formatted ?? 0);
+        if (!Number.isNaN(v)) return v;
+      }
+    }
+    for (const n of names) {
+      const key = n.toLowerCase().startsWith("cf_")
+        ? n.toLowerCase()
+        : `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+      const v = contact?.[key];
+      if (v !== undefined && v !== null && v !== "") {
+        const num = Number(v);
+        if (!Number.isNaN(num)) return num;
+      }
+    }
+    return null;
+  };
+
+  const loyaltyPoints = readCF("Loyalty Points", "loyalty_points", "cf_loyalty_points");
+  const historyPoints = readCF("History Points", "history_points", "cf_history_points");
+  const lp = loyaltyPoints !== null ? Math.floor(loyaltyPoints) : null;
+  const hp = historyPoints !== null ? Math.floor(historyPoints) : null;
+
+  // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
   let pharmacyAction: "none" | "created" | "updated" = "none";
   if (zohoContactId && fullName) {
     const { data: existingPharm } = await supabaseAdmin
       .from("pharmacies")
-      .select("id, name, address")
+      .select("id, name, address, loyalty_points, history_points")
       .eq("zoho_contact_id", zohoContactId)
       .maybeSingle();
 
     if (existingPharm) {
-      const pharmUpdates: { name?: string; address?: string | null } = {};
+      const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
+      if (lp !== null && (existingPharm as any).loyalty_points !== lp) pharmUpdates.loyalty_points = lp;
+      if (hp !== null && (existingPharm as any).history_points !== hp) pharmUpdates.history_points = hp;
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
         pharmacyAction = "updated";
@@ -65,12 +98,14 @@ export async function processZohoContact(
         address,
         zoho_contact_id: zohoContactId,
         is_active: true,
+        loyalty_points: lp ?? 0,
+        history_points: hp ?? 0,
       });
       pharmacyAction = "created";
     }
   }
 
-  // 2) Sync the matching profile by email (if any)
+  // 2) Sync matching profile by email (if any)
   if (!email) {
     await supabaseAdmin
       .from("zoho_events")
@@ -97,33 +132,6 @@ export async function processZohoContact(
       eventId,
     };
   }
-
-  // Read Loyalty Points / History Points from contact custom fields
-  const customFields: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
-  const readCF = (...names: string[]): number | null => {
-    const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
-    for (const cf of customFields) {
-      const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
-        .toLowerCase()
-        .replace(/[\s_-]/g, "");
-      if (lower.includes(label)) {
-        const v = Number(cf?.value ?? cf?.value_formatted ?? 0);
-        if (!Number.isNaN(v)) return v;
-      }
-    }
-    for (const n of names) {
-      const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
-      const v = contact?.[key];
-      if (v !== undefined && v !== null && v !== "") {
-        const num = Number(v);
-        if (!Number.isNaN(num)) return num;
-      }
-    }
-    return null;
-  };
-
-  const loyaltyPoints = readCF("Loyalty Points", "loyalty_points", "LoyaltyPoints");
-  const historyPoints = readCF("History Points", "history_points", "HistoryPoints");
 
   const updates: {
     full_name?: string;
