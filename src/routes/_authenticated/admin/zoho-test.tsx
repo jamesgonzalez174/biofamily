@@ -69,7 +69,7 @@ function ZohoTestPage() {
               <StatusBadge ok={r.ok} label={r.ok ? "Connection OK" : "Connection failed"} />
               {r.matchedDc && (
                 <StatusBadge
-                  ok={r.dcMatchesConfig}
+                  ok={r.dcMatchesConfig === true}
                   label={
                     r.dcMatchesConfig
                       ? `Region match (${r.matchedDc})`
