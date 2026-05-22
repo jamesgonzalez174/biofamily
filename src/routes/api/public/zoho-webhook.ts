@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { processZohoPayload } from "@/lib/zoho-process.server";
+import { processZohoContact } from "@/lib/zoho-contact.server";
 
 /**
  * Zoho Books webhook.
- * Stores the event then runs the shared processor (see zoho-process.server.ts).
+ * Handles invoice/payment events (awards points) and contact events
+ * (syncs name + Loyalty/History Points to matching profile).
  * Optional shared secret via header "x-zoho-webhook-secret" matching env ZOHO_WEBHOOK_SECRET.
  */
 export const Route = createFileRoute("/api/public/zoho-webhook")({
@@ -23,11 +25,27 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
           return new Response("Invalid JSON", { status: 400 });
         }
 
+        // Detect event type — contact, invoice, or payment
+        const rawType = String(payload?.event_type ?? "").toLowerCase();
+        const isContact =
+          rawType.includes("contact") || (!!payload?.contact && !payload?.invoice && !payload?.payment);
+        const isPayment = rawType.includes("payment") || !!payload?.payment;
+        const kind = isContact ? "contact" : isPayment ? "payment" : "invoice";
+
+        const contact = payload?.contact ?? payload?.customer;
         const invoice = payload?.invoice ?? payload?.payment ?? payload;
         const eventId = String(
-          invoice?.invoice_id ?? invoice?.payment_id ?? payload?.event_id ?? crypto.randomUUID(),
+          (isContact
+            ? contact?.contact_id ?? contact?.customer_id
+            : invoice?.invoice_id ?? invoice?.payment_id) ??
+            payload?.event_id ??
+            crypto.randomUUID(),
         );
-        const email = (invoice?.email ?? invoice?.customer_email ?? invoice?.contact?.email ?? "")
+        const email = (
+          (isContact
+            ? contact?.email ?? contact?.contact_email ?? contact?.primary_contact?.email
+            : invoice?.email ?? invoice?.customer_email ?? invoice?.contact?.email) ?? ""
+        )
           .toString()
           .toLowerCase()
           .trim();
@@ -35,7 +53,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
         // Log the event (idempotent on event_id)
         const { error: logErr } = await supabaseAdmin.from("zoho_events").insert({
           event_id: eventId,
-          event_type: payload?.event_type ?? "invoice",
+          event_type: payload?.event_type ?? kind,
           customer_email: email || null,
           payload,
         });
@@ -53,10 +71,22 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
           return new Response(JSON.stringify({ ok: true, skipped: "already processed" }), { status: 200 });
         }
 
-        const result = await processZohoPayload(payload, eventId);
+        if (isContact) {
+          const result = await processZohoContact(payload, eventId);
+          return new Response(
+            JSON.stringify({ ok: result.ok, status: result.status, kind: "contact" }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
 
+        const result = await processZohoPayload(payload, eventId);
         return new Response(
-          JSON.stringify({ ok: result.ok, status: result.status, pointsAwarded: result.pointsAwarded }),
+          JSON.stringify({
+            ok: result.ok,
+            status: result.status,
+            pointsAwarded: result.pointsAwarded,
+            kind,
+          }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       },
@@ -65,3 +95,4 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
     },
   },
 });
+
