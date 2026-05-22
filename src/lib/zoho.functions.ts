@@ -127,6 +127,30 @@ async function getZohoAccessToken() {
 /**
  * Pull customers (contacts) from Zoho Books and upsert into zoho_customers.
  */
+/** Read a Zoho custom field by label/api_name from a contact. */
+function readContactCF(contact: any, ...names: string[]): number | null {
+  const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+  const cfs: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  for (const cf of cfs) {
+    const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+      .toLowerCase()
+      .replace(/[\s_-]/g, "");
+    if (lower.includes(label)) {
+      const v = Number(cf?.value ?? cf?.value_formatted ?? NaN);
+      if (!Number.isNaN(v)) return v;
+    }
+  }
+  for (const n of names) {
+    const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+    const v = contact?.[key];
+    if (v !== undefined && v !== null && v !== "") {
+      const num = Number(v);
+      if (!Number.isNaN(num)) return num;
+    }
+  }
+  return null;
+}
+
 export const syncZohoCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -136,22 +160,52 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
       const orgId = process.env.ZOHO_ORGANIZATION_ID;
       if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
 
-      const { accessToken, apiDomain } = await getZohoAccessToken();
+      let { accessToken, apiDomain } = await getZohoAccessToken();
+      let tokenIssuedAt = Date.now();
+      const TOKEN_TTL_MS = 50 * 60 * 1000; // refresh before 1h expiry
       const apiBase = `${apiDomain}/books/v3`;
 
       let page = 1;
       let fetched = 0;
       let upserted = 0;
+      let truncated = false;
       const errors: string[] = [];
 
       while (true) {
+        // Proactively refresh on long syncs to avoid mid-loop 401s.
+        if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+        }
+
         const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
         const res = await fetch(url, {
-          headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+          headers: {
+            Authorization: `Zoho-oauthtoken ${accessToken}`,
+            Accept: "application/json",
+          },
         });
-        const json: any = await res.json();
+
+        const raw = await res.text();
+        let json: any = null;
+        try {
+          json = raw ? JSON.parse(raw) : null;
+        } catch {
+          errors.push(`page ${page}: non-JSON response (${res.status}) ${raw.slice(0, 120)}`);
+          break;
+        }
+
+        // Recover from a 401 by refreshing the token once and retrying.
+        if (res.status === 401) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+          continue;
+        }
+
         if (!res.ok) {
-          errors.push(`page ${page}: ${json.message || res.statusText}`);
+          errors.push(`page ${page}: ${json?.message || res.statusText}`);
           break;
         }
         const contacts: any[] = json.contacts ?? [];
@@ -160,11 +214,11 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         if (contacts.length > 0) {
           const rows = contacts.map((c) => ({
             zoho_contact_id: String(c.contact_id),
-            email: c.email || null,
+            email: c.email ? String(c.email).toLowerCase().trim() : null,
             full_name: c.contact_name || null,
             company_name: c.company_name || null,
-            loyalty_points: c.cf_loyalty_points ?? null,
-            history_points: c.cf_history_points ?? null,
+            loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
+            history_points: readContactCF(c, "History Points", "history_points", "HistoryPoints"),
             raw: c,
             last_synced_at: new Date().toISOString(),
           }));
@@ -174,8 +228,9 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
           if (error) errors.push(`page ${page} upsert: ${error.message}`);
           else upserted += rows.length;
 
-          // Also mirror each Zoho contact into the pharmacies table so every
-          // synced customer shows up as a pharmacy. Dedupe via zoho_contact_id.
+          // Mirror new Zoho contacts into pharmacies WITHOUT clobbering
+          // admin-edited rows. ignoreDuplicates preserves manual edits to
+          // name/address/is_active on existing zoho_contact_id matches.
           const pharmacyRows = contacts
             .map((c) => {
               const name = (c.company_name || c.contact_name || "").toString().trim();
@@ -192,7 +247,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
           if (pharmacyRows.length > 0) {
             const { error: pErr } = await supabaseAdmin
               .from("pharmacies")
-              .upsert(pharmacyRows, { onConflict: "zoho_contact_id" });
+              .upsert(pharmacyRows, { onConflict: "zoho_contact_id", ignoreDuplicates: true });
             if (pErr) errors.push(`page ${page} pharmacies upsert: ${pErr.message}`);
           }
         }
@@ -200,16 +255,22 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         const hasMore = json.page_context?.has_more_page;
         if (!hasMore) break;
         page++;
-        if (page > 100) break;
+        if (page > 100) {
+          truncated = true;
+          errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
+          break;
+        }
       }
 
-      return { ok: true, fetched, upserted, pages: page, errors: errors.slice(0, 10) };
+      const ok = errors.length === 0;
+      return { ok, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10) };
     } catch (error: any) {
       return {
         ok: false,
         fetched: 0,
         upserted: 0,
         pages: 0,
+        truncated: false,
         errors: [error?.message ?? "Zoho sync failed"],
       };
     }
