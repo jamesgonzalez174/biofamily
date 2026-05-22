@@ -18,8 +18,10 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          history_points: number
           id: string
           is_active: boolean
+          loyalty_points: number
           name: string
           updated_at: string
           zoho_contact_id: string | null
@@ -27,8 +29,10 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          history_points?: number
           id?: string
           is_active?: boolean
+          loyalty_points?: number
           name: string
           updated_at?: string
           zoho_contact_id?: string | null
@@ -36,8 +40,10 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          history_points?: number
           id?: string
           is_active?: boolean
+          loyalty_points?: number
           name?: string
           updated_at?: string
           zoho_contact_id?: string | null
