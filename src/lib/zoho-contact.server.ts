@@ -2,9 +2,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
  * Process a Zoho "contact" webhook payload.
- * Syncs the matching profile (by email) with name + Loyalty/History Points custom fields.
- * Does NOT create new profiles — profiles are FK'd to auth.users, so the user must
- * have signed up already. Unmatched emails are logged and skipped.
+ * 1. Upserts a pharmacy row keyed by zoho_contact_id (so the pharmacies list
+ *    auto-populates from Zoho contacts — name + address).
+ * 2. If a profile exists for the contact email, syncs name + Loyalty/History Points.
+ *    Unmatched emails are logged but the pharmacy upsert still runs.
  */
 export async function processZohoContact(
   payload: any,
@@ -25,12 +26,57 @@ export async function processZohoContact(
     .toString()
     .trim();
 
+  const zohoContactId = String(
+    contact?.contact_id ?? contact?.customer_id ?? contact?.id ?? "",
+  ).trim();
+
+  // Build address string from billing/shipping if present
+  const addr =
+    contact?.billing_address ?? contact?.shipping_address ?? contact?.address ?? null;
+  const addressParts: string[] = [];
+  if (addr && typeof addr === "object") {
+    for (const k of ["address", "street", "street2", "city", "state", "zip", "country"]) {
+      const v = (addr as any)[k];
+      if (v) addressParts.push(String(v));
+    }
+  }
+  const address = addressParts.join(", ").trim() || null;
+
+  // 1) Upsert pharmacy by zoho_contact_id (only if we have an id + a name)
+  let pharmacyAction: "none" | "created" | "updated" = "none";
+  if (zohoContactId && fullName) {
+    const { data: existingPharm } = await supabaseAdmin
+      .from("pharmacies")
+      .select("id, name, address")
+      .eq("zoho_contact_id", zohoContactId)
+      .maybeSingle();
+
+    if (existingPharm) {
+      const pharmUpdates: { name?: string; address?: string | null } = {};
+      if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
+      if (address && existingPharm.address !== address) pharmUpdates.address = address;
+      if (Object.keys(pharmUpdates).length > 0) {
+        await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
+        pharmacyAction = "updated";
+      }
+    } else {
+      await supabaseAdmin.from("pharmacies").insert({
+        name: fullName,
+        address,
+        zoho_contact_id: zohoContactId,
+        is_active: true,
+      });
+      pharmacyAction = "created";
+    }
+  }
+
+  // 2) Sync the matching profile by email (if any)
   if (!email) {
     await supabaseAdmin
       .from("zoho_events")
-      .update({ error: "no email on contact" })
+      .update({ processed: true, error: pharmacyAction === "none" ? "no email, no pharmacy" : null })
       .eq("event_id", eventId);
-    return { ok: false, status: "no email", eventId };
+    return { ok: true, status: `pharmacy ${pharmacyAction}, no email`, eventId };
   }
 
   const { data: profile } = await supabaseAdmin
@@ -44,7 +90,12 @@ export async function processZohoContact(
       .from("zoho_events")
       .update({ error: "user not found", processed: true })
       .eq("event_id", eventId);
-    return { ok: true, status: "user not found — skipped", email, eventId };
+    return {
+      ok: true,
+      status: `pharmacy ${pharmacyAction}, profile not found`,
+      email,
+      eventId,
+    };
   }
 
   // Read Loyalty Points / History Points from contact custom fields
@@ -95,7 +146,7 @@ export async function processZohoContact(
 
   return {
     ok: true,
-    status: `synced (${Object.keys(updates).join(", ") || "no changes"})`,
+    status: `pharmacy ${pharmacyAction}; profile ${Object.keys(updates).join(", ") || "no changes"}`,
     email,
     eventId,
   };
