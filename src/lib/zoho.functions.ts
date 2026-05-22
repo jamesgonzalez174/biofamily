@@ -165,96 +165,117 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
       const TOKEN_TTL_MS = 50 * 60 * 1000; // refresh before 1h expiry
       const apiBase = `${apiDomain}/books/v3`;
 
-      let page = 1;
       let fetched = 0;
       let upserted = 0;
       let truncated = false;
+      let pages = 0;
       const errors: string[] = [];
 
-      while (true) {
-        // Proactively refresh on long syncs to avoid mid-loop 401s.
+      // Fetch one page from Zoho, with token refresh on TTL or 401.
+      const fetchPage = async (
+        page: number,
+      ): Promise<{ contacts: any[]; hasMore: boolean; stop?: string } | null> => {
         if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
           const refreshed = await getZohoAccessToken();
           accessToken = refreshed.accessToken;
           tokenIssuedAt = Date.now();
         }
 
-        const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Zoho-oauthtoken ${accessToken}`,
-            Accept: "application/json",
-          },
-        });
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
+          const res = await fetch(url, {
+            headers: {
+              Authorization: `Zoho-oauthtoken ${accessToken}`,
+              Accept: "application/json",
+            },
+          });
+          const raw = await res.text();
 
-        const raw = await res.text();
-        let json: any = null;
-        try {
-          json = raw ? JSON.parse(raw) : null;
-        } catch {
-          errors.push(`page ${page}: non-JSON response (${res.status}) ${raw.slice(0, 120)}`);
-          break;
-        }
-
-        // Recover from a 401 by refreshing the token once and retrying.
-        if (res.status === 401) {
-          const refreshed = await getZohoAccessToken();
-          accessToken = refreshed.accessToken;
-          tokenIssuedAt = Date.now();
-          continue;
-        }
-
-        if (!res.ok) {
-          errors.push(`page ${page}: ${json?.message || res.statusText}`);
-          break;
-        }
-        const contacts: any[] = json.contacts ?? [];
-        fetched += contacts.length;
-
-        if (contacts.length > 0) {
-          const rows = contacts.map((c) => ({
-            zoho_contact_id: String(c.contact_id),
-            email: c.email ? String(c.email).toLowerCase().trim() : null,
-            full_name: c.contact_name || null,
-            company_name: c.company_name || null,
-            loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
-            history_points: readContactCF(c, "History Points", "history_points", "HistoryPoints"),
-            raw: c,
-            last_synced_at: new Date().toISOString(),
-          }));
-          const { error } = await supabaseAdmin
-            .from("zoho_customers")
-            .upsert(rows, { onConflict: "zoho_contact_id" });
-          if (error) errors.push(`page ${page} upsert: ${error.message}`);
-          else upserted += rows.length;
-
-          // Mirror new Zoho contacts into pharmacies WITHOUT clobbering
-          // admin-edited rows. ignoreDuplicates preserves manual edits to
-          // name/address/is_active on existing zoho_contact_id matches.
-          const pharmacyRows = contacts
-            .map((c) => {
-              const name = (c.company_name || c.contact_name || "").toString().trim();
-              if (!name) return null;
-              return {
-                zoho_contact_id: String(c.contact_id),
-                name,
-                address: c.billing_address?.address || null,
-                is_active: true,
-              };
-            })
-            .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean } => r !== null);
-
-          if (pharmacyRows.length > 0) {
-            const { error: pErr } = await supabaseAdmin
-              .from("pharmacies")
-              .upsert(pharmacyRows, { onConflict: "zoho_contact_id", ignoreDuplicates: true });
-            if (pErr) errors.push(`page ${page} pharmacies upsert: ${pErr.message}`);
+          if (res.status === 401 && attempt === 0) {
+            const refreshed = await getZohoAccessToken();
+            accessToken = refreshed.accessToken;
+            tokenIssuedAt = Date.now();
+            continue;
           }
+
+          let json: any = null;
+          try {
+            json = raw ? JSON.parse(raw) : null;
+          } catch {
+            return { contacts: [], hasMore: false, stop: `page ${page}: non-JSON response (${res.status}) ${raw.slice(0, 120)}` };
+          }
+          if (!res.ok) {
+            return { contacts: [], hasMore: false, stop: `page ${page}: ${json?.message || res.statusText}` };
+          }
+          return {
+            contacts: json.contacts ?? [],
+            hasMore: Boolean(json.page_context?.has_more_page),
+          };
+        }
+        return null;
+      };
+
+      // Upsert one page's contacts + pharmacies in PARALLEL.
+      const upsertPage = async (page: number, contacts: any[]) => {
+        if (contacts.length === 0) return;
+        const nowIso = new Date().toISOString();
+        const customerRows = contacts.map((c) => ({
+          zoho_contact_id: String(c.contact_id),
+          email: c.email ? String(c.email).toLowerCase().trim() : null,
+          full_name: c.contact_name || null,
+          company_name: c.company_name || null,
+          loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
+          history_points: readContactCF(c, "History Points", "history_points", "HistoryPoints"),
+          raw: c,
+          last_synced_at: nowIso,
+        }));
+        const pharmacyRows = contacts
+          .map((c) => {
+            const name = (c.company_name || c.contact_name || "").toString().trim();
+            if (!name) return null;
+            return {
+              zoho_contact_id: String(c.contact_id),
+              name,
+              address: c.billing_address?.address || null,
+              is_active: true,
+            };
+          })
+          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean } => r !== null);
+
+        const [cRes, pRes] = await Promise.all([
+          supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
+          pharmacyRows.length > 0
+            ? supabaseAdmin.from("pharmacies").upsert(pharmacyRows, { onConflict: "zoho_contact_id", ignoreDuplicates: true })
+            : Promise.resolve({ error: null as any }),
+        ]);
+        if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);
+        else upserted += customerRows.length;
+        if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
+      };
+
+      // Pipeline: prefetch next page while upserting the current one.
+      let page = 1;
+      let next = fetchPage(page);
+      while (true) {
+        const current = await next;
+        pages = page;
+        if (!current) break;
+        if (current.stop) {
+          errors.push(current.stop);
+          break;
+        }
+        fetched += current.contacts.length;
+
+        const hasMore = current.hasMore;
+        const nextPageNum = page + 1;
+        if (hasMore && nextPageNum <= 100) {
+          next = fetchPage(nextPageNum);
         }
 
-        const hasMore = json.page_context?.has_more_page;
+        await upsertPage(page, current.contacts);
+
         if (!hasMore) break;
-        page++;
+        page = nextPageNum;
         if (page > 100) {
           truncated = true;
           errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
