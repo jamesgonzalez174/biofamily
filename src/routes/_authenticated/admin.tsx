@@ -7,13 +7,15 @@ let adminCheckUserId: string | null = null;
 async function checkAdmin(userId: string) {
   if (adminCheckUserId !== userId) {
     adminCheckUserId = userId;
-    adminCheck = supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(({ data }) => !!data);
+    adminCheck = (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    })();
   }
   return adminCheck!;
 }
