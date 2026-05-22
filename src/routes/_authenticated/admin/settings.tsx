@@ -295,7 +295,7 @@ function ReprocessEvents() {
     queryFn: async () => {
       const { data } = await supabase
         .from("zoho_events")
-        .select("event_id, event_type, customer_email, processed, points_awarded, error, created_at")
+        .select("event_id, event_type, customer_email, processed, points_awarded, error, created_at, payload")
         .order("created_at", { ascending: false })
         .limit(20);
       return data ?? [];
