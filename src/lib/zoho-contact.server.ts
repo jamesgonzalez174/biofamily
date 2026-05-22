@@ -146,7 +146,7 @@ export async function processZohoContact(
 
   return {
     ok: true,
-    status: `synced (${Object.keys(updates).join(", ") || "no changes"})`,
+    status: `pharmacy ${pharmacyAction}; profile ${Object.keys(updates).join(", ") || "no changes"}`,
     email,
     eventId,
   };
