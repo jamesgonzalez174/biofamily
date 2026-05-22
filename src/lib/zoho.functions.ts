@@ -298,6 +298,119 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
   });
 
 /**
+ * Admin-only diagnostic: validate the current Zoho refresh token across all
+ * known data centers and report exactly what Zoho returned.
+ */
+export const testZohoConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    const configuredDc = normalizeZohoDc(process.env.ZOHO_DC);
+    const clientId = process.env.ZOHO_CLIENT_ID;
+    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+    const orgId = process.env.ZOHO_ORGANIZATION_ID;
+
+    const missing: string[] = [];
+    if (!clientId) missing.push("ZOHO_CLIENT_ID");
+    if (!clientSecret) missing.push("ZOHO_CLIENT_SECRET");
+    if (!refreshToken) missing.push("ZOHO_REFRESH_TOKEN");
+
+    if (missing.length > 0 || !clientId || !clientSecret || !refreshToken) {
+      return {
+        ok: false,
+        configuredDc,
+        missing,
+        clientIdPrefix: clientId?.slice(0, 15) ?? null,
+        clientSecretLength: clientSecret?.length ?? 0,
+        refreshTokenPrefix: refreshToken?.slice(0, 15) ?? null,
+        refreshTokenLength: refreshToken?.length ?? 0,
+        orgIdPresent: Boolean(orgId),
+        attempts: [] as any[],
+        matchedDc: null as string | null,
+        orgIdMatches: null as boolean | null,
+      };
+    }
+
+    const allDcs = ["com", "eu", "in", "ca", "com.au", "jp", "sa", "com.cn"];
+    const ordered = [configuredDc, ...allDcs.filter((d) => d !== configuredDc)];
+
+    const attempts: Array<{
+      dc: string;
+      ok: boolean;
+      status: number;
+      errorCode: string;
+      errorDescription: string;
+      apiDomain?: string;
+    }> = [];
+
+    let matchedDc: string | null = null;
+    let matchedApiDomain: string | null = null;
+    let matchedAccessToken: string | null = null;
+
+    for (const dc of ordered) {
+      const r = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
+      attempts.push({
+        dc,
+        ok: r.ok,
+        status: r.status,
+        errorCode: r.errorCode,
+        errorDescription: r.errorDescription,
+        apiDomain: r.apiDomain,
+      });
+      if (r.ok && r.accessToken && !matchedDc) {
+        matchedDc = dc;
+        matchedApiDomain = r.apiDomain;
+        matchedAccessToken = r.accessToken;
+      }
+    }
+
+    // If we got a token, verify the org id by hitting /organizations.
+    let orgIdMatches: boolean | null = null;
+    let orgList: Array<{ organization_id: string; name: string }> = [];
+    if (matchedAccessToken && matchedApiDomain) {
+      try {
+        const res = await fetch(`${matchedApiDomain}/books/v3/organizations`, {
+          headers: {
+            Authorization: `Zoho-oauthtoken ${matchedAccessToken}`,
+            Accept: "application/json",
+          },
+        });
+        const json: any = await res.json().catch(() => null);
+        const orgs: any[] = Array.isArray(json?.organizations) ? json.organizations : [];
+        orgList = orgs.map((o) => ({
+          organization_id: String(o.organization_id),
+          name: String(o.name ?? ""),
+        }));
+        if (orgId) {
+          orgIdMatches = orgList.some((o) => o.organization_id === String(orgId));
+        }
+      } catch {
+        orgList = [];
+      }
+    }
+
+    return {
+      ok: matchedDc !== null && (orgIdMatches ?? true),
+      configuredDc,
+      matchedDc,
+      dcMatchesConfig: matchedDc === configuredDc,
+      clientIdPrefix: clientId.slice(0, 15),
+      clientSecretLength: clientSecret.length,
+      refreshTokenPrefix: refreshToken.slice(0, 15),
+      refreshTokenLength: refreshToken.length,
+      orgIdPresent: Boolean(orgId),
+      orgIdConfigured: orgId ?? null,
+      orgIdMatches,
+      organizations: orgList,
+      attempts,
+      missing,
+    };
+  });
+
+
+/**
  * Re-run the points logic for unprocessed (or errored) Zoho webhook events.
  * Useful when a payload arrived before the user existed, or to retry failures.
  */
