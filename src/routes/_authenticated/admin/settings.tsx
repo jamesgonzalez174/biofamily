@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const [origin, setOrigin] = useState("");
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: async () => (await supabase.from("settings").select("*").eq("id", 1).single()).data,
@@ -34,6 +35,10 @@ function SettingsPage() {
     }
   }, [settings]);
 
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
   const save = async () => {
     const { error } = await supabase.from("settings").update({
       points_per_dollar: rate,
@@ -45,7 +50,8 @@ function SettingsPage() {
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
 
-  const webhookUrl = typeof window !== "undefined" ? `${window.location.origin}/api/public/zoho-webhook` : "";
+  const webhookPath = "/api/public/zoho-webhook";
+  const webhookUrl = origin ? `${origin}${webhookPath}` : webhookPath;
 
   return (
     <AppShell admin>
