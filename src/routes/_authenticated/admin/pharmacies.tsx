@@ -186,7 +186,7 @@ function PharmaciesPage() {
 
         <div className="space-y-2 lg:col-span-2">
           {(items ?? []).length > 0 && (
-            <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_auto] items-center gap-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_280px] items-center gap-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
               <div>Pharmacy</div>
               <div className="text-right">History</div>
               <div className="text-right">Loyalty</div>
@@ -196,7 +196,7 @@ function PharmaciesPage() {
           {(items ?? []).length === 0 && <p className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">No pharmacies yet.</p>}
           {items?.map((p) => (
             <div key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_120px_auto] md:items-center">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_120px_280px] md:items-center">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`grid h-9 w-9 place-items-center rounded-lg ${p.is_active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
                     <MapPin className="h-4 w-4" />
