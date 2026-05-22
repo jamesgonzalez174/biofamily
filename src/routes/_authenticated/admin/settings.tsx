@@ -295,7 +295,7 @@ function ReprocessEvents() {
     queryFn: async () => {
       const { data } = await supabase
         .from("zoho_events")
-        .select("event_id, event_type, customer_email, processed, points_awarded, error, created_at")
+        .select("event_id, event_type, customer_email, processed, points_awarded, error, created_at, payload")
         .order("created_at", { ascending: false })
         .limit(20);
       return data ?? [];
@@ -370,16 +370,29 @@ function ReprocessEvents() {
               <tr>
                 <th className="pb-2 pr-3">When</th>
                 <th className="pb-2 pr-3">Event</th>
+                <th className="pb-2 pr-3">Customer</th>
                 <th className="pb-2 pr-3">Email</th>
                 <th className="pb-2 pr-3">Status</th>
                 <th className="pb-2 text-right">Points</th>
               </tr>
             </thead>
             <tbody>
-              {events!.map((e: any) => (
+              {events!.map((e: any) => {
+                const p = e.payload ?? {};
+                const c = p.contact ?? p.customer ?? p.invoice ?? p.payment ?? p;
+                const name =
+                  c?.contact_name ??
+                  c?.customer_name ??
+                  c?.display_name ??
+                  c?.company_name ??
+                  p?.contact?.contact_name ??
+                  p?.invoice?.customer_name ??
+                  null;
+                return (
                 <tr key={e.event_id} className="border-t border-border">
                   <td className="py-2 pr-3 text-muted-foreground">{new Date(e.created_at).toLocaleString()}</td>
                   <td className="py-2 pr-3">{e.event_type ?? "—"}</td>
+                  <td className="py-2 pr-3 font-medium">{name ?? "—"}</td>
                   <td className="py-2 pr-3 text-muted-foreground">{e.customer_email ?? "—"}</td>
                   <td className="py-2 pr-3">
                     {e.processed ? (
@@ -392,7 +405,7 @@ function ReprocessEvents() {
                   </td>
                   <td className="py-2 text-right">{e.points_awarded ?? "—"}</td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
