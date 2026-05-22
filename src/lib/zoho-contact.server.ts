@@ -74,7 +74,11 @@ export async function processZohoContact(
   const loyaltyPoints = readCF("Loyalty Points", "loyalty_points", "LoyaltyPoints");
   const historyPoints = readCF("History Points", "history_points", "HistoryPoints");
 
-  const updates: Record<string, any> = {};
+  const updates: {
+    full_name?: string;
+    points_balance?: number;
+    lifetime_points?: number;
+  } = {};
   if (fullName && fullName !== profile.full_name) updates.full_name = fullName;
   if (loyaltyPoints !== null) updates.points_balance = Math.floor(loyaltyPoints);
   if (historyPoints !== null) updates.lifetime_points = Math.floor(historyPoints);
@@ -82,6 +86,7 @@ export async function processZohoContact(
   if (Object.keys(updates).length > 0) {
     await supabaseAdmin.from("profiles").update(updates).eq("id", profile.id);
   }
+
 
   await supabaseAdmin
     .from("zoho_events")
