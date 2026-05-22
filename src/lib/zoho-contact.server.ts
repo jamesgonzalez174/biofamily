@@ -2,9 +2,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
  * Process a Zoho "contact" webhook payload.
- * Syncs the matching profile (by email) with name + Loyalty/History Points custom fields.
- * Does NOT create new profiles — profiles are FK'd to auth.users, so the user must
- * have signed up already. Unmatched emails are logged and skipped.
+ * 1. Upserts a pharmacy row keyed by zoho_contact_id (so the pharmacies list
+ *    auto-populates from Zoho contacts — name + address).
+ * 2. If a profile exists for the contact email, syncs name + Loyalty/History Points.
+ *    Unmatched emails are logged but the pharmacy upsert still runs.
  */
 export async function processZohoContact(
   payload: any,
