@@ -94,53 +94,33 @@ async function requestZohoAccessToken(dc: string, clientId: string, clientSecret
 }
 
 async function getZohoAccessToken() {
-  const configuredDc = normalizeZohoDc(process.env.ZOHO_DC);
+  const dc = normalizeZohoDc(process.env.ZOHO_DC);
   const clientId = process.env.ZOHO_CLIENT_ID;
   const clientSecret = process.env.ZOHO_CLIENT_SECRET;
   const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing Zoho credentials (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)");
   }
-  const dcCandidates = Array.from(new Set([
-    configuredDc,
-    "com",
-    "eu",
-    "in",
-    "com.au",
-    "jp",
-    "ca",
-    "sa",
-    "com.cn",
-  ]));
 
-  const failures: string[] = [];
+  const result = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
 
-  for (const dc of dcCandidates) {
-    const result = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
-
-    if (result.ok && result.accessToken) {
-      if (dc !== configuredDc) {
-        console.warn(`Zoho token worked with ${dc} instead of configured DC ${configuredDc}`);
-      }
-
-      return {
-        accessToken: result.accessToken,
-        dc,
-        apiDomain: result.apiDomain,
-      };
-    }
-
-    failures.push(`${dc}: ${result.errorCode}`);
-    console.error("Zoho token request failed", {
-      status: result.status,
+  if (result.ok && result.accessToken) {
+    return {
+      accessToken: result.accessToken,
       dc,
-      errorCode: result.errorCode,
-      errorDescription: result.errorDescription,
-    });
+      apiDomain: result.apiDomain,
+    };
   }
 
+  console.error("Zoho token request failed", {
+    status: result.status,
+    dc,
+    errorCode: result.errorCode,
+    errorDescription: result.errorDescription,
+  });
+
   throw new Error(
-    `Zoho token error: could not refresh the token in any common Zoho region (${failures.join(", ")}). Your client ID, client secret, and refresh token likely do not belong to the same Zoho self client.`,
+    `Zoho token error [${dc}] ${result.errorCode}: ${result.errorDescription}. Refresh tokens are bound to the data center they were issued in — verify ZOHO_DC matches the region where the refresh token was generated (e.g. "com", "eu", "in", "ca", "com.au", "jp", "sa", "com.cn").`,
   );
 }
 
