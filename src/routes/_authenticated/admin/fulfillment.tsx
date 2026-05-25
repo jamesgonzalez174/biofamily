@@ -49,6 +49,29 @@ function Fulfillment() {
     }
   };
 
+  const exportCSV = async () => {
+    const { data: all } = await supabase.from("redemptions").select("*").order("created_at", { ascending: false });
+    const userIds = Array.from(new Set((all ?? []).map((r) => r.user_id)));
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+    const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const rows = (all ?? []).map((r) => {
+      const p = pmap.get(r.user_id);
+      return {
+        created_at: r.created_at,
+        customer_name: p?.full_name ?? "",
+        customer_email: p?.email ?? "",
+        prize_name: r.prize_name,
+        points_spent: r.points_spent,
+        status: r.status,
+        tracking_info: r.tracking_info ?? "",
+        notes: r.notes ?? "",
+        redemption_id: r.id,
+        user_id: r.user_id,
+      };
+    });
+    downloadCSV(`fulfillment-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rows));
+  };
+
   return (
     <AppShell admin>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -56,6 +79,12 @@ function Fulfillment() {
           <h1 className="text-3xl font-semibold tracking-tight">Fulfillment</h1>
           <p className="text-sm text-muted-foreground">Points are deducted only when status is set to <strong>claimed</strong>.</p>
         </div>
+        <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
+          <Download className="h-4 w-4" /> Download CSV
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+
         <div className="flex gap-1 rounded-xl border border-border bg-card p-1 shadow-soft">
           {(["all", ...STATUSES] as const).map((s) => (
             <button key={s} onClick={() => setFilter(s)} className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${filter === s ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>{s}</button>
