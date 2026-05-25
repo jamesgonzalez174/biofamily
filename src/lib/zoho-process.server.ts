@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendTransactionalEmailServer } from "@/lib/email/send.server";
+import { fetchZohoContact } from "@/lib/zoho-api.server";
+import { processZohoContact } from "@/lib/zoho-contact.server";
 
 /**
  * Process a single Zoho webhook payload: award points + mark the event row processed.
@@ -253,6 +255,23 @@ export async function processZohoPayload(
     }
   }
 
+
+  // Best-effort: pull the full contact from Zoho so zoho_customers, pharmacies,
+  // and the matching profile stay fresh — even if the contact wasn't edited in
+  // Zoho. Failures are logged but never block invoice processing.
+  const contactIdForRefresh = String(
+    invoice?.customer_id ?? invoice?.contact_id ?? invoice?.contact?.contact_id ?? "",
+  ).trim();
+  if (contactIdForRefresh) {
+    try {
+      const freshContact = await fetchZohoContact(contactIdForRefresh);
+      if (freshContact) {
+        await processZohoContact({ contact: freshContact }, `invoice-${eventId}-contact-refresh`);
+      }
+    } catch (e) {
+      console.warn("Contact refresh from Zoho failed (non-fatal):", e);
+    }
+  }
 
   await supabaseAdmin
     .from("zoho_events")
