@@ -4,7 +4,7 @@ import { supabaseAdmin as _supabaseAdmin } from '@/integrations/supabase/client.
 const supabaseAdmin = _supabaseAdmin as any
 import { TEMPLATES } from '@/lib/email-templates/registry'
 
-const SITE_NAME = 'biofamily'
+const SITE_NAME = 'Biomed Family'
 const SENDER_DOMAIN = 'notify.myprizepoint.com'
 const FROM_DOMAIN = 'notify.myprizepoint.com'
 

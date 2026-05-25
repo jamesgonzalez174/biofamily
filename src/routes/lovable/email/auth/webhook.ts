@@ -31,7 +31,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "biofamily"
+const SITE_NAME = "Biomed Family"
 const SENDER_DOMAIN = "notify.myprizepoint.com"
 const ROOT_DOMAIN = "myprizepoint.com"
 const FROM_DOMAIN = "notify.myprizepoint.com"

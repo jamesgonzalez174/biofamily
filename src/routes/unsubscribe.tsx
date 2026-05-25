@@ -44,7 +44,7 @@ function UnsubscribePage() {
         {state === "loading" && <p className="mt-3 text-muted-foreground">Checking your link…</p>}
         {state === "valid" && (
           <>
-            <p className="mt-3 text-muted-foreground">Click below to unsubscribe from biofamily emails.</p>
+            <p className="mt-3 text-muted-foreground">Click below to unsubscribe from Biomed Family emails.</p>
             <button onClick={confirm} disabled={submitting}
               className="mt-6 rounded-lg bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50">
               {submitting ? "Unsubscribing…" : "Confirm unsubscribe"}

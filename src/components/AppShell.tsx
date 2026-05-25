@@ -45,7 +45,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
           <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
         <span className="font-semibold tracking-tight leading-tight whitespace-pre-line">
-          {admin ? "Biomed Family \n\nAdmin" : "Prizely"}
+          {admin ? "Biomed Family \n\nAdmin" : "Biomed Family"}
         </span>
       </Link>
 
@@ -104,7 +104,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-semibold tracking-tight whitespace-pre-line">
-            {admin ? "Biomed Family \n\nAdmin" : "Prizely"}
+            {admin ? "Biomed Family \n\nAdmin" : "Biomed Family"}
           </span>
         </Link>
         <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
