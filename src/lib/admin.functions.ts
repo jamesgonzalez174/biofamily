@@ -18,7 +18,7 @@ export const adjustPoints = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const { data: profile, error } = await supabaseAdmin.from("profiles").select("points_balance, lifetime_points").eq("id", data.targetUserId).single();
+    const { data: profile, error } = await supabaseAdmin.from("profiles").select("points_balance, lifetime_points, email, full_name").eq("id", data.targetUserId).single();
     if (error || !profile) throw new Error("User not found");
     const newBalance = Math.max(0, profile.points_balance + data.delta);
     const newLifetime = data.delta > 0 ? profile.lifetime_points + data.delta : profile.lifetime_points;
@@ -26,6 +26,23 @@ export const adjustPoints = createServerFn({ method: "POST" })
     await supabaseAdmin.from("points_ledger").insert({
       user_id: data.targetUserId, delta: data.delta, reason: data.reason, source: "manual",
     });
+    if (data.delta > 0 && profile.email) {
+      try {
+        await sendTransactionalEmailServer({
+          templateName: "points-earned",
+          recipientEmail: profile.email,
+          idempotencyKey: `points-manual-${data.targetUserId}-${Date.now()}`,
+          templateData: {
+            name: profile.full_name ?? undefined,
+            points: data.delta,
+            reason: data.reason,
+            newBalance,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to send points-earned email", e);
+      }
+    }
     return { ok: true, newBalance };
   });
 
