@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthScene } from "@/components/AuthScene";
@@ -53,28 +53,8 @@ function ResetPasswordPage() {
           {ready ? "Choose a strong password you'll remember." : "Validating reset link…"}
         </p>
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">New password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Confirm password</span>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-              minLength={8}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-            />
-          </label>
+          <PasswordField label="New password" value={password} onChange={setPassword} />
+          <PasswordField label="Confirm password" value={confirm} onChange={setConfirm} />
           <button
             disabled={loading || !ready}
             className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60"
@@ -84,5 +64,29 @@ function ResetPasswordPage() {
         </form>
       </div>
     </AuthScene>
+  );
+}
+
+function PasswordField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [show, setShow] = useState(false);
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium">{label}</span>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required
+          minLength={8}
+          className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm outline-none ring-ring focus:ring-2"
+        />
+        <button type="button" onClick={() => setShow((s) => !s)}
+          aria-label={show ? "Hide password" : "Show password"}
+          className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-foreground">
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </label>
   );
 }
