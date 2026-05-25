@@ -81,7 +81,7 @@ export async function processZohoPayload(
 
   if (profile) {
     // Update changed contact fields only (don't clobber existing values with blanks)
-    const patch: Record<string, any> = {};
+    const patch: { full_name?: string; phone?: string } = {};
     if (invoiceFullName && invoiceFullName !== profile.full_name) patch.full_name = invoiceFullName;
     if (invoicePhone && invoicePhone !== profile.phone) patch.phone = invoicePhone;
     if (Object.keys(patch).length > 0) {
