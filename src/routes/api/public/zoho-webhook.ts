@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
     handlers: {
       POST: async ({ request }) => {
         const secret = process.env.ZOHO_WEBHOOK_SECRET;
-        if (secret && request.headers.get("x-zoho-webhook-secret") !== secret) {
+        if (!secret || request.headers.get("x-zoho-webhook-secret") !== secret) {
           return new Response("Unauthorized", { status: 401 });
         }
 
