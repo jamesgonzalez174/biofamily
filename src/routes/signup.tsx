@@ -57,7 +57,7 @@ function SignupPage() {
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold tracking-tight">Prizely</span>
+        <span className="text-lg font-semibold tracking-tight">Biomed Family</span>
       </Link>
       <div className="auth-glass auth-pop-sm rounded-2xl p-8">
         <h1 className="auth-pop text-2xl font-semibold tracking-tight">Create account</h1>

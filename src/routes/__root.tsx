@@ -40,10 +40,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Prizely — Earn points, claim prizes" },
+      { title: "Biomed Family — Earn points, claim prizes" },
       { name: "description", content: "Loyalty rewards platform. Earn points on every purchase and redeem amazing prizes." },
-      { property: "og:title", content: "Prizely — Earn points, claim prizes" },
-      { name: "twitter:title", content: "Prizely — Earn points, claim prizes" },
+      { property: "og:title", content: "Biomed Family — Earn points, claim prizes" },
+      { name: "twitter:title", content: "Biomed Family — Earn points, claim prizes" },
       { property: "og:description", content: "Loyalty rewards platform. Earn points on every purchase and redeem amazing prizes." },
       { name: "twitter:description", content: "Loyalty rewards platform. Earn points on every purchase and redeem amazing prizes." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/89ae0dbe-0f7e-4729-a1de-89fc30833ebf/id-preview-7beaa7b4--fa8a5738-bec8-4b7b-8fff-00ca0fe8109e.lovable.app-1779304628671.png" },
@@ -54,7 +54,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Prizely" },
+      { name: "apple-mobile-web-app-title", content: "Biomed Family" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

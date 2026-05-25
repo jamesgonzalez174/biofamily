@@ -3,7 +3,7 @@ import {
 } from '@react-email/components'
 import type { TemplateEntry } from './registry'
 
-const SITE_NAME = 'biofamily'
+const SITE_NAME = 'Biomed Family'
 const SITE_URL = 'https://myprizepoint.com'
 
 interface PointsEarnedProps {

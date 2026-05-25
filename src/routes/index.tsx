@@ -18,7 +18,7 @@ function Landing() {
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Prizely</span>
+          <span className="text-lg font-semibold tracking-tight">Biomed Family</span>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/login" className="rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">Sign in</Link>
