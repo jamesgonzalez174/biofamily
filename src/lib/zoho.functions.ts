@@ -231,21 +231,25 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         }));
         const pharmacyRows = contacts
           .map((c) => {
-            const name = (c.company_name || c.contact_name || "").toString().trim();
+            const name = (c.contact_name || c.company_name || "").toString().trim();
             if (!name) return null;
+            const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
+            const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
             return {
               zoho_contact_id: String(c.contact_id),
               name,
               address: c.billing_address?.address || null,
               is_active: true,
+              loyalty_points: lp !== null ? Math.floor(lp) : 0,
+              history_points: hp !== null ? Math.floor(hp) : 0,
             };
           })
-          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean } => r !== null);
+          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean; loyalty_points: number; history_points: number } => r !== null);
 
         const [cRes, pRes] = await Promise.all([
           supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
           pharmacyRows.length > 0
-            ? supabaseAdmin.from("pharmacies").upsert(pharmacyRows, { onConflict: "zoho_contact_id", ignoreDuplicates: true })
+            ? supabaseAdmin.from("pharmacies").upsert(pharmacyRows, { onConflict: "zoho_contact_id" })
             : Promise.resolve({ error: null as any }),
         ]);
         if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);

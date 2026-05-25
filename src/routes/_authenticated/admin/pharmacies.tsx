@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef } from "react";
-import { Plus, Trash2, MapPin, Upload, Users, Coins, X } from "lucide-react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { setPharmacyTotal } from "@/lib/admin.functions";
+import { syncZohoCustomers } from "@/lib/zoho.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pharmacies")({
   component: PharmaciesPage,
@@ -56,9 +57,29 @@ function PharmaciesPage() {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const setTotal = useServerFn(setPharmacyTotal);
+  const syncZoho = useServerFn(syncZohoCustomers);
+  const [syncing, setSyncing] = useState(false);
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
   const [newTotal, setNewTotal] = useState(0);
   const [reason, setReason] = useState("");
+
+  const runSync = async () => {
+    setSyncing(true);
+    try {
+      const r = await syncZoho();
+      if (r.ok) {
+        toast.success(`Synced ${r.fetched} contacts from Zoho`);
+      } else {
+        toast.error(`Sync issues: ${r.errors.slice(0, 2).join("; ")}`);
+      }
+      qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
+      qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const submitTotal = async () => {
     if (!adj || !reason.trim()) return;
@@ -150,7 +171,19 @@ function PharmaciesPage() {
       <h1 className="text-3xl font-semibold tracking-tight">Pharmacies</h1>
       <p className="text-sm text-muted-foreground">Manage the list of pharmacies users can belong to.</p>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={runSync}
+          disabled={syncing}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} /> {syncing ? "Syncing…" : "Sync all from Zoho"}
+        </button>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
         <form onSubmit={create} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="font-semibold">Add pharmacy</h2>
           <div className="mt-4 space-y-3">
