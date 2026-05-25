@@ -27,7 +27,7 @@ function UsersPage() {
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
 
-  const { data: allUsers } = useQuery({
+  const { data: allUsers, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
   });
@@ -48,9 +48,11 @@ function UsersPage() {
 
 
   const toggleAdmin = async (id: string, isAdmin: boolean) => {
-    await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
-    toast.success(isAdmin ? "Admin revoked" : "Admin granted");
-    qc.invalidateQueries({ queryKey: ["admin-users"] });
+    try {
+      await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
+      toast.success(isAdmin ? "Admin revoked" : "Admin granted");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -158,7 +160,9 @@ function UsersPage() {
                 </tr>
               );
             })}
-            {(users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">Loading users…</td></tr>}
+            {isError && <tr><td colSpan={7} className="p-6 text-center text-sm text-destructive">Failed to load: {(error as Error)?.message}</td></tr>}
+            {!isLoading && !isError && (users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
           </tbody>
         </table>
       </div>
