@@ -48,9 +48,11 @@ function UsersPage() {
 
 
   const toggleAdmin = async (id: string, isAdmin: boolean) => {
-    await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
-    toast.success(isAdmin ? "Admin revoked" : "Admin granted");
-    qc.invalidateQueries({ queryKey: ["admin-users"] });
+    try {
+      await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
+      toast.success(isAdmin ? "Admin revoked" : "Admin granted");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDelete = async (id: string, name: string) => {
