@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendTransactionalEmailServer } from "@/lib/email/send.server";
+import { fetchZohoContact } from "@/lib/zoho-api.server";
+import { processZohoContact } from "@/lib/zoho-contact.server";
 
 /**
  * Process a single Zoho webhook payload: award points + mark the event row processed.
