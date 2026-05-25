@@ -65,6 +65,7 @@ function SignupPage() {
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
+          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
           {pharmacies.length > 0 && (
             <label className="block">
