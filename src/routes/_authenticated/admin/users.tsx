@@ -69,10 +69,33 @@ function UsersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const exportCSV = () => {
+    const pmap = new Map((pharmacies ?? []).map((p) => [p.id, p.name]));
+    const rows = (users ?? []).map((u: any) => ({
+      full_name: u.full_name ?? "",
+      email: u.email,
+      pharmacy: u.pharmacy_id ? pmap.get(u.pharmacy_id) ?? "" : "",
+      tier: u.tier,
+      points_balance: u.points_balance,
+      lifetime_points: u.lifetime_points,
+      roles: (u.roles ?? []).join("|"),
+      created_at: u.created_at,
+    }));
+    downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rows));
+  };
+
   return (
     <AppShell admin>
-      <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
-      <p className="text-sm text-muted-foreground">Adjust loyalty balances and manage admin access.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
+          <p className="text-sm text-muted-foreground">Adjust loyalty balances and manage admin access.</p>
+        </div>
+        <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
+          <Download className="h-4 w-4" /> Download CSV
+        </button>
+      </div>
+
 
       {currentPharmacy && (
         <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
