@@ -86,6 +86,7 @@ function UsersPage() {
     const rows = (users ?? []).map((u: any) => ({
       full_name: u.full_name ?? "",
       email: u.email,
+      phone: u.phone ?? "",
       pharmacy: u.pharmacy_id ? pmap.get(u.pharmacy_id) ?? "" : "",
       tier: u.tier,
       points_balance: u.points_balance,
@@ -129,6 +130,7 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="font-medium">{u.full_name || "—"}</div>
                     <div className="text-xs text-muted-foreground break-all">{u.email}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">{u.phone || "— no phone —"}</div>
                   </td>
                   <td className="p-3">
                     <select
