@@ -73,6 +73,32 @@ export async function processZohoContact(
   const lp = loyaltyPoints !== null ? Math.floor(loyaltyPoints) : null;
   const hp = historyPoints !== null ? Math.floor(historyPoints) : null;
 
+  // 1a) Upsert zoho_customers row so the customer list mirrors Zoho contacts.
+  if (zohoContactId) {
+    const companyName =
+      (contact?.company_name ?? contact?.contact_name ?? "").toString().trim() || null;
+    const { data: existingCustomer } = await supabaseAdmin
+      .from("zoho_customers")
+      .select("id")
+      .eq("zoho_contact_id", zohoContactId)
+      .maybeSingle();
+    const customerRow = {
+      zoho_contact_id: zohoContactId,
+      email: email || null,
+      full_name: fullName || null,
+      company_name: companyName,
+      loyalty_points: lp,
+      history_points: hp,
+      raw: contact,
+      last_synced_at: new Date().toISOString(),
+    };
+    if (existingCustomer) {
+      await supabaseAdmin.from("zoho_customers").update(customerRow).eq("id", existingCustomer.id);
+    } else {
+      await supabaseAdmin.from("zoho_customers").insert(customerRow);
+    }
+  }
+
   // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
   let pharmacyAction: "none" | "created" | "updated" = "none";
   if (zohoContactId && fullName) {
