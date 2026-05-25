@@ -125,6 +125,7 @@ export type Database = {
           id: string
           lifetime_points: number
           pharmacy_id: string | null
+          phone: string | null
           points_balance: number
           tier: string
           updated_at: string
@@ -137,6 +138,7 @@ export type Database = {
           id: string
           lifetime_points?: number
           pharmacy_id?: string | null
+          phone?: string | null
           points_balance?: number
           tier?: string
           updated_at?: string
@@ -149,6 +151,7 @@ export type Database = {
           id?: string
           lifetime_points?: number
           pharmacy_id?: string | null
+          phone?: string | null
           points_balance?: number
           tier?: string
           updated_at?: string

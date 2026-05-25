@@ -19,15 +19,13 @@ function SignupPage() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [pharmacyId, setPharmacyId] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // public-safe via RLS once authed, but for signup we need them visible.
-    // Pharmacies are not sensitive, so we use a server-side fetched static list via supabase anon — RLS blocks anon.
-    // Workaround: fetch after sign-up; here we just allow free-text fallback if list empty.
     supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
       .then(({ data }) => setPharmacies((data ?? []) as Pharmacy[]));
   }, []);
@@ -35,16 +33,16 @@ function SignupPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
+    if (!phone.trim()) return toast.error("Phone number is required.");
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, phone: phone.trim() },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
-    // Best-effort pharmacy attach (user is auto-signed-in when confirmations are off)
     if (pharmacyId && data.user) {
       await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
@@ -67,6 +65,7 @@ function SignupPage() {
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
+          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
           {pharmacies.length > 0 && (
             <label className="block">
