@@ -53,6 +53,15 @@ function UsersPage() {
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete ${name}? This permanently removes their account, profile, points, and redemptions. This cannot be undone.`)) return;
+    try {
+      await removeUser({ data: { targetUserId: id } });
+      toast.success("User deleted");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const changePharmacy = async (userId: string, pharmacyId: string) => {
     const { error } = await supabase.from("profiles").update({ pharmacy_id: pharmacyId || null }).eq("id", userId);
     if (error) return toast.error(error.message);
