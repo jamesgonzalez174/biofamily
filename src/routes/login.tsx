@@ -43,7 +43,8 @@ function LoginPage() {
         <p className="mt-1 text-sm text-muted-foreground">Welcome back. Let's claim some prizes.</p>
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
-          <Field label="Password" type="password" value={password} onChange={setPassword} required />
+            <Field label="Password" type="password" value={password} onChange={setPassword} required />
+
           <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60">
             {loading ? "Signing in…" : "Sign in"}
           </button>
