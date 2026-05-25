@@ -114,12 +114,10 @@ function UsersPage() {
         </div>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-
-
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3"></th></tr>
+            <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {(users ?? []).map((u: any) => {
@@ -128,13 +126,13 @@ function UsersPage() {
                 <tr key={u.id} className="border-t border-border">
                   <td className="p-3">
                     <div className="font-medium">{u.full_name || "—"}</div>
-                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                    <div className="text-xs text-muted-foreground break-all">{u.email}</div>
                   </td>
                   <td className="p-3">
                     <select
                       value={u.pharmacy_id ?? ""}
                       onChange={(e) => changePharmacy(u.id, e.target.value)}
-                      className="rounded-lg border border-input bg-background px-2 py-1 text-xs max-w-[160px]"
+                      className="rounded-lg border border-input bg-background px-2 py-1 text-xs max-w-[140px]"
                     >
                       <option value="">— None —</option>
                       {(pharmacies ?? []).map((p) => (
@@ -146,14 +144,16 @@ function UsersPage() {
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
                   <td className="p-3">{isAdmin ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Admin</span> : <span className="text-xs text-muted-foreground">User</span>}</td>
-                  <td className="p-3 text-right">
-                    <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">Adjust</button>
-                    <button onClick={() => toggleAdmin(u.id, isAdmin)} className="ml-1 rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">
-                      {isAdmin ? <ShieldOff className="inline h-3.5 w-3.5" /> : <Shield className="inline h-3.5 w-3.5" />}
-                    </button>
-                    <button onClick={() => handleDelete(u.id, u.full_name || u.email)} title="Delete user" className="ml-1 rounded-lg border border-destructive/40 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10">
-                      <Trash2 className="inline h-3.5 w-3.5" />
-                    </button>
+                  <td className="p-3">
+                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                      <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
+                      <button onClick={() => toggleAdmin(u.id, isAdmin)} title={isAdmin ? "Revoke admin" : "Grant admin"} className="rounded-lg border border-border p-1.5 hover:bg-muted">
+                        {isAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                      </button>
+                      <button onClick={() => handleDelete(u.id, u.full_name || u.email)} title="Delete user" className="rounded-lg border border-destructive/40 p-1.5 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
