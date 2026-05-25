@@ -160,7 +160,9 @@ function UsersPage() {
                 </tr>
               );
             })}
-            {(users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">Loading users…</td></tr>}
+            {isError && <tr><td colSpan={7} className="p-6 text-center text-sm text-destructive">Failed to load: {(error as Error)?.message}</td></tr>}
+            {!isLoading && !isError && (users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
           </tbody>
         </table>
       </div>
