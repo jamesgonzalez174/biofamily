@@ -151,6 +151,9 @@ function UsersPage() {
                     <button onClick={() => toggleAdmin(u.id, isAdmin)} className="ml-1 rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">
                       {isAdmin ? <ShieldOff className="inline h-3.5 w-3.5" /> : <Shield className="inline h-3.5 w-3.5" />}
                     </button>
+                    <button onClick={() => handleDelete(u.id, u.full_name || u.email)} title="Delete user" className="ml-1 rounded-lg border border-destructive/40 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10">
+                      <Trash2 className="inline h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               );
