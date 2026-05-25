@@ -16,7 +16,7 @@ interface PointsEarnedProps {
 const PointsEarnedEmail = ({ name, points = 0, reason, newBalance }: PointsEarnedProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>You just earned {points} points on {SITE_NAME}</Preview>
+    <Preview>{`You just earned ${points} points on ${SITE_NAME}`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>
