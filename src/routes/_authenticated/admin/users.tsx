@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
-import { listUsers, adjustPoints, setUserRole } from "@/lib/admin.functions";
+import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
