@@ -171,7 +171,19 @@ function PharmaciesPage() {
       <h1 className="text-3xl font-semibold tracking-tight">Pharmacies</h1>
       <p className="text-sm text-muted-foreground">Manage the list of pharmacies users can belong to.</p>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={runSync}
+          disabled={syncing}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} /> {syncing ? "Syncing…" : "Sync all from Zoho"}
+        </button>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
         <form onSubmit={create} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="font-semibold">Add pharmacy</h2>
           <div className="mt-4 space-y-3">
