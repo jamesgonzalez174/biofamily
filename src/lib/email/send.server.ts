@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { render } from '@react-email/components'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import { supabaseAdmin as _supabaseAdmin } from '@/integrations/supabase/client.server'
+const supabaseAdmin = _supabaseAdmin as any
 import { TEMPLATES } from '@/lib/email-templates/registry'
 
 const SITE_NAME = 'biofamily'
