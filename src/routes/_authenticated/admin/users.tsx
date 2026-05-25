@@ -27,7 +27,7 @@ function UsersPage() {
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
 
-  const { data: allUsers } = useQuery({
+  const { data: allUsers, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
   });
