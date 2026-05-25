@@ -80,6 +80,17 @@ export const setPharmacyTotal = createServerFn({ method: "POST" })
     return { ok: true, members: n, perMember: base };
   });
 
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ targetUserId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.targetUserId === context.userId) throw new Error("You cannot delete your own account");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.targetUserId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
