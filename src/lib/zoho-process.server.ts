@@ -53,15 +53,59 @@ export async function processZohoPayload(
   }
 
 
-  const { data: profile } = await supabaseAdmin
+  // Extract contact details from the invoice/contact payload so we can keep
+  // the profile in sync (or create a new one if missing).
+  const contactForProfile = invoice?.contact ?? invoice?.customer ?? {};
+  const invoiceFullName =
+    (contactForProfile?.contact_name ??
+      contactForProfile?.display_name ??
+      contactForProfile?.first_name ??
+      invoice?.customer_name ??
+      invoice?.contact_name ??
+      "")
+      .toString()
+      .trim() || null;
+  const invoicePhone =
+    (contactForProfile?.phone ??
+      contactForProfile?.mobile ??
+      invoice?.phone ??
+      "")
+      .toString()
+      .trim() || null;
+
+  let { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("id, points_balance, lifetime_points, pharmacy_id")
+    .select("id, points_balance, lifetime_points, pharmacy_id, full_name, phone")
     .ilike("email", email)
     .maybeSingle();
 
-  if (!profile) {
-    await supabaseAdmin.from("zoho_events").update({ error: "user not found" }).eq("event_id", eventId);
-    return { ok: false, status: "user not found", pointsAwarded: 0, email, eventId };
+  if (profile) {
+    // Update changed contact fields only (don't clobber existing values with blanks)
+    const patch: { full_name?: string; phone?: string } = {};
+    if (invoiceFullName && invoiceFullName !== profile.full_name) patch.full_name = invoiceFullName;
+    if (invoicePhone && invoicePhone !== profile.phone) patch.phone = invoicePhone;
+    if (Object.keys(patch).length > 0) {
+      await supabaseAdmin.from("profiles").update(patch).eq("id", profile.id);
+    }
+  } else {
+    // Create a placeholder profile so points are tracked even before the user signs up.
+    // No auth.users row is created — the user will link on first sign-up via email match.
+    const newId = crypto.randomUUID();
+    const { data: created, error: createErr } = await supabaseAdmin
+      .from("profiles")
+      .insert({
+        id: newId,
+        email,
+        full_name: invoiceFullName,
+        phone: invoicePhone,
+      })
+      .select("id, points_balance, lifetime_points, pharmacy_id, full_name, phone")
+      .single();
+    if (createErr || !created) {
+      await supabaseAdmin.from("zoho_events").update({ error: `failed to create profile: ${createErr?.message ?? "unknown"}` }).eq("event_id", eventId);
+      return { ok: false, status: "profile create failed", pointsAwarded: 0, email, eventId };
+    }
+    profile = created;
   }
 
   let pointsAwarded = 0;
