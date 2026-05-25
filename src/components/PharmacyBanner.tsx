@@ -93,25 +93,7 @@ export function PharmacyBanner() {
           <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
         </div>
       </div>
-      {picking ? (
-        <div className="flex items-center gap-2">
-          <select
-            value={selected || profile.pharmacy_id}
-            onChange={(e) => setSelected(e.target.value)}
-            className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
-          >
-            {pharmacies?.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <button onClick={save} disabled={saving} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-            <Check className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => { setPicking(false); setSelected(""); }} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
-        </div>
-      ) : (
-        <button onClick={() => setPicking(true)} className="text-xs font-medium text-primary hover:underline">Change</button>
-      )}
+      <span className="text-xs text-muted-foreground">Contact an admin to change</span>
     </div>
   );
 }
