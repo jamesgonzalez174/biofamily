@@ -255,6 +255,32 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);
         else upserted += customerRows.length;
         if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
+
+        // Sync matching profiles by email — name + Loyalty/History Points.
+        const emailToContact = new Map<string, typeof customerRows[number]>();
+        for (const row of customerRows) {
+          if (row.email) emailToContact.set(row.email, row);
+        }
+        const emails = [...emailToContact.keys()];
+        if (emails.length > 0) {
+          const { data: matchingProfiles } = await supabaseAdmin
+            .from("profiles")
+            .select("id, email, full_name, points_balance, lifetime_points")
+            .in("email", emails);
+          await Promise.all(
+            (matchingProfiles ?? []).map(async (p) => {
+              const c = emailToContact.get(String(p.email).toLowerCase().trim());
+              if (!c) return;
+              const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
+              if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
+              if (c.loyalty_points !== null) updates.points_balance = Math.floor(c.loyalty_points);
+              if (c.history_points !== null) updates.lifetime_points = Math.floor(c.history_points);
+              if (Object.keys(updates).length > 0) {
+                await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
+              }
+            }),
+          );
+        }
       };
 
       // Pipeline: prefetch next page while upserting the current one.
