@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
-import { listUsers, adjustPoints, setUserRole } from "@/lib/admin.functions";
+import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
@@ -22,6 +22,7 @@ function UsersPage() {
   const fetchUsers = useServerFn(listUsers);
   const adjust = useServerFn(adjustPoints);
   const setRole = useServerFn(setUserRole);
+  const removeUser = useServerFn(deleteUser);
   const [adj, setAdj] = useState<{ id: string; name: string } | null>(null);
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
@@ -50,6 +51,15 @@ function UsersPage() {
     await setRole({ data: { targetUserId: id, role: "admin", grant: !isAdmin } });
     toast.success(isAdmin ? "Admin revoked" : "Admin granted");
     qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete ${name}? This permanently removes their account, profile, points, and redemptions. This cannot be undone.`)) return;
+    try {
+      await removeUser({ data: { targetUserId: id } });
+      toast.success("User deleted");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const changePharmacy = async (userId: string, pharmacyId: string) => {
@@ -140,6 +150,9 @@ function UsersPage() {
                     <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">Adjust</button>
                     <button onClick={() => toggleAdmin(u.id, isAdmin)} className="ml-1 rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-muted">
                       {isAdmin ? <ShieldOff className="inline h-3.5 w-3.5" /> : <Shield className="inline h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => handleDelete(u.id, u.full_name || u.email)} title="Delete user" className="ml-1 rounded-lg border border-destructive/40 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10">
+                      <Trash2 className="inline h-3.5 w-3.5" />
                     </button>
                   </td>
                 </tr>
