@@ -43,12 +43,12 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
           <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
-        <span className="font-semibold tracking-tight leading-tight">
-          Prizely{admin ? <span className="block text-xs font-normal text-muted-foreground">Admin</span> : ""}
+        <span className="font-semibold tracking-tight leading-tight whitespace-pre-line">
+          {admin ? "Biomed Family \n\nAdmin" : "Prizely"}
         </span>
       </Link>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 px-3 bg-[#4f48cb]">
         {nav.map((n) => {
           const active = isActive(n.to, (n as any).exact);
           return (
@@ -101,7 +101,9 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold tracking-tight">Prizely{admin ? " · Admin" : ""}</span>
+          <span className="font-semibold tracking-tight whitespace-pre-line">
+            {admin ? "Biomed Family \n\nAdmin" : "Prizely"}
+          </span>
         </Link>
         <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
