@@ -57,9 +57,29 @@ function PharmaciesPage() {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const setTotal = useServerFn(setPharmacyTotal);
+  const syncZoho = useServerFn(syncZohoCustomers);
+  const [syncing, setSyncing] = useState(false);
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
   const [newTotal, setNewTotal] = useState(0);
   const [reason, setReason] = useState("");
+
+  const runSync = async () => {
+    setSyncing(true);
+    try {
+      const r = await syncZoho();
+      if (r.ok) {
+        toast.success(`Synced ${r.fetched} contacts from Zoho`);
+      } else {
+        toast.error(`Sync issues: ${r.errors.slice(0, 2).join("; ")}`);
+      }
+      qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
+      qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const submitTotal = async () => {
     if (!adj || !reason.trim()) return;
