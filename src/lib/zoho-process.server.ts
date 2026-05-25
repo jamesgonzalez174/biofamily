@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendTransactionalEmailServer } from "@/lib/email/send.server";
 
 /**
  * Process a single Zoho webhook payload: award points + mark the event row processed.
@@ -151,10 +152,11 @@ export async function processZohoPayload(
         // Only the invoice owner's lifetime_points should be synced from Zoho's
         // History Points; other pharmacy members keep their own lifetime total.
         const isOwner = r.id === profile.id;
+        const newBalance = r.points_balance + share;
         await supabaseAdmin
           .from("profiles")
           .update({
-            points_balance: r.points_balance + share,
+            points_balance: newBalance,
             lifetime_points:
               isOwner && historyPoints !== null
                 ? Math.floor(historyPoints)
@@ -179,6 +181,30 @@ export async function processZohoPayload(
           source: "zoho",
           reference: eventId,
         });
+
+        // Notify the recipient by email (fire-and-forget; failures shouldn't block points)
+        const { data: recipientProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", r.id)
+          .maybeSingle();
+        if (recipientProfile?.email) {
+          try {
+            await sendTransactionalEmailServer({
+              templateName: "points-earned",
+              recipientEmail: recipientProfile.email,
+              idempotencyKey: `points-zoho-${eventId}-${r.id}`,
+              templateData: {
+                name: recipientProfile.full_name ?? undefined,
+                points: share,
+                reason: `Zoho purchase${splitNote}`,
+                newBalance,
+              },
+            });
+          } catch (e) {
+            console.error("Failed to send points-earned email", e);
+          }
+        }
       }
     }
   }
