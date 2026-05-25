@@ -59,6 +59,19 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
+        // Restrict to admins — prevents arbitrary authenticated users from sending
+        // branded emails to any address. Server-to-server callers should use
+        // sendTransactionalEmailServer() (service role) instead.
+        const { data: roleRow } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle()
+        if (!roleRow) {
+          return Response.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
         // Parse request body
         let templateName: string
         let recipientEmail: string
