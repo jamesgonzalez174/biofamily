@@ -22,6 +22,7 @@ function UsersPage() {
   const fetchUsers = useServerFn(listUsers);
   const adjust = useServerFn(adjustPoints);
   const setRole = useServerFn(setUserRole);
+  const removeUser = useServerFn(deleteUser);
   const [adj, setAdj] = useState<{ id: string; name: string } | null>(null);
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
