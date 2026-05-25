@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PointsNotifier } from "@/components/PointsNotifier";
 
 export function AppShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const { isAdmin } = useAuth();
