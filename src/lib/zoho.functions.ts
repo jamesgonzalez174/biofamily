@@ -247,9 +247,28 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
  * Admin-only diagnostic: validate the stored Zoho connection by issuing a
  * fresh access token and listing organizations.
  */
+type TestResult = {
+  ok: boolean;
+  connected: boolean;
+  error: string | null;
+  configuredDc: string | null;
+  matchedDc: string | null;
+  dcMatchesConfig: boolean | null;
+  orgIdConfigured: string | null;
+  orgIdPresent: boolean;
+  orgIdMatches: boolean | null;
+  organizations: Array<{ organization_id: string; name: string }>;
+  attempts: Array<{ dc: string; ok: boolean; status: number; errorCode: string; errorDescription: string }>;
+  missing: string[];
+  clientIdPrefix: string | null;
+  clientSecretLength: number;
+  refreshTokenPrefix: string | null;
+  refreshTokenLength: number;
+};
+
 export const testZohoConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<TestResult> => {
     await assertAdmin(context.userId);
 
     const { data: conn } = await supabaseAdmin
@@ -266,17 +285,17 @@ export const testZohoConnection = createServerFn({ method: "POST" })
         error: "Zoho is not connected. Connect at /admin/zoho-connect.",
         configuredDc: null,
         matchedDc: null,
+        dcMatchesConfig: null,
         orgIdConfigured: null,
-        orgIdMatches: null,
         orgIdPresent: false,
-        organizations: [] as any[],
-        attempts: [] as any[],
-        missing: [] as string[],
+        orgIdMatches: null,
+        organizations: [],
+        attempts: [],
+        missing: [],
         clientIdPrefix: null,
         clientSecretLength: 0,
         refreshTokenPrefix: null,
         refreshTokenLength: 0,
-        dcMatchesConfig: null,
       };
     }
 
@@ -296,6 +315,7 @@ export const testZohoConnection = createServerFn({ method: "POST" })
       return {
         ok: res.ok && orgIdMatches,
         connected: true,
+        error: null,
         configuredDc: dc,
         matchedDc: dc,
         dcMatchesConfig: true,
@@ -304,7 +324,7 @@ export const testZohoConnection = createServerFn({ method: "POST" })
         orgIdMatches,
         organizations: orgList,
         attempts: [{ dc, ok: true, status: 200, errorCode: "—", errorDescription: "Access token issued" }],
-        missing: [] as string[],
+        missing: [],
         clientIdPrefix: (process.env.ZOHO_CLIENT_ID ?? "").slice(0, 15),
         clientSecretLength: (process.env.ZOHO_CLIENT_SECRET ?? "").length,
         refreshTokenPrefix: "(from DB)",
