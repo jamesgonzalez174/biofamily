@@ -118,30 +118,34 @@ function PharmaciesPage() {
     }
   };
 
-  const { data: items } = useQuery({
-    queryKey: ["admin-pharmacies"],
+  const { data: result, isFetching } = useQuery({
+    queryKey: ["admin-pharmacies", search, page],
     queryFn: async () => {
-      const [pharmRes, profRes] = await Promise.all([
-        supabase.from("pharmacies").select("*").order("name"),
-        supabase.from("profiles").select("pharmacy_id, points_balance, lifetime_points"),
-      ]);
-      const totals = new Map();
-      (profRes.data ?? []).forEach((p: any) => {
-        if (!p.pharmacy_id) return;
-        const t = totals.get(p.pharmacy_id) ?? { loyalty: 0, history: 0, members: 0 };
-        t.loyalty += p.points_balance ?? 0;
-        t.history += p.lifetime_points ?? 0;
-        t.members += 1;
-        totals.set(p.pharmacy_id, t);
+      const { data, error } = await supabase.rpc("admin_list_pharmacies", {
+        _search: search || null,
+        _limit: PAGE_SIZE,
+        _offset: page * PAGE_SIZE,
       });
-      return (pharmRes.data ?? []).map((ph: any) => ({
-        ...ph,
-        loyalty_points: ph.loyalty_points || totals.get(ph.id)?.loyalty || 0,
-        history_points: ph.history_points || totals.get(ph.id)?.history || 0,
-        member_count: totals.get(ph.id)?.members ?? 0,
+      if (error) throw error;
+      const rows = (data ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        address: r.address,
+        is_active: r.is_active,
+        zoho_contact_id: r.zoho_contact_id,
+        loyalty_points: r.loyalty_points || r.member_loyalty || 0,
+        history_points: r.history_points || r.member_history || 0,
+        member_count: r.member_count ?? 0,
       }));
+      const total = Number(data?.[0]?.total_count ?? 0);
+      return { rows, total };
     },
+    placeholderData: (prev) => prev,
   });
+
+  const items = result?.rows;
+  const total = result?.total ?? 0;
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
