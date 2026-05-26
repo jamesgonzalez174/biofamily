@@ -492,3 +492,85 @@ export const reprocessZohoEvents = createServerFn({ method: "POST" })
       failures: failures.slice(0, 10),
     };
   });
+
+/**
+ * Diagnostic: call Zoho Books /organizations with the current refresh token.
+ * Returns the raw status + body so the admin can confirm whether the token
+ * has Books scopes (vs CRM-only) and whether the org id is valid.
+ */
+export const diagnoseZohoBooks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    const orgId = process.env.ZOHO_ORGANIZATION_ID ?? null;
+    const dc = normalizeZohoDc(process.env.ZOHO_DC);
+
+    let tokenInfo: { ok: boolean; status: number; errorCode?: string; errorDescription?: string; apiDomain?: string } = {
+      ok: false,
+      status: 0,
+    };
+    let accessToken: string | undefined;
+    let apiDomain = `https://www.zohoapis.${dc}`;
+
+    try {
+      const t = await requestZohoAccessToken(
+        dc,
+        process.env.ZOHO_CLIENT_ID ?? "",
+        process.env.ZOHO_CLIENT_SECRET ?? "",
+        process.env.ZOHO_REFRESH_TOKEN ?? "",
+      );
+      tokenInfo = {
+        ok: t.ok,
+        status: t.status,
+        errorCode: t.ok ? undefined : t.errorCode,
+        errorDescription: t.ok ? undefined : t.errorDescription,
+        apiDomain: t.apiDomain,
+      };
+      accessToken = t.accessToken;
+      apiDomain = t.apiDomain;
+    } catch (e: any) {
+      return {
+        dc,
+        orgId,
+        tokenOk: false,
+        tokenError: e?.message ?? "token failed",
+        booksStatus: 0,
+        booksBody: null as any,
+        booksUrl: null as string | null,
+      };
+    }
+
+    if (!accessToken) {
+      return {
+        dc,
+        orgId,
+        tokenOk: false,
+        tokenError: `${tokenInfo.errorCode}: ${tokenInfo.errorDescription}`,
+        booksStatus: 0,
+        booksBody: null as any,
+        booksUrl: null as string | null,
+      };
+    }
+
+    const booksUrl = `${apiDomain}/books/v3/organizations`;
+    const res = await fetch(booksUrl, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+        Accept: "application/json",
+      },
+    });
+    const raw = await res.text();
+    let body: any = raw;
+    try { body = JSON.parse(raw); } catch {}
+
+    return {
+      dc,
+      orgId,
+      tokenOk: true,
+      tokenError: null as string | null,
+      booksStatus: res.status,
+      booksUrl,
+      booksBody: body,
+    };
+  });

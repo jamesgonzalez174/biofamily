@@ -7,7 +7,7 @@ import { Upload, Trash2, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { reprocessZohoEvents, syncZohoCustomers } from "@/lib/zoho.functions";
+import { reprocessZohoEvents, syncZohoCustomers, diagnoseZohoBooks } from "@/lib/zoho.functions";
 
 
 
@@ -98,6 +98,10 @@ function SettingsPage() {
 
         <section className="lg:col-span-2">
           <SyncCustomers />
+        </section>
+
+        <section className="lg:col-span-2">
+          <ZohoDiagnostic />
         </section>
 
 
@@ -520,6 +524,59 @@ function SyncCustomers() {
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ZohoDiagnostic() {
+  const diagnose = useServerFn(diagnoseZohoBooks);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await diagnose({});
+      setResult(res);
+      if (!res.tokenOk) {
+        toast.error(`Token error: ${res.tokenError}`);
+      } else if (res.booksStatus >= 200 && res.booksStatus < 300) {
+        toast.success(`Books API OK (${res.booksStatus})`);
+      } else {
+        toast.warning(`Books API ${res.booksStatus} — check scopes/org id`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Diagnostic failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-semibold">Zoho Books diagnostic</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Calls <code className="rounded bg-muted px-1">/books/v3/organizations</code> with your refresh token to verify the token has Books scopes and the org id is valid. If you get <code className="rounded bg-muted px-1">INVALID_TOKEN</code> or <code className="rounded bg-muted px-1">OAUTH_SCOPE_MISMATCH</code>, regenerate the refresh token with Books scopes (e.g. <code className="rounded bg-muted px-1">ZohoBooks.contacts.READ,ZohoBooks.settings.READ</code>).
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+          {busy ? "Checking…" : "Run diagnostic"}
+        </button>
+      </div>
+
+      {result && (
+        <pre className="mt-4 max-h-96 overflow-auto rounded-lg bg-muted p-3 text-xs">
+{JSON.stringify(result, null, 2)}
+        </pre>
       )}
     </div>
   );
