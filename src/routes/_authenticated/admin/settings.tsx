@@ -100,6 +100,10 @@ function SettingsPage() {
           <SyncCustomers />
         </section>
 
+        <section className="lg:col-span-2">
+          <ZohoDiagnostic />
+        </section>
+
 
 
 
