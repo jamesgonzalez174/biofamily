@@ -128,14 +128,14 @@ function PharmaciesPage() {
       });
       if (error) throw error;
       const rows = (data ?? []).map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        address: r.address ?? null,
-        is_active: r.is_active,
-        zoho_contact_id: r.zoho_contact_id,
-        loyalty_points: r.loyalty_points || r.member_loyalty || 0,
-        history_points: r.history_points || r.member_history || 0,
-        member_count: r.member_count ?? 0,
+        id: r.id as string,
+        name: r.name as string,
+        address: (r.address ?? null) as string | null,
+        is_active: r.is_active as boolean,
+        zoho_contact_id: r.zoho_contact_id as string | null,
+        loyalty_points: (r.loyalty_points || r.member_loyalty || 0) as number,
+        history_points: (r.history_points || r.member_history || 0) as number,
+        member_count: (r.member_count ?? 0) as number,
       }));
       const total = Number(data?.[0]?.total_count ?? 0);
       return { rows, total };
