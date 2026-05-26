@@ -226,6 +226,28 @@ function PharmaciesPage() {
         </div>
 
         <div className="space-y-2 lg:col-span-2">
+          <form
+            onSubmit={(e) => { e.preventDefault(); setPage(0); setSearch(searchInput.trim()); }}
+            className="flex items-center gap-2"
+          >
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by name or address…"
+                className="w-full rounded-xl border border-input bg-background py-2 pl-9 pr-3 text-sm"
+              />
+            </div>
+            <button type="submit" className="rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">Search</button>
+            {search && (
+              <button type="button" onClick={() => { setSearch(""); setSearchInput(""); setPage(0); }} className="rounded-xl border border-input bg-background px-3 py-2 text-sm hover:bg-muted">Clear</button>
+            )}
+          </form>
+          <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+            <span>{total.toLocaleString()} pharmac{total === 1 ? "y" : "ies"}{isFetching ? " · loading…" : ""}</span>
+            <span>Page {page + 1} of {pageCount}</span>
+          </div>
           {(items ?? []).length > 0 && (
             <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_280px] items-center gap-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
               <div>Pharmacy</div>
