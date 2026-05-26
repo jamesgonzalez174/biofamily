@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { processZohoPayload } from "./zoho-process.server";
 import { getZohoAccessToken } from "./zoho-api.server";
+import { runZohoSync } from "./zoho-sync.server";
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
