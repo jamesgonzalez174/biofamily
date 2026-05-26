@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { processZohoPayload } from "./zoho-process.server";
+import { getZohoAccessToken } from "./zoho-api.server";
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -13,120 +14,6 @@ async function assertAdmin(userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
-function normalizeZohoDc(input?: string) {
-  const raw = (input || "com").trim().toLowerCase();
-  const withoutProtocol = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-
-  if (withoutProtocol.startsWith("accounts.zoho.")) {
-    return withoutProtocol.slice("accounts.zoho.".length);
-  }
-
-  if (withoutProtocol.startsWith("www.zohoapis.")) {
-    return withoutProtocol.slice("www.zohoapis.".length);
-  }
-
-  if (withoutProtocol.startsWith("zohoapis.")) {
-    return withoutProtocol.slice("zohoapis.".length);
-  }
-
-  if (withoutProtocol.startsWith("zoho.")) {
-    return withoutProtocol.slice("zoho.".length);
-  }
-
-  return withoutProtocol.replace(/^\.+/, "") || "com";
-}
-
-async function requestZohoAccessToken(dc: string, clientId: string, clientSecret: string, refreshToken: string) {
-  const url = `https://accounts.zoho.${dc}/oauth/v2/token`;
-  const body = new URLSearchParams({
-    refresh_token: refreshToken,
-    client_id: clientId,
-    client_secret: clientSecret,
-    grant_type: "refresh_token",
-  });
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        Accept: "application/json",
-      },
-      body,
-    });
-
-    const raw = await res.text();
-    let json: any = null;
-    try {
-      json = raw ? JSON.parse(raw) : null;
-    } catch {
-      json = null;
-    }
-
-    const accessToken = json?.access_token;
-    const errorCode = json?.error || json?.code || res.statusText || "unknown_error";
-    const errorDescription = json?.error_description || json?.message || raw || "Unknown Zoho token error";
-
-    return {
-      ok: res.ok && Boolean(accessToken),
-      dc,
-      url,
-      accessToken: accessToken as string | undefined,
-      apiDomain: typeof json?.api_domain === "string" && json.api_domain.length > 0
-        ? json.api_domain
-        : `https://www.zohoapis.${dc}`,
-      status: res.status,
-      errorCode,
-      errorDescription,
-    };
-  } catch (error: any) {
-    return {
-      ok: false,
-      dc,
-      url,
-      accessToken: undefined,
-      apiDomain: `https://www.zohoapis.${dc}`,
-      status: 0,
-      errorCode: "fetch_failed",
-      errorDescription: error?.message ?? "Network request failed",
-    };
-  }
-}
-
-async function getZohoAccessToken() {
-  const dc = normalizeZohoDc(process.env.ZOHO_DC);
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Missing Zoho credentials (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN)");
-  }
-
-  const result = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
-
-  if (result.ok && result.accessToken) {
-    return {
-      accessToken: result.accessToken,
-      dc,
-      apiDomain: result.apiDomain,
-    };
-  }
-
-  console.error("Zoho token request failed", {
-    status: result.status,
-    dc,
-    errorCode: result.errorCode,
-    errorDescription: result.errorDescription,
-  });
-
-  throw new Error(
-    `Zoho token error [${dc}] ${result.errorCode}: ${result.errorDescription}. Refresh tokens are bound to the data center they were issued in — verify ZOHO_DC matches the region where the refresh token was generated (e.g. "com", "eu", "in", "ca", "com.au", "jp", "sa", "com.cn").`,
-  );
-}
-
-/**
- * Pull customers (contacts) from Zoho Books and upsert into zoho_customers.
- */
 /** Read a Zoho custom field by label/api_name from a contact. */
 function readContactCF(contact: any, ...names: string[]): number | null {
   const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
@@ -151,18 +38,51 @@ function readContactCF(contact: any, ...names: string[]): number | null {
   return null;
 }
 
+/** Returns the active Zoho connection metadata for the admin UI. */
+export const getZohoConnection = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("zoho_connections")
+      .select("zoho_org_id, zoho_org_name, region, expires_at, connected_at")
+      .order("connected_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return { connected: false as const };
+    return {
+      connected: true as const,
+      orgId: data.zoho_org_id,
+      orgName: data.zoho_org_name,
+      region: data.region,
+      expiresAt: data.expires_at,
+      connectedAt: data.connected_at,
+    };
+  });
+
+/** Delete the stored Zoho connection. */
+export const disconnectZoho = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.from("zoho_connections").delete().not("id", "is", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Pull customers (contacts) from Zoho Books and upsert into zoho_customers.
+ */
 export const syncZohoCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     try {
       await assertAdmin(context.userId);
 
-      const orgId = process.env.ZOHO_ORGANIZATION_ID;
-      if (!orgId) throw new Error("Missing ZOHO_ORGANIZATION_ID");
-
-      let { accessToken, apiDomain } = await getZohoAccessToken();
+      let { accessToken, apiDomain, orgId } = await getZohoAccessToken();
       let tokenIssuedAt = Date.now();
-      const TOKEN_TTL_MS = 50 * 60 * 1000; // refresh before 1h expiry
+      const TOKEN_TTL_MS = 50 * 60 * 1000;
       const apiBase = `${apiDomain}/books/v3`;
 
       let fetched = 0;
@@ -171,7 +91,6 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
       let pages = 0;
       const errors: string[] = [];
 
-      // Fetch one page from Zoho, with token refresh on TTL or 401.
       const fetchPage = async (
         page: number,
       ): Promise<{ contacts: any[]; hasMore: boolean; stop?: string } | null> => {
@@ -215,7 +134,6 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         return null;
       };
 
-      // Upsert one page's contacts + pharmacies in PARALLEL.
       const upsertPage = async (page: number, contacts: any[]) => {
         if (contacts.length === 0) return;
         const nowIso = new Date().toISOString();
@@ -256,7 +174,6 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         else upserted += customerRows.length;
         if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
 
-        // Sync matching profiles by email — name + Loyalty/History Points.
         const emailToContact = new Map<string, typeof customerRows[number]>();
         for (const row of customerRows) {
           if (row.email) emailToContact.set(row.email, row);
@@ -283,7 +200,6 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         }
       };
 
-      // Pipeline: prefetch next page while upserting the current one.
       let page = 1;
       let next = fetchPage(page);
       while (true) {
@@ -328,121 +244,122 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
   });
 
 /**
- * Admin-only diagnostic: validate the current Zoho refresh token across all
- * known data centers and report exactly what Zoho returned.
+ * Admin-only diagnostic: validate the stored Zoho connection by issuing a
+ * fresh access token and listing organizations.
  */
+type TestResult = {
+  ok: boolean;
+  connected: boolean;
+  error: string | null;
+  configuredDc: string | null;
+  matchedDc: string | null;
+  dcMatchesConfig: boolean | null;
+  orgIdConfigured: string | null;
+  orgIdPresent: boolean;
+  orgIdMatches: boolean | null;
+  organizations: Array<{ organization_id: string; name: string }>;
+  attempts: Array<{ dc: string; ok: boolean; status: number; errorCode: string; errorDescription: string }>;
+  missing: string[];
+  clientIdPrefix: string | null;
+  clientSecretLength: number;
+  refreshTokenPrefix: string | null;
+  refreshTokenLength: number;
+};
+
 export const testZohoConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<TestResult> => {
     await assertAdmin(context.userId);
 
-    const configuredDc = normalizeZohoDc(process.env.ZOHO_DC);
-    const clientId = process.env.ZOHO_CLIENT_ID;
-    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-    const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
-    const orgId = process.env.ZOHO_ORGANIZATION_ID;
+    const { data: conn } = await supabaseAdmin
+      .from("zoho_connections")
+      .select("zoho_org_id, zoho_org_name, region, expires_at, connected_at")
+      .order("connected_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    const missing: string[] = [];
-    if (!clientId) missing.push("ZOHO_CLIENT_ID");
-    if (!clientSecret) missing.push("ZOHO_CLIENT_SECRET");
-    if (!refreshToken) missing.push("ZOHO_REFRESH_TOKEN");
-
-    if (missing.length > 0 || !clientId || !clientSecret || !refreshToken) {
+    if (!conn) {
       return {
         ok: false,
-        configuredDc,
-        missing,
-        clientIdPrefix: clientId?.slice(0, 15) ?? null,
-        clientSecretLength: clientSecret?.length ?? 0,
-        refreshTokenPrefix: refreshToken?.slice(0, 15) ?? null,
-        refreshTokenLength: refreshToken?.length ?? 0,
-        orgIdPresent: Boolean(orgId),
-        attempts: [] as any[],
-        matchedDc: null as string | null,
-        orgIdMatches: null as boolean | null,
+        connected: false,
+        error: "Zoho is not connected. Connect at /admin/zoho-connect.",
+        configuredDc: null,
+        matchedDc: null,
+        dcMatchesConfig: null,
+        orgIdConfigured: null,
+        orgIdPresent: false,
+        orgIdMatches: null,
+        organizations: [],
+        attempts: [],
+        missing: [],
+        clientIdPrefix: null,
+        clientSecretLength: 0,
+        refreshTokenPrefix: null,
+        refreshTokenLength: 0,
       };
     }
 
-    const allDcs = ["com", "eu", "in", "ca", "com.au", "jp", "sa", "com.cn"];
-    const ordered = [configuredDc, ...allDcs.filter((d) => d !== configuredDc)];
-
-    const attempts: Array<{
-      dc: string;
-      ok: boolean;
-      status: number;
-      errorCode: string;
-      errorDescription: string;
-      apiDomain?: string;
-    }> = [];
-
-    let matchedDc: string | null = null;
-    let matchedApiDomain: string | null = null;
-    let matchedAccessToken: string | null = null;
-
-    for (const dc of ordered) {
-      const r = await requestZohoAccessToken(dc, clientId, clientSecret, refreshToken);
-      attempts.push({
-        dc,
-        ok: r.ok,
-        status: r.status,
-        errorCode: r.errorCode,
-        errorDescription: r.errorDescription,
-        apiDomain: r.apiDomain,
+    try {
+      const { accessToken, apiDomain, dc, orgId } = await getZohoAccessToken();
+      const res = await fetch(`${apiDomain}/books/v3/organizations`, {
+        headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
       });
-      if (r.ok && r.accessToken && !matchedDc) {
-        matchedDc = dc;
-        matchedApiDomain = r.apiDomain;
-        matchedAccessToken = r.accessToken;
-      }
-    }
+      const json: any = await res.json().catch(() => null);
+      const orgs: any[] = Array.isArray(json?.organizations) ? json.organizations : [];
+      const orgList = orgs.map((o) => ({
+        organization_id: String(o.organization_id),
+        name: String(o.name ?? ""),
+      }));
+      const orgIdMatches = orgList.some((o) => o.organization_id === orgId);
 
-    // If we got a token, verify the org id by hitting /organizations.
-    let orgIdMatches: boolean | null = null;
-    let orgList: Array<{ organization_id: string; name: string }> = [];
-    if (matchedAccessToken && matchedApiDomain) {
-      try {
-        const res = await fetch(`${matchedApiDomain}/books/v3/organizations`, {
-          headers: {
-            Authorization: `Zoho-oauthtoken ${matchedAccessToken}`,
-            Accept: "application/json",
-          },
-        });
-        const json: any = await res.json().catch(() => null);
-        const orgs: any[] = Array.isArray(json?.organizations) ? json.organizations : [];
-        orgList = orgs.map((o) => ({
-          organization_id: String(o.organization_id),
-          name: String(o.name ?? ""),
-        }));
-        if (orgId) {
-          orgIdMatches = orgList.some((o) => o.organization_id === String(orgId));
-        }
-      } catch {
-        orgList = [];
-      }
+      return {
+        ok: res.ok && orgIdMatches,
+        connected: true,
+        error: null,
+        configuredDc: dc,
+        matchedDc: dc,
+        dcMatchesConfig: true,
+        orgIdConfigured: orgId,
+        orgIdPresent: true,
+        orgIdMatches,
+        organizations: orgList,
+        attempts: [{ dc, ok: true, status: 200, errorCode: "—", errorDescription: "Access token issued" }],
+        missing: [],
+        clientIdPrefix: (process.env.ZOHO_CLIENT_ID ?? "").slice(0, 15),
+        clientSecretLength: (process.env.ZOHO_CLIENT_SECRET ?? "").length,
+        refreshTokenPrefix: "(from DB)",
+        refreshTokenLength: 0,
+      };
+    } catch (e: any) {
+      return {
+        ok: false,
+        connected: true,
+        error: e?.message ?? "Token refresh failed",
+        configuredDc: conn.region,
+        matchedDc: null,
+        dcMatchesConfig: null,
+        orgIdConfigured: conn.zoho_org_id,
+        orgIdPresent: true,
+        orgIdMatches: null,
+        organizations: [],
+        attempts: [{
+          dc: conn.region,
+          ok: false,
+          status: 0,
+          errorCode: "refresh_failed",
+          errorDescription: e?.message ?? "Token refresh failed",
+        }],
+        missing: [],
+        clientIdPrefix: (process.env.ZOHO_CLIENT_ID ?? "").slice(0, 15),
+        clientSecretLength: (process.env.ZOHO_CLIENT_SECRET ?? "").length,
+        refreshTokenPrefix: "(from DB)",
+        refreshTokenLength: 0,
+      };
     }
-
-    return {
-      ok: matchedDc !== null && (orgIdMatches ?? true),
-      configuredDc,
-      matchedDc,
-      dcMatchesConfig: matchedDc === configuredDc,
-      clientIdPrefix: clientId.slice(0, 15),
-      clientSecretLength: clientSecret.length,
-      refreshTokenPrefix: refreshToken.slice(0, 15),
-      refreshTokenLength: refreshToken.length,
-      orgIdPresent: Boolean(orgId),
-      orgIdConfigured: orgId ?? null,
-      orgIdMatches,
-      organizations: orgList,
-      attempts,
-      missing,
-    };
   });
-
 
 /**
  * Re-run the points logic for unprocessed (or errored) Zoho webhook events.
- * Useful when a payload arrived before the user existed, or to retry failures.
  */
 export const reprocessZohoEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -494,45 +411,35 @@ export const reprocessZohoEvents = createServerFn({ method: "POST" })
   });
 
 /**
- * Diagnostic: call Zoho Books /organizations with the current refresh token.
- * Returns the raw status + body so the admin can confirm whether the token
- * has Books scopes (vs CRM-only) and whether the org id is valid.
+ * Diagnostic: hit /organizations with the current token to verify Books access.
  */
 export const diagnoseZohoBooks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
 
-    const orgId = process.env.ZOHO_ORGANIZATION_ID ?? null;
-    const dc = normalizeZohoDc(process.env.ZOHO_DC);
-
-    let tokenInfo: { ok: boolean; status: number; errorCode?: string; errorDescription?: string; apiDomain?: string } = {
-      ok: false,
-      status: 0,
-    };
-    let accessToken: string | undefined;
-    let apiDomain = `https://www.zohoapis.${dc}`;
-
     try {
-      const t = await requestZohoAccessToken(
-        dc,
-        process.env.ZOHO_CLIENT_ID ?? "",
-        process.env.ZOHO_CLIENT_SECRET ?? "",
-        process.env.ZOHO_REFRESH_TOKEN ?? "",
-      );
-      tokenInfo = {
-        ok: t.ok,
-        status: t.status,
-        errorCode: t.ok ? undefined : t.errorCode,
-        errorDescription: t.ok ? undefined : t.errorDescription,
-        apiDomain: t.apiDomain,
-      };
-      accessToken = t.accessToken;
-      apiDomain = t.apiDomain;
-    } catch (e: any) {
+      const { accessToken, apiDomain, dc, orgId } = await getZohoAccessToken();
+      const booksUrl = `${apiDomain}/books/v3/organizations`;
+      const res = await fetch(booksUrl, {
+        headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+      });
+      const raw = await res.text();
+      let body: any = raw;
+      try { body = JSON.parse(raw); } catch {}
       return {
         dc,
         orgId,
+        tokenOk: true,
+        tokenError: null as string | null,
+        booksStatus: res.status,
+        booksUrl,
+        booksBody: body,
+      };
+    } catch (e: any) {
+      return {
+        dc: null,
+        orgId: null,
         tokenOk: false,
         tokenError: e?.message ?? "token failed",
         booksStatus: 0,
@@ -540,90 +447,4 @@ export const diagnoseZohoBooks = createServerFn({ method: "POST" })
         booksUrl: null as string | null,
       };
     }
-
-    if (!accessToken) {
-      return {
-        dc,
-        orgId,
-        tokenOk: false,
-        tokenError: `${tokenInfo.errorCode}: ${tokenInfo.errorDescription}`,
-        booksStatus: 0,
-        booksBody: null as any,
-        booksUrl: null as string | null,
-      };
-    }
-
-    const booksUrl = `${apiDomain}/books/v3/organizations`;
-    const res = await fetch(booksUrl, {
-      headers: {
-        Authorization: `Zoho-oauthtoken ${accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    const raw = await res.text();
-    let body: any = raw;
-    try { body = JSON.parse(raw); } catch {}
-
-    return {
-      dc,
-      orgId,
-      tokenOk: true,
-      tokenError: null as string | null,
-      booksStatus: res.status,
-      booksUrl,
-      booksBody: body,
-    };
-  });
-
-export const exchangeZohoGrantCode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { code: string; dc?: string }) => ({
-    code: String(input.code || "").trim(),
-    dc: String(input.dc || "").trim(),
-  }))
-  .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
-
-    const code = data.code;
-    if (!code) return { ok: false, error: "Grant code is required" } as const;
-
-    const clientId = process.env.ZOHO_CLIENT_ID;
-    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-    if (!clientId || !clientSecret) {
-      return { ok: false, error: "ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET not set" } as const;
-    }
-
-    const dc = normalizeZohoDc(data.dc || process.env.ZOHO_DC || "com");
-    const url = `https://accounts.zoho.${dc}/oauth/v2/token`;
-
-    const body = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-    });
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    const raw = await res.text();
-    let parsed: any = raw;
-    try { parsed = JSON.parse(raw); } catch {}
-
-    const refreshToken = parsed && typeof parsed === "object" ? parsed.refresh_token : null;
-    const apiDomain = parsed && typeof parsed === "object" ? parsed.api_domain : null;
-    const errorMsg = parsed && typeof parsed === "object" ? parsed.error : null;
-
-    return {
-      ok: res.ok && !!refreshToken,
-      status: res.status,
-      dc,
-      url,
-      refreshToken: refreshToken || null,
-      apiDomain: apiDomain || null,
-      error: errorMsg || (res.ok ? null : "No refresh_token in response"),
-      raw: parsed,
-    } as const;
   });
