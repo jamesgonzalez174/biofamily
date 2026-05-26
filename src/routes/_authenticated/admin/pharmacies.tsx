@@ -130,7 +130,7 @@ function PharmaciesPage() {
       const rows = (data ?? []).map((r: any) => ({
         id: r.id,
         name: r.name,
-        address: r.address,
+        address: r.address ?? null,
         is_active: r.is_active,
         zoho_contact_id: r.zoho_contact_id,
         loyalty_points: r.loyalty_points || r.member_loyalty || 0,
