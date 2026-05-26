@@ -92,9 +92,6 @@ function SettingsPage() {
           </p>
         </section>
 
-        <section className="lg:col-span-2">
-          <ReprocessEvents />
-        </section>
 
         <section className="lg:col-span-2">
           <SyncCustomers />
