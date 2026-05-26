@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useRef } from "react";
-import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw } from "lucide-react";
+import { useState, useRef, useMemo } from "react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
