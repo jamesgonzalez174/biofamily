@@ -122,7 +122,7 @@ function PharmaciesPage() {
     queryKey: ["admin-pharmacies", search, page],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_list_pharmacies", {
-        _search: search || null,
+        _search: search || undefined,
         _limit: PAGE_SIZE,
         _offset: page * PAGE_SIZE,
       });
