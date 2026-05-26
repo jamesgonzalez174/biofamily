@@ -545,6 +545,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_pharmacies: {
+        Args: { _limit?: number; _offset?: number; _search?: string }
+        Returns: {
+          address: string
+          history_points: number
+          id: string
+          is_active: boolean
+          loyalty_points: number
+          member_count: number
+          member_history: number
+          member_loyalty: number
+          name: string
+          total_count: number
+          zoho_contact_id: string
+        }[]
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean

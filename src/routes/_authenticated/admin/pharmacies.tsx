@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useRef } from "react";
-import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw } from "lucide-react";
+import { useState, useRef, useMemo } from "react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -62,6 +62,10 @@ function PharmaciesPage() {
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
   const [newTotal, setNewTotal] = useState(0);
   const [reason, setReason] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const runSync = async () => {
     setSyncing(true);
@@ -114,30 +118,34 @@ function PharmaciesPage() {
     }
   };
 
-  const { data: items } = useQuery({
-    queryKey: ["admin-pharmacies"],
+  const { data: result, isFetching } = useQuery({
+    queryKey: ["admin-pharmacies", search, page],
     queryFn: async () => {
-      const [pharmRes, profRes] = await Promise.all([
-        supabase.from("pharmacies").select("*").order("name"),
-        supabase.from("profiles").select("pharmacy_id, points_balance, lifetime_points"),
-      ]);
-      const totals = new Map();
-      (profRes.data ?? []).forEach((p: any) => {
-        if (!p.pharmacy_id) return;
-        const t = totals.get(p.pharmacy_id) ?? { loyalty: 0, history: 0, members: 0 };
-        t.loyalty += p.points_balance ?? 0;
-        t.history += p.lifetime_points ?? 0;
-        t.members += 1;
-        totals.set(p.pharmacy_id, t);
+      const { data, error } = await supabase.rpc("admin_list_pharmacies", {
+        _search: search || undefined,
+        _limit: PAGE_SIZE,
+        _offset: page * PAGE_SIZE,
       });
-      return (pharmRes.data ?? []).map((ph: any) => ({
-        ...ph,
-        loyalty_points: ph.loyalty_points || totals.get(ph.id)?.loyalty || 0,
-        history_points: ph.history_points || totals.get(ph.id)?.history || 0,
-        member_count: totals.get(ph.id)?.members ?? 0,
+      if (error) throw error;
+      const rows = (data ?? []).map((r: any) => ({
+        id: r.id as string,
+        name: r.name as string,
+        address: (r.address ?? null) as string | null,
+        is_active: r.is_active as boolean,
+        zoho_contact_id: r.zoho_contact_id as string | null,
+        loyalty_points: (r.loyalty_points || r.member_loyalty || 0) as number,
+        history_points: (r.history_points || r.member_history || 0) as number,
+        member_count: (r.member_count ?? 0) as number,
       }));
+      const total = Number(data?.[0]?.total_count ?? 0);
+      return { rows, total };
     },
+    placeholderData: (prev) => prev,
   });
+
+  const items = result?.rows;
+  const total = result?.total ?? 0;
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +226,28 @@ function PharmaciesPage() {
         </div>
 
         <div className="space-y-2 lg:col-span-2">
+          <form
+            onSubmit={(e) => { e.preventDefault(); setPage(0); setSearch(searchInput.trim()); }}
+            className="flex items-center gap-2"
+          >
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by name or address…"
+                className="w-full rounded-xl border border-input bg-background py-2 pl-9 pr-3 text-sm"
+              />
+            </div>
+            <button type="submit" className="rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-muted">Search</button>
+            {search && (
+              <button type="button" onClick={() => { setSearch(""); setSearchInput(""); setPage(0); }} className="rounded-xl border border-input bg-background px-3 py-2 text-sm hover:bg-muted">Clear</button>
+            )}
+          </form>
+          <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+            <span>{total.toLocaleString()} pharmac{total === 1 ? "y" : "ies"}{isFetching ? " · loading…" : ""}</span>
+            <span>Page {page + 1} of {pageCount}</span>
+          </div>
           {(items ?? []).length > 0 && (
             <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_280px] items-center gap-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
               <div>Pharmacy</div>
@@ -278,6 +308,27 @@ function PharmaciesPage() {
               </div>
             </div>
           ))}
+          {pageCount > 1 && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0 || isFetching}
+                className="inline-flex items-center gap-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" /> Prev
+              </button>
+              <span className="text-sm tabular-nums text-muted-foreground">{page + 1} / {pageCount}</span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1 || isFetching}
+                className="inline-flex items-center gap-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
