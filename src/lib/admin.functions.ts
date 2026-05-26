@@ -74,7 +74,7 @@ export const setPharmacyTotal = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const { data: members, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, points_balance, lifetime_points")
+      .select("id, points_balance, lifetime_points, email, full_name")
       .eq("pharmacy_id", data.pharmacyId);
     if (error) throw new Error(error.message);
     if (!members || members.length === 0) throw new Error("Pharmacy has no members to distribute to");
@@ -93,6 +93,23 @@ export const setPharmacyTotal = createServerFn({ method: "POST" })
         await supabaseAdmin.from("points_ledger").insert({
           user_id: m.id, delta, reason: data.reason, source: "pharmacy_split",
         });
+      }
+      if (delta > 0 && (m as any).email) {
+        try {
+          await sendTransactionalEmailServer({
+            templateName: "points-earned",
+            recipientEmail: (m as any).email,
+            idempotencyKey: `points-pharmacy-${data.pharmacyId}-${m.id}-${Date.now()}`,
+            templateData: {
+              name: (m as any).full_name ?? undefined,
+              points: delta,
+              reason: data.reason,
+              newBalance,
+            },
+          });
+        } catch (e) {
+          console.error("Failed to send points-earned email", e);
+        }
       }
     }
     return { ok: true, members: n, perMember: base };
