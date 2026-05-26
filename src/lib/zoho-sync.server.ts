@@ -1,0 +1,216 @@
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getZohoAccessToken } from "./zoho-api.server";
+import { sendTransactionalEmailServer } from "@/lib/email/send.server";
+
+function readContactCF(contact: any, ...names: string[]): number | null {
+  const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+  const cfs: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  for (const cf of cfs) {
+    const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+      .toLowerCase()
+      .replace(/[\s_-]/g, "");
+    if (lower.includes(label)) {
+      const v = Number(cf?.value ?? cf?.value_formatted ?? NaN);
+      if (!Number.isNaN(v)) return v;
+    }
+  }
+  for (const n of names) {
+    const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+    const v = contact?.[key];
+    if (v !== undefined && v !== null && v !== "") {
+      const num = Number(v);
+      if (!Number.isNaN(num)) return num;
+    }
+  }
+  return null;
+}
+
+export interface SyncResult {
+  ok: boolean;
+  fetched: number;
+  upserted: number;
+  pages: number;
+  truncated: boolean;
+  errors: string[];
+  notifiedCount: number;
+}
+
+/** Core Zoho contacts → DB sync. When notify=true, emails users whose loyalty went up. */
+export async function runZohoSync(opts: { notify?: boolean } = {}): Promise<SyncResult> {
+  const notify = opts.notify ?? false;
+  try {
+    let { accessToken, apiDomain, orgId } = await getZohoAccessToken();
+    let tokenIssuedAt = Date.now();
+    const TOKEN_TTL_MS = 50 * 60 * 1000;
+    const apiBase = `${apiDomain}/books/v3`;
+
+    let fetched = 0;
+    let upserted = 0;
+    let truncated = false;
+    let notifiedCount = 0;
+    const errors: string[] = [];
+
+    const fetchPage = async (
+      page: number,
+    ): Promise<{ contacts: any[]; hasMore: boolean; stop?: string } | null> => {
+      if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
+        const refreshed = await getZohoAccessToken();
+        accessToken = refreshed.accessToken;
+        tokenIssuedAt = Date.now();
+      }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const url = `${apiBase}/contacts?organization_id=${orgId}&page=${page}&per_page=200`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+        });
+        const raw = await res.text();
+        if (res.status === 401 && attempt === 0) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+          continue;
+        }
+        let json: any = null;
+        try { json = raw ? JSON.parse(raw) : null; } catch {
+          return { contacts: [], hasMore: false, stop: `page ${page}: non-JSON (${res.status})` };
+        }
+        if (!res.ok) {
+          return { contacts: [], hasMore: false, stop: `page ${page}: ${json?.message || res.statusText}` };
+        }
+        return { contacts: json.contacts ?? [], hasMore: Boolean(json.page_context?.has_more_page) };
+      }
+      return null;
+    };
+
+    const upsertPage = async (page: number, contacts: any[]) => {
+      if (contacts.length === 0) return;
+      const nowIso = new Date().toISOString();
+      const customerRows = contacts.map((c) => ({
+        zoho_contact_id: String(c.contact_id),
+        email: c.email ? String(c.email).toLowerCase().trim() : null,
+        full_name: c.contact_name || null,
+        company_name: c.company_name || null,
+        loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
+        history_points: null,
+        raw: c,
+        last_synced_at: nowIso,
+      }));
+      const pharmacyInputs = contacts
+        .map((c) => {
+          const name = (c.contact_name || c.company_name || "").toString().trim();
+          if (!name) return null;
+          const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
+          return {
+            zoho_contact_id: String(c.contact_id),
+            name,
+            address: c.billing_address?.address || null,
+            loyalty_points: lp !== null ? Math.floor(lp) : 0,
+          };
+        })
+        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
+
+      const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
+      const { data: existingPharms } = pharmIds.length
+        ? await supabaseAdmin
+            .from("pharmacies")
+            .select("zoho_contact_id, loyalty_points, history_points")
+            .in("zoho_contact_id", pharmIds)
+        : { data: [] as any[] };
+      const existingPharmMap = new Map<string, { loyalty_points: number; history_points: number }>();
+      for (const ep of existingPharms ?? []) {
+        existingPharmMap.set(String((ep as any).zoho_contact_id), {
+          loyalty_points: Number((ep as any).loyalty_points ?? 0),
+          history_points: Number((ep as any).history_points ?? 0),
+        });
+      }
+      const pharmacyRows = pharmacyInputs.map((r) => {
+        const prev = existingPharmMap.get(r.zoho_contact_id);
+        const history = (prev?.history_points ?? 0) + r.loyalty_points;
+        return { ...r, is_active: true, history_points: history };
+      });
+
+      const [cRes, pRes] = await Promise.all([
+        supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
+        pharmacyRows.length > 0
+          ? supabaseAdmin.from("pharmacies").upsert(pharmacyRows, { onConflict: "zoho_contact_id" })
+          : Promise.resolve({ error: null as any }),
+      ]);
+      if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);
+      else upserted += customerRows.length;
+      if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
+
+      const emailToContact = new Map<string, typeof customerRows[number]>();
+      for (const row of customerRows) if (row.email) emailToContact.set(row.email, row);
+      const emails = [...emailToContact.keys()];
+      if (emails.length === 0) return;
+
+      const { data: matchingProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name, points_balance, lifetime_points")
+        .in("email", emails);
+
+      await Promise.all(
+        (matchingProfiles ?? []).map(async (p) => {
+          const c = emailToContact.get(String(p.email).toLowerCase().trim());
+          if (!c || c.loyalty_points === null) return;
+          const newLoyalty = Math.floor(c.loyalty_points);
+          const prevBalance = Number((p as any).points_balance ?? 0);
+          const prevHistory = Number((p as any).lifetime_points ?? 0);
+          const delta = newLoyalty - prevBalance;
+
+          const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
+          if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
+          updates.points_balance = newLoyalty;
+          updates.lifetime_points = prevHistory + newLoyalty;
+
+          if (Object.keys(updates).length > 0) {
+            await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
+          }
+
+          if (notify && delta > 0 && p.email) {
+            const dayKey = new Date().toISOString().slice(0, 10);
+            const r = await sendTransactionalEmailServer({
+              templateName: "points-earned",
+              recipientEmail: p.email,
+              idempotencyKey: `daily-sync-${dayKey}-${p.id}`,
+              templateData: {
+                name: p.full_name || undefined,
+                points: delta,
+                reason: "Daily Zoho sync",
+                newBalance: newLoyalty,
+              },
+            });
+            if (r.ok) notifiedCount++;
+          }
+        }),
+      );
+    };
+
+    let page = 1;
+    let next = fetchPage(page);
+    while (true) {
+      const current = await next;
+      if (!current) break;
+      if (current.stop) { errors.push(current.stop); break; }
+      fetched += current.contacts.length;
+      const hasMore = current.hasMore;
+      const nextPageNum = page + 1;
+      if (hasMore && nextPageNum <= 100) next = fetchPage(nextPageNum);
+      await upsertPage(page, current.contacts);
+      if (!hasMore) break;
+      page = nextPageNum;
+      if (page > 100) {
+        truncated = true;
+        errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
+        break;
+      }
+    }
+
+    return { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
+  } catch (error: any) {
+    return {
+      ok: false, fetched: 0, upserted: 0, pages: 0, truncated: false,
+      errors: [error?.message ?? "Zoho sync failed"], notifiedCount: 0,
+    };
+  }
+}
