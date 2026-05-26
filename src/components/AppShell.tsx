@@ -22,7 +22,6 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
         { to: "/admin/skus", label: "SKU mapping", icon: Sparkles },
         { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
         { to: "/admin/zoho-connect", label: "Zoho Connect", icon: Eye },
-        { to: "/admin/zoho-test", label: "Test Zoho", icon: Eye },
       ]
     : [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

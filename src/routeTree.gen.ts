@@ -24,7 +24,6 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicZohoWebhookRouteImport } from './routes/api/public/zoho-webhook'
-import { Route as AuthenticatedAdminZohoTestRouteImport } from './routes/_authenticated/admin/zoho-test'
 import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
@@ -112,12 +111,6 @@ const ApiPublicZohoWebhookRoute = ApiPublicZohoWebhookRouteImport.update({
   path: '/api/public/zoho-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminZohoTestRoute =
-  AuthenticatedAdminZohoTestRouteImport.update({
-    id: '/zoho-test',
-    path: '/zoho-test',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminZohoConnectRoute =
   AuthenticatedAdminZohoConnectRouteImport.update({
     id: '/zoho-connect',
@@ -206,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
-  '/admin/zoho-test': typeof AuthenticatedAdminZohoTestRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -234,7 +226,6 @@ export interface FileRoutesByTo {
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
-  '/admin/zoho-test': typeof AuthenticatedAdminZohoTestRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -265,7 +256,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
-  '/_authenticated/admin/zoho-test': typeof AuthenticatedAdminZohoTestRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -296,7 +286,6 @@ export interface FileRouteTypes {
     | '/admin/skus'
     | '/admin/users'
     | '/admin/zoho-connect'
-    | '/admin/zoho-test'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/admin/'
@@ -324,7 +313,6 @@ export interface FileRouteTypes {
     | '/admin/skus'
     | '/admin/users'
     | '/admin/zoho-connect'
-    | '/admin/zoho-test'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/admin'
@@ -354,7 +342,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/skus'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/zoho-connect'
-    | '/_authenticated/admin/zoho-test'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
@@ -490,13 +477,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicZohoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/zoho-test': {
-      id: '/_authenticated/admin/zoho-test'
-      path: '/zoho-test'
-      fullPath: '/admin/zoho-test'
-      preLoaderRoute: typeof AuthenticatedAdminZohoTestRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/zoho-connect': {
       id: '/_authenticated/admin/zoho-connect'
       path: '/zoho-connect'
@@ -592,7 +572,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSkusRoute: typeof AuthenticatedAdminSkusRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminZohoConnectRoute: typeof AuthenticatedAdminZohoConnectRoute
-  AuthenticatedAdminZohoTestRoute: typeof AuthenticatedAdminZohoTestRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -604,7 +583,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSkusRoute: AuthenticatedAdminSkusRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminZohoConnectRoute: AuthenticatedAdminZohoConnectRoute,
-  AuthenticatedAdminZohoTestRoute: AuthenticatedAdminZohoTestRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
