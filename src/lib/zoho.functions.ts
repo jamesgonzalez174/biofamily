@@ -187,10 +187,9 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
             (matchingProfiles ?? []).map(async (p) => {
               const c = emailToContact.get(String(p.email).toLowerCase().trim());
               if (!c) return;
-              const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
+              const updates: { full_name?: string; points_balance?: number } = {};
               if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
               if (c.loyalty_points !== null) updates.points_balance = Math.floor(c.loyalty_points);
-              if (c.history_points !== null) updates.lifetime_points = Math.floor(c.history_points);
               if (Object.keys(updates).length > 0) {
                 await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
               }
