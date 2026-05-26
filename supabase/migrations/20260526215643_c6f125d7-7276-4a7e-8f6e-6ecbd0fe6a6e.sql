@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.run_points_expiration() FROM PUBLIC, anon, authenticated;
