@@ -574,3 +574,56 @@ export const diagnoseZohoBooks = createServerFn({ method: "POST" })
       booksBody: body,
     };
   });
+
+export const exchangeZohoGrantCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { code: string; dc?: string }) => ({
+    code: String(input.code || "").trim(),
+    dc: String(input.dc || "").trim(),
+  }))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    const code = data.code;
+    if (!code) return { ok: false, error: "Grant code is required" } as const;
+
+    const clientId = process.env.ZOHO_CLIENT_ID;
+    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      return { ok: false, error: "ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET not set" } as const;
+    }
+
+    const dc = normalizeZohoDc(data.dc || process.env.ZOHO_DC || "com");
+    const url = `https://accounts.zoho.${dc}/oauth/v2/token`;
+
+    const body = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+    });
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const raw = await res.text();
+    let parsed: any = raw;
+    try { parsed = JSON.parse(raw); } catch {}
+
+    const refreshToken = parsed && typeof parsed === "object" ? parsed.refresh_token : null;
+    const apiDomain = parsed && typeof parsed === "object" ? parsed.api_domain : null;
+    const errorMsg = parsed && typeof parsed === "object" ? parsed.error : null;
+
+    return {
+      ok: res.ok && !!refreshToken,
+      status: res.status,
+      dc,
+      url,
+      refreshToken: refreshToken || null,
+      apiDomain: apiDomain || null,
+      error: errorMsg || (res.ok ? null : "No refresh_token in response"),
+      raw: parsed,
+    } as const;
+  });
