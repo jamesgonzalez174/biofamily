@@ -178,8 +178,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         }
         const pharmacyRows = pharmacyInputs.map((r) => {
           const prev = existingPharmMap.get(r.zoho_contact_id);
-          const delta = prev ? Math.max(0, r.loyalty_points - prev.loyalty_points) : r.loyalty_points;
-          const history = (prev?.history_points ?? 0) + delta;
+          const history = (prev?.history_points ?? 0) + r.loyalty_points;
           return {
             ...r,
             is_active: true,
