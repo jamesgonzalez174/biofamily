@@ -593,6 +593,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      run_points_expiration: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
