@@ -4,6 +4,14 @@ import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthScene } from "@/components/AuthScene";
+import { lovable } from "@/integrations/lovable";
+
+async function signInWithGoogle() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: `${window.location.origin}/dashboard`,
+  });
+  if (result.error) toast.error(result.error.message ?? "Google sign-in failed");
+}
 
 export const Route = createFileRoute("/signup")({
   beforeLoad: async () => {
