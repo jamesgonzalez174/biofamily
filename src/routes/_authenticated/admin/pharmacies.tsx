@@ -62,6 +62,10 @@ function PharmaciesPage() {
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
   const [newTotal, setNewTotal] = useState(0);
   const [reason, setReason] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const runSync = async () => {
     setSyncing(true);
