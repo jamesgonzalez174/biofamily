@@ -178,8 +178,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
         }
         const pharmacyRows = pharmacyInputs.map((r) => {
           const prev = existingPharmMap.get(r.zoho_contact_id);
-          const delta = prev ? Math.max(0, r.loyalty_points - prev.loyalty_points) : r.loyalty_points;
-          const history = (prev?.history_points ?? 0) + delta;
+          const history = (prev?.history_points ?? 0) + r.loyalty_points;
           return {
             ...r,
             is_active: true,
@@ -215,11 +214,9 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
               if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
               if (c.loyalty_points !== null) {
                 const newLoyalty = Math.floor(c.loyalty_points);
-                const prevLoyalty = Number((p as any).points_balance ?? 0);
                 const prevHistory = Number((p as any).lifetime_points ?? 0);
-                const delta = Math.max(0, newLoyalty - prevLoyalty);
                 updates.points_balance = newLoyalty;
-                updates.lifetime_points = prevHistory + delta;
+                updates.lifetime_points = prevHistory + newLoyalty;
               }
               if (Object.keys(updates).length > 0) {
                 await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
