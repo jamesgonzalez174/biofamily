@@ -426,6 +426,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zoho_connections: {
+        Row: {
+          access_token: string
+          connected_at: string
+          connected_by: string | null
+          expires_at: string
+          id: string
+          refresh_token: string
+          region: string
+          updated_at: string
+          zoho_org_id: string
+          zoho_org_name: string | null
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string
+          connected_by?: string | null
+          expires_at: string
+          id?: string
+          refresh_token: string
+          region: string
+          updated_at?: string
+          zoho_org_id: string
+          zoho_org_name?: string | null
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string
+          connected_by?: string | null
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          region?: string
+          updated_at?: string
+          zoho_org_id?: string
+          zoho_org_name?: string | null
+        }
+        Relationships: []
+      }
       zoho_customers: {
         Row: {
           company_name: string | null
