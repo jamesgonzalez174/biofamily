@@ -147,7 +147,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
           raw: c,
           last_synced_at: nowIso,
         }));
-        const pharmacyRows = contacts
+        const pharmacyInputs = contacts
           .map((c) => {
             const name = (c.contact_name || c.company_name || "").toString().trim();
             if (!name) return null;
@@ -156,12 +156,36 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
               zoho_contact_id: String(c.contact_id),
               name,
               address: c.billing_address?.address || null,
-              is_active: true,
               loyalty_points: lp !== null ? Math.floor(lp) : 0,
             };
           })
-          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean; loyalty_points: number } => r !== null);
+          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
 
+        // Fetch existing pharmacies so we can accumulate history = existing_history + max(0, new_loyalty - existing_loyalty)
+        const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
+        const { data: existingPharms } = pharmIds.length
+          ? await supabaseAdmin
+              .from("pharmacies")
+              .select("zoho_contact_id, loyalty_points, history_points")
+              .in("zoho_contact_id", pharmIds)
+          : { data: [] as any[] };
+        const existingPharmMap = new Map<string, { loyalty_points: number; history_points: number }>();
+        for (const ep of existingPharms ?? []) {
+          existingPharmMap.set(String((ep as any).zoho_contact_id), {
+            loyalty_points: Number((ep as any).loyalty_points ?? 0),
+            history_points: Number((ep as any).history_points ?? 0),
+          });
+        }
+        const pharmacyRows = pharmacyInputs.map((r) => {
+          const prev = existingPharmMap.get(r.zoho_contact_id);
+          const delta = prev ? Math.max(0, r.loyalty_points - prev.loyalty_points) : r.loyalty_points;
+          const history = (prev?.history_points ?? 0) + delta;
+          return {
+            ...r,
+            is_active: true,
+            history_points: history,
+          };
+        });
 
         const [cRes, pRes] = await Promise.all([
           supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
@@ -187,9 +211,16 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
             (matchingProfiles ?? []).map(async (p) => {
               const c = emailToContact.get(String(p.email).toLowerCase().trim());
               if (!c) return;
-              const updates: { full_name?: string; points_balance?: number } = {};
+              const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
               if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
-              if (c.loyalty_points !== null) updates.points_balance = Math.floor(c.loyalty_points);
+              if (c.loyalty_points !== null) {
+                const newLoyalty = Math.floor(c.loyalty_points);
+                const prevLoyalty = Number((p as any).points_balance ?? 0);
+                const prevHistory = Number((p as any).lifetime_points ?? 0);
+                const delta = Math.max(0, newLoyalty - prevLoyalty);
+                updates.points_balance = newLoyalty;
+                updates.lifetime_points = prevHistory + delta;
+              }
               if (Object.keys(updates).length > 0) {
                 await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
               }
@@ -197,6 +228,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
           );
         }
       };
+
 
       let page = 1;
       let next = fetchPage(page);
