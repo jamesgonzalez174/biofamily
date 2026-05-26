@@ -143,7 +143,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
           full_name: c.contact_name || null,
           company_name: c.company_name || null,
           loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
-          history_points: readContactCF(c, "History Points", "history_points", "HistoryPoints"),
+          history_points: null,
           raw: c,
           last_synced_at: nowIso,
         }));
@@ -152,17 +152,16 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
             const name = (c.contact_name || c.company_name || "").toString().trim();
             if (!name) return null;
             const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
-            const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
             return {
               zoho_contact_id: String(c.contact_id),
               name,
               address: c.billing_address?.address || null,
               is_active: true,
               loyalty_points: lp !== null ? Math.floor(lp) : 0,
-              history_points: hp !== null ? Math.floor(hp) : 0,
             };
           })
-          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean; loyalty_points: number; history_points: number } => r !== null);
+          .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; is_active: boolean; loyalty_points: number } => r !== null);
+
 
         const [cRes, pRes] = await Promise.all([
           supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
@@ -188,10 +187,9 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
             (matchingProfiles ?? []).map(async (p) => {
               const c = emailToContact.get(String(p.email).toLowerCase().trim());
               if (!c) return;
-              const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
+              const updates: { full_name?: string; points_balance?: number } = {};
               if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
               if (c.loyalty_points !== null) updates.points_balance = Math.floor(c.loyalty_points);
-              if (c.history_points !== null) updates.lifetime_points = Math.floor(c.history_points);
               if (Object.keys(updates).length > 0) {
                 await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
               }
