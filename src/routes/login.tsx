@@ -75,6 +75,12 @@ function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <GoogleButton label="Sign in with Google" />
         <p className="mt-4 text-center text-sm">
           <Link to="/forgot-password" className="font-medium text-primary hover:underline">Forgot password?</Link>
         </p>
