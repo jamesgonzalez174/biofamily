@@ -62,16 +62,21 @@ function ZohoConnectPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id ?? "";
       const state = btoa(JSON.stringify({ user_id: userId, nonce: crypto.randomUUID() }));
-      const redirectUri = `${SUPABASE_URL}/functions/v1/zoho-oauth-callback`;
-      const authUrl =
-        `https://accounts.zoho.com/oauth/v2/auth` +
-        `?response_type=code` +
-        `&client_id=${encodeURIComponent(data.clientId)}` +
-        `&scope=${encodeURIComponent("ZohoBooks.fullaccess.all")}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&access_type=offline` +
-        `&prompt=consent` +
-        `&state=${encodeURIComponent(state)}`;
+      const redirectUri = typeof data.redirectUri === "string"
+        ? data.redirectUri
+        : `${SUPABASE_URL}/functions/v1/zoho-oauth-callback`;
+      const accountsUrl = typeof data.accountsUrl === "string"
+        ? data.accountsUrl
+        : `https://accounts.zoho.${typeof data.dc === "string" ? data.dc : "com"}`;
+      const authUrl = `${accountsUrl}/oauth/v2/auth?${new URLSearchParams({
+        response_type: "code",
+        client_id: data.clientId,
+        scope: "ZohoBooks.fullaccess.all",
+        redirect_uri: redirectUri,
+        access_type: "offline",
+        prompt: "consent",
+        state,
+      }).toString()}`;
       const popup = window.open(authUrl, "zoho-oauth", "width=600,height=720");
       if (!popup) {
         setConnecting(false);
