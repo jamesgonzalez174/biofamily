@@ -11,6 +11,7 @@ export function PharmacyBanner() {
   const [picking, setPicking] = useState(false);
   const [selected, setSelected] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -56,24 +57,50 @@ export function PharmacyBanner() {
           <div className="flex-1 min-w-[200px]">
             <div className="font-semibold">Select your pharmacy</div>
             <p className="text-sm text-muted-foreground">Pick the pharmacy you belong to so we can track your points correctly.</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <select
-                value={selected}
-                onChange={(e) => setSelected(e.target.value)}
-                className="min-w-[220px] flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Choose a pharmacy…</option>
-                {pharmacies?.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
-                ))}
-              </select>
-              <button
-                onClick={save}
-                disabled={!selected || saving}
-                className="rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
+            <div className="mt-3 flex flex-col gap-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search pharmacies by name or address…"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              />
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={selected}
+                  onChange={(e) => setSelected(e.target.value)}
+                  size={Math.min(6, Math.max(3, (pharmacies?.filter((p) => {
+                    const q = search.trim().toLowerCase();
+                    if (!q) return true;
+                    return p.name.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q);
+                  }).length ?? 0) + 1))}
+                  className="min-w-[220px] flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {pharmacies
+                    ?.filter((p) => {
+                      const q = search.trim().toLowerCase();
+                      if (!q) return true;
+                      return p.name.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q);
+                    })
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
+                    ))}
+                  {pharmacies && pharmacies.filter((p) => {
+                    const q = search.trim().toLowerCase();
+                    if (!q) return true;
+                    return p.name.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q);
+                  }).length === 0 && (
+                    <option value="" disabled>No matches</option>
+                  )}
+                </select>
+                <button
+                  onClick={save}
+                  disabled={!selected || saving}
+                  className="rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
