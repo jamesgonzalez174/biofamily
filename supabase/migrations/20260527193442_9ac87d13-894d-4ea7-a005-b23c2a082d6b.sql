@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.admin_list_pharmacies(text, integer, integer) TO authenticated;
