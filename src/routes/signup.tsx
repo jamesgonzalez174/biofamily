@@ -18,7 +18,6 @@ export const Route = createFileRoute("/signup")({
 type Pharmacy = { id: string; name: string; address: string | null };
 
 function SignupPage() {
-  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -51,8 +50,8 @@ function SignupPage() {
     }
     setLoading(false);
     setConfirmationSent(true);
+    setPassword("");
     toast.success("Account created. Please confirm your email before signing in.");
-    navigate({ to: "/login" });
   };
 
   return (
