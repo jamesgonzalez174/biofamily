@@ -49,9 +49,8 @@ function SignupPage() {
       await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
     setLoading(false);
-    setConfirmationSent(true);
-    setPassword("");
-    toast.success("Account created. Please confirm your email before signing in.");
+    toast.success("Welcome! Your account is ready.");
+    navigate({ to: "/dashboard" });
   };
 
   return (
