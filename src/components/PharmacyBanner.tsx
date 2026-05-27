@@ -11,6 +11,7 @@ export function PharmacyBanner() {
   const [picking, setPicking] = useState(false);
   const [selected, setSelected] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
