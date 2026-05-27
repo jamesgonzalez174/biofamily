@@ -139,51 +139,71 @@ export async function runZohoSync(opts: { notify?: boolean } = {}): Promise<Sync
       else upserted += customerRows.length;
       if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
 
-      const emailToContact = new Map<string, typeof customerRows[number]>();
-      for (const row of customerRows) if (row.email) emailToContact.set(row.email, row);
-      const emails = [...emailToContact.keys()];
-      if (emails.length === 0) return;
+      // Split each pharmacy's loyalty_points across its assigned members.
+      // If only one member is assigned, that member receives all points.
+      if (pharmacyInputs.length === 0) return;
+      const { data: syncedPharms } = await supabaseAdmin
+        .from("pharmacies")
+        .select("id, zoho_contact_id, loyalty_points")
+        .in("zoho_contact_id", pharmacyInputs.map((r) => r.zoho_contact_id));
+      if (!syncedPharms || syncedPharms.length === 0) return;
 
-      const { data: matchingProfiles } = await supabaseAdmin
-        .from("profiles")
-        .select("id, email, full_name, points_balance, lifetime_points")
-        .in("email", emails);
+      for (const pharm of syncedPharms) {
+        const totalPoints = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
+        const { data: members } = await supabaseAdmin
+          .from("profiles")
+          .select("id, email, full_name, points_balance, lifetime_points")
+          .eq("pharmacy_id", (pharm as any).id);
+        if (!members || members.length === 0) continue;
 
-      await Promise.all(
-        (matchingProfiles ?? []).map(async (p) => {
-          const c = emailToContact.get(String(p.email).toLowerCase().trim());
-          if (!c || c.loyalty_points === null) return;
-          const newLoyalty = Math.floor(c.loyalty_points);
-          const prevBalance = Number((p as any).points_balance ?? 0);
-          const prevHistory = Number((p as any).lifetime_points ?? 0);
-          const delta = newLoyalty - prevBalance;
+        const n = members.length;
+        const base = Math.floor(totalPoints / n);
+        const remainder = totalPoints - base * n;
 
-          const updates: { full_name?: string; points_balance?: number; lifetime_points?: number } = {};
-          if (c.full_name && c.full_name !== p.full_name) updates.full_name = c.full_name;
-          updates.points_balance = newLoyalty;
-          updates.lifetime_points = prevHistory + newLoyalty;
+        for (let i = 0; i < n; i++) {
+          const m = members[i] as any;
+          const newBalance = base + (i < remainder ? 1 : 0);
+          const prevBalance = Number(m.points_balance ?? 0);
+          const prevHistory = Number(m.lifetime_points ?? 0);
+          const delta = newBalance - prevBalance;
 
-          if (Object.keys(updates).length > 0) {
-            await supabaseAdmin.from("profiles").update(updates).eq("id", p.id);
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              points_balance: newBalance,
+              lifetime_points: delta > 0 ? prevHistory + delta : prevHistory,
+            })
+            .eq("id", m.id);
+
+          if (delta !== 0) {
+            await supabaseAdmin.from("points_ledger").insert({
+              user_id: m.id,
+              delta,
+              reason:
+                n > 1
+                  ? `Zoho sync — split across ${n} pharmacy members`
+                  : "Zoho sync",
+              source: "zoho_sync",
+            });
           }
 
-          if (notify && delta > 0 && p.email) {
+          if (notify && delta > 0 && m.email) {
             const dayKey = new Date().toISOString().slice(0, 10);
             const r = await sendTransactionalEmailServer({
               templateName: "points-earned",
-              recipientEmail: p.email,
-              idempotencyKey: `daily-sync-${dayKey}-${p.id}`,
+              recipientEmail: m.email,
+              idempotencyKey: `daily-sync-${dayKey}-${m.id}`,
               templateData: {
-                name: p.full_name || undefined,
+                name: m.full_name || undefined,
                 points: delta,
-                reason: "Daily Zoho sync",
-                newBalance: newLoyalty,
+                reason: n > 1 ? `Daily Zoho sync (split across ${n} members)` : "Daily Zoho sync",
+                newBalance,
               },
             });
             if (r.ok) notifiedCount++;
           }
-        }),
-      );
+        }
+      }
     };
 
     let page = 1;
