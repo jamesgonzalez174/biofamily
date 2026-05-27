@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/signup")({
 type Pharmacy = { id: string; name: string; address: string | null };
 
 function SignupPage() {
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,7 +26,6 @@ function SignupPage() {
   const [pharmacyId, setPharmacyId] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
-  const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
     supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
@@ -49,9 +49,8 @@ function SignupPage() {
       await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
     setLoading(false);
-    setConfirmationSent(true);
-    setPassword("");
-    toast.success("Account created. Please confirm your email before signing in.");
+    toast.success("Welcome! Your account is ready.");
+    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -65,11 +64,6 @@ function SignupPage() {
       <div className="auth-glass auth-pop-sm rounded-2xl p-8">
         <h1 className="auth-pop text-2xl font-semibold tracking-tight">Create account</h1>
         <p className="mt-1 text-sm text-muted-foreground">Start earning points on every purchase.</p>
-        {confirmationSent && (
-          <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-            We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Verify your email, then sign in.
-          </div>
-        )}
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
