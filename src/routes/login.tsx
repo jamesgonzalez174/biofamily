@@ -4,6 +4,7 @@ import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthScene } from "@/components/AuthScene";
+import { isEmailConfirmationError, resendSignupConfirmation } from "@/lib/auth-email";
 
 
 export const Route = createFileRoute("/login")({
@@ -20,15 +21,33 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setNeedsConfirmation(false);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (isEmailConfirmationError(error.message)) {
+        setNeedsConfirmation(true);
+        return toast.error("Email not confirmed. Check your inbox or resend the confirmation email.");
+      }
+      return toast.error(error.message);
+    }
     toast.success("Welcome back!");
     navigate({ to: "/dashboard" });
+  };
+
+  const resendConfirmation = async () => {
+    if (!email.trim()) return toast.error("Enter your email address first.");
+    setResendLoading(true);
+    const { error } = await resendSignupConfirmation(email.trim());
+    setResendLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Confirmation email sent. Please check your inbox.");
   };
 
   return (
@@ -44,12 +63,26 @@ function LoginPage() {
         <p className="mt-1 text-sm text-muted-foreground">Welcome back. Let's claim some prizes.</p>
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
-            <Field label="Password" type="password" value={password} onChange={setPassword} required />
+          <Field label="Password" type="password" value={password} onChange={setPassword} required />
 
           <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60">
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        {needsConfirmation && (
+          <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium text-foreground">Your email address still needs confirmation.</p>
+            <p className="mt-1 text-muted-foreground">Open the verification email, or send a fresh one below.</p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={resendLoading}
+              className="mt-3 text-sm font-medium text-primary hover:underline disabled:opacity-60"
+            >
+              {resendLoading ? "Sending confirmation…" : "Resend confirmation email"}
+            </button>
+          </div>
+        )}
         <p className="mt-4 text-center text-sm">
 
           <Link to="/forgot-password" className="font-medium text-primary hover:underline">Forgot password?</Link>
