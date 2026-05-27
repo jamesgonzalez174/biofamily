@@ -4,6 +4,7 @@ import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthScene } from "@/components/AuthScene";
+import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
 
 
 export const Route = createFileRoute("/signup")({
@@ -25,6 +26,7 @@ function SignupPage() {
   const [pharmacyId, setPharmacyId] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
     supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
@@ -40,7 +42,7 @@ function SignupPage() {
       email, password,
       options: {
         data: { full_name: fullName, phone: phone.trim() },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: getAuthEmailRedirectUrl(),
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
@@ -48,8 +50,9 @@ function SignupPage() {
       await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
     setLoading(false);
-    toast.success("Account created!");
-    navigate({ to: "/dashboard" });
+    setConfirmationSent(true);
+    toast.success("Account created. Please confirm your email before signing in.");
+    navigate({ to: "/login" });
   };
 
   return (
@@ -63,6 +66,11 @@ function SignupPage() {
       <div className="auth-glass auth-pop-sm rounded-2xl p-8">
         <h1 className="auth-pop text-2xl font-semibold tracking-tight">Create account</h1>
         <p className="mt-1 text-sm text-muted-foreground">Start earning points on every purchase.</p>
+        {confirmationSent && (
+          <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+            We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Verify your email, then sign in.
+          </div>
+        )}
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
