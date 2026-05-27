@@ -18,6 +18,7 @@ export const Route = createFileRoute("/signup")({
 type Pharmacy = { id: string; name: string; address: string | null };
 
 function SignupPage() {
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,7 +26,6 @@ function SignupPage() {
   const [pharmacyId, setPharmacyId] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
-  const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
     supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
