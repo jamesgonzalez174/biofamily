@@ -79,7 +79,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    return await runZohoSync({ notify: false });
+    return await runZohoSync({ notify: true });
   });
 
 
