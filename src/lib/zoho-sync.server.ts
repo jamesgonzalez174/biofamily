@@ -36,13 +36,41 @@ export interface SyncResult {
 }
 
 /** Core Zoho contacts → DB sync. When notify=true, emails users whose loyalty went up. */
-export async function runZohoSync(opts: { notify?: boolean } = {}): Promise<SyncResult> {
+export async function runZohoSync(opts: { notify?: boolean; source?: string; triggeredBy?: string | null } = {}): Promise<SyncResult> {
   const notify = opts.notify ?? false;
+  const source = opts.source ?? "manual";
+  const triggeredBy = opts.triggeredBy ?? null;
+  const startedAt = new Date().toISOString();
+  const { data: runRow } = await supabaseAdmin
+    .from("zoho_sync_runs")
+    .insert({ started_at: startedAt, source, triggered_by: triggeredBy, ok: false })
+    .select("id")
+    .single();
+  const runId = (runRow as any)?.id as string | undefined;
+
+  const finalize = async (result: SyncResult) => {
+    if (!runId) return;
+    await supabaseAdmin
+      .from("zoho_sync_runs")
+      .update({
+        finished_at: new Date().toISOString(),
+        ok: result.ok,
+        fetched: result.fetched,
+        upserted: result.upserted,
+        pages: result.pages,
+        truncated: result.truncated,
+        notified_count: result.notifiedCount,
+        errors: result.errors as any,
+      })
+      .eq("id", runId);
+  };
+
   try {
     let { accessToken, apiDomain, orgId } = await getZohoAccessToken();
     let tokenIssuedAt = Date.now();
     const TOKEN_TTL_MS = 50 * 60 * 1000;
     const apiBase = `${apiDomain}/books/v3`;
+
 
     let fetched = 0;
     let upserted = 0;
