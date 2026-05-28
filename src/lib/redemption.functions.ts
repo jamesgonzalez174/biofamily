@@ -46,23 +46,7 @@ export const updateRedemptionStatus = createServerFn({ method: "POST" })
     const becomingClaimed = data.status === "claimed" && !wasClaimed;
     const becomingCancelled = data.status === "cancelled" && !wasCancelled;
 
-    // Deduct points when transitioning into claimed
-    if (becomingClaimed) {
-      const { data: profile, error: pErr } = await supabaseAdmin
-        .from("profiles").select("points_balance, lifetime_points").eq("id", red.user_id).single();
-      if (pErr || !profile) throw new Error("User profile not found");
-      if (profile.points_balance < red.points_spent) throw new Error("User no longer has enough points");
-
-      const { error: bErr } = await supabaseAdmin
-        .from("profiles").update({ points_balance: profile.points_balance - red.points_spent })
-        .eq("id", red.user_id);
-      if (bErr) throw new Error("Failed to deduct points");
-
-      await supabaseAdmin.from("points_ledger").insert({
-        user_id: red.user_id, delta: -red.points_spent,
-        reason: `Claimed: ${red.prize_name}`, source: "redemption", reference: red.id,
-      });
-    }
+    // Points were already deducted at redemption time. Nothing to do on claim.
 
     // Restore stock when cancelling a not-yet-claimed redemption
     if (becomingCancelled && !wasClaimed) {
@@ -71,10 +55,7 @@ export const updateRedemptionStatus = createServerFn({ method: "POST" })
       if (prize) {
         await supabaseAdmin.from("prizes").update({ stock: prize.stock + 1 }).eq("id", red.prize_id);
       }
-    }
-
-    // Refund points if reversing a claim back to a non-claimed state
-    if (wasClaimed && data.status !== "claimed") {
+      // Refund the points that were deducted at redemption time
       const { data: profile } = await supabaseAdmin
         .from("profiles").select("points_balance").eq("id", red.user_id).single();
       if (profile) {
@@ -83,10 +64,11 @@ export const updateRedemptionStatus = createServerFn({ method: "POST" })
         }).eq("id", red.user_id);
         await supabaseAdmin.from("points_ledger").insert({
           user_id: red.user_id, delta: red.points_spent,
-          reason: `Reversed claim: ${red.prize_name}`, source: "redemption", reference: red.id,
+          reason: `Cancelled: ${red.prize_name}`, source: "redemption", reference: red.id,
         });
       }
     }
+
 
     const patch: any = { status: data.status, updated_at: new Date().toISOString() };
     if (data.tracking_info !== undefined) patch.tracking_info = data.tracking_info;
