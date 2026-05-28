@@ -252,13 +252,16 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
         break;
       }
-    }
-
-    return { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
+    const result: SyncResult = { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
+    await finalize(result);
+    return result;
   } catch (error: any) {
-    return {
+    const result: SyncResult = {
       ok: false, fetched: 0, upserted: 0, pages: 0, truncated: false,
       errors: [error?.message ?? "Zoho sync failed"], notifiedCount: 0,
     };
+    await finalize(result);
+    return result;
   }
 }
+
