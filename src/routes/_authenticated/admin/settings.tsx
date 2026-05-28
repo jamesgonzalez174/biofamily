@@ -323,3 +323,109 @@ function SyncCustomers() {
   );
 }
 
+function SyncHistory() {
+  const list = useServerFn(listZohoSyncRuns);
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["zoho-sync-runs"],
+    queryFn: () => list({}),
+    refetchInterval: 15000,
+  });
+  const runs = (data?.runs ?? []) as any[];
+
+  const fmt = (s: string | null) => (s ? new Date(s).toLocaleString() : "—");
+  const duration = (a: string, b: string | null) => {
+    if (!b) return "—";
+    const ms = new Date(b).getTime() - new Date(a).getTime();
+    if (ms < 1000) return `${ms}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Sync history</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Recent Zoho customer syncs (manual and scheduled). Auto-refreshes.
+          </p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+        </button>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : runs.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No sync runs yet.
+          </p>
+        ) : (
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="py-2 pr-3 font-medium">Started</th>
+                <th className="py-2 pr-3 font-medium">Source</th>
+                <th className="py-2 pr-3 font-medium">Status</th>
+                <th className="py-2 pr-3 font-medium">Duration</th>
+                <th className="py-2 pr-3 font-medium text-right">Fetched</th>
+                <th className="py-2 pr-3 font-medium text-right">Upserted</th>
+                <th className="py-2 pr-3 font-medium text-right">Pages</th>
+                <th className="py-2 pr-3 font-medium text-right">Notified</th>
+                <th className="py-2 font-medium">Errors</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => {
+                const errs: any[] = Array.isArray(r.errors) ? r.errors : [];
+                const running = !r.finished_at;
+                const status = running ? "running" : r.ok ? "ok" : "failed";
+                const statusClass =
+                  status === "ok"
+                    ? "bg-success/15 text-success"
+                    : status === "failed"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-muted text-muted-foreground";
+                return (
+                  <tr key={r.id} className="border-b border-border/60 last:border-0">
+                    <td className="py-2 pr-3 whitespace-nowrap">{fmt(r.started_at)}</td>
+                    <td className="py-2 pr-3 capitalize">{r.source}</td>
+                    <td className="py-2 pr-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass}`}>
+                        {status}
+                      </span>
+                      {r.truncated && (
+                        <span className="ml-1 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">truncated</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{duration(r.started_at, r.finished_at)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.fetched}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.upserted}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.pages}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.notified_count}</td>
+                    <td className="py-2 max-w-[280px]">
+                      {errs.length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className="line-clamp-2 text-xs text-destructive" title={errs.join("\n")}>
+                          {errs[0]}
+                          {errs.length > 1 ? ` (+${errs.length - 1} more)` : ""}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
