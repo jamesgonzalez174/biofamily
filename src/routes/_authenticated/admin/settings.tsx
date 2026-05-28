@@ -305,7 +305,7 @@ function SyncCustomers() {
     <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Sync customers from Zoho</h2>
+          <h2 className="font-semibold">Sync Points Earn </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Pulls contacts from Zoho Books using your stored refresh token and stores them in the customers table.
           </p>
