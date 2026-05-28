@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-zoho-sync")({
           });
         }
 
-        const result = await runZohoSync({ notify: true });
+        const result = await runZohoSync({ notify: true, source: "cron" });
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: { "Content-Type": "application/json" },
