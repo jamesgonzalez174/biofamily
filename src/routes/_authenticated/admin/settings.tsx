@@ -7,7 +7,8 @@ import { Upload, Trash2, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { syncZohoCustomers } from "@/lib/zoho.functions";
+import { syncZohoCustomers, listZohoSyncRuns } from "@/lib/zoho.functions";
+
 
 
 
