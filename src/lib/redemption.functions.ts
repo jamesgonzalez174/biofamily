@@ -9,33 +9,18 @@ export const redeemPrize = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
 
-    const { data: prize, error: pErr } = await supabaseAdmin
-      .from("prizes").select("*").eq("id", data.prizeId).single();
-    if (pErr || !prize) throw new Error("Prize not found");
-    if (!prize.is_active) throw new Error("Prize is not available");
-    if (prize.stock <= 0) throw new Error("Prize is out of stock");
+    // Atomic: locks the profile row + prize row, validates balance/stock,
+    // decrements stock, and inserts the redemption — all in one transaction.
+    const { data: red, error } = await supabaseAdmin.rpc("create_redemption", {
+      _user_id: userId,
+      _prize_id: data.prizeId,
+    });
+    if (error || !red) throw new Error(error?.message || "Failed to create redemption");
 
-    const { data: profile, error: prErr } = await supabaseAdmin
-      .from("profiles").select("points_balance").eq("id", userId).single();
-    if (prErr || !profile) throw new Error("Profile not found");
-    if (profile.points_balance < prize.point_cost) throw new Error("Not enough points");
-
-    // Reserve stock (points are NOT deducted until admin marks claimed)
-    const { error: sErr } = await supabaseAdmin
-      .from("prizes").update({ stock: prize.stock - 1 }).eq("id", prize.id).gt("stock", 0);
-    if (sErr) throw new Error("Failed to reserve stock");
-
-    const { data: red, error: rErr } = await supabaseAdmin.from("redemptions").insert({
-      user_id: userId, prize_id: prize.id, prize_name: prize.name,
-      points_spent: prize.point_cost, status: "pending",
-    }).select().single();
-    if (rErr) {
-      await supabaseAdmin.from("prizes").update({ stock: prize.stock }).eq("id", prize.id);
-      throw new Error("Failed to create redemption");
-    }
-
-    return { ok: true, redemption: { id: red.id, prize_name: red.prize_name, points_spent: red.points_spent } };
+    const r = Array.isArray(red) ? red[0] : red;
+    return { ok: true, redemption: { id: r.id, prize_name: r.prize_name, points_spent: r.points_spent } };
   });
+
 
 export const updateRedemptionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
