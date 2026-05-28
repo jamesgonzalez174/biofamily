@@ -252,7 +252,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
         break;
       }
+    }
+
     const result: SyncResult = { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
+
     await finalize(result);
     return result;
   } catch (error: any) {
