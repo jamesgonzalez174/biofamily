@@ -79,9 +79,22 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    return await runZohoSync({ notify: true });
+    return await runZohoSync({ notify: true, source: "manual", triggeredBy: context.userId });
   });
 
+/** List recent Zoho sync runs (admin only). */
+export const listZohoSyncRuns = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("zoho_sync_runs")
+      .select("id, started_at, finished_at, ok, source, fetched, upserted, pages, truncated, notified_count, errors, triggered_by")
+      .order("started_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return { runs: data ?? [] };
+  });
 
 /**
  * Admin-only diagnostic: validate the stored Zoho connection by issuing a
