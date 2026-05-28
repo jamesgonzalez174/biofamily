@@ -540,6 +540,51 @@ export type Database = {
         }
         Relationships: []
       }
+      zoho_sync_runs: {
+        Row: {
+          errors: Json
+          fetched: number
+          finished_at: string | null
+          id: string
+          notified_count: number
+          ok: boolean
+          pages: number
+          source: string
+          started_at: string
+          triggered_by: string | null
+          truncated: boolean
+          upserted: number
+        }
+        Insert: {
+          errors?: Json
+          fetched?: number
+          finished_at?: string | null
+          id?: string
+          notified_count?: number
+          ok?: boolean
+          pages?: number
+          source?: string
+          started_at?: string
+          triggered_by?: string | null
+          truncated?: boolean
+          upserted?: number
+        }
+        Update: {
+          errors?: Json
+          fetched?: number
+          finished_at?: string | null
+          id?: string
+          notified_count?: number
+          ok?: boolean
+          pages?: number
+          source?: string
+          started_at?: string
+          triggered_by?: string | null
+          truncated?: boolean
+          upserted?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
