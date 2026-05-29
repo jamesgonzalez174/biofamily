@@ -172,13 +172,17 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (pharmacyInputs.length === 0) return;
       const { data: syncedPharms } = await supabaseAdmin
         .from("pharmacies")
-        .select("id, zoho_contact_id, loyalty_points")
+        .select("id, zoho_contact_id, loyalty_points, history_points")
         .in("zoho_contact_id", pharmacyInputs.map((r) => r.zoho_contact_id));
       if (!syncedPharms || syncedPharms.length === 0) return;
 
       for (const pharm of syncedPharms) {
         const pharmId = (pharm as any).id as string;
-        const totalPoints = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
+        // Use cumulative history_points as the target so each sync ADDS the
+        // newly-reported loyalty_points instead of clobbering to the snapshot.
+        // Example: yesterday +100, today +150 → user shows 250 (not 150).
+        const totalPoints = Math.max(0, Number((pharm as any).history_points ?? 0));
+
         const { data: members } = await supabaseAdmin
           .from("profiles")
           .select("id, email, full_name, points_balance, lifetime_points")
