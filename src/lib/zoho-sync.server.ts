@@ -177,23 +177,45 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (!syncedPharms || syncedPharms.length === 0) return;
 
       for (const pharm of syncedPharms) {
+        const pharmId = (pharm as any).id as string;
         const totalPoints = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
         const { data: members } = await supabaseAdmin
           .from("profiles")
           .select("id, email, full_name, points_balance, lifetime_points")
-          .eq("pharmacy_id", (pharm as any).id);
+          .eq("pharmacy_id", pharmId);
         if (!members || members.length === 0) continue;
 
         const n = members.length;
         const base = Math.floor(totalPoints / n);
         const remainder = totalPoints - base * n;
 
+        // Fetch each member's cumulative Zoho-sync credits for THIS pharmacy so we
+        // can compute a delta (target − already_credited) instead of overwriting
+        // points_balance. Overwriting would erase redemption deductions made
+        // between syncs — a real bug at scale.
+        const memberIds = members.map((m: any) => m.id);
+        const { data: ledgerRows } = await supabaseAdmin
+          .from("points_ledger")
+          .select("user_id, delta")
+          .in("user_id", memberIds)
+          .eq("source", "zoho_sync")
+          .eq("reference", pharmId);
+        const credited = new Map<string, number>();
+        for (const row of ledgerRows ?? []) {
+          const k = String((row as any).user_id);
+          credited.set(k, (credited.get(k) ?? 0) + Number((row as any).delta ?? 0));
+        }
+
         for (let i = 0; i < n; i++) {
           const m = members[i] as any;
-          const newBalance = base + (i < remainder ? 1 : 0);
+          const target = base + (i < remainder ? 1 : 0);
+          const already = credited.get(String(m.id)) ?? 0;
+          const delta = target - already;
+          if (delta === 0) continue;
+
           const prevBalance = Number(m.points_balance ?? 0);
           const prevHistory = Number(m.lifetime_points ?? 0);
-          const delta = newBalance - prevBalance;
+          const newBalance = Math.max(0, prevBalance + delta);
 
           await supabaseAdmin
             .from("profiles")
@@ -203,17 +225,14 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             })
             .eq("id", m.id);
 
-          if (delta !== 0) {
-            await supabaseAdmin.from("points_ledger").insert({
-              user_id: m.id,
-              delta,
-              reason:
-                n > 1
-                  ? `Zoho sync — split across ${n} pharmacy members`
-                  : "Zoho sync",
-              source: "zoho_sync",
-            });
-          }
+          await supabaseAdmin.from("points_ledger").insert({
+            user_id: m.id,
+            delta,
+            reason: n > 1 ? `Zoho sync — split across ${n} pharmacy members` : "Zoho sync",
+            source: "zoho_sync",
+            reference: pharmId,
+          });
+
 
           if (notify && delta > 0 && m.email) {
             const dayKey = new Date().toISOString().slice(0, 10);
