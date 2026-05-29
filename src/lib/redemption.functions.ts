@@ -48,27 +48,18 @@ export const updateRedemptionStatus = createServerFn({ method: "POST" })
 
     // Points were already deducted at redemption time. Nothing to do on claim.
 
-    // Restore stock when cancelling a not-yet-claimed redemption
+    // Atomic cancel: locks row, refunds points, restores stock, writes ledger,
+    // and updates status — all in one DB transaction. Safe against double-clicks.
     if (becomingCancelled && !wasClaimed) {
-      const { data: prize } = await supabaseAdmin
-        .from("prizes").select("stock").eq("id", red.prize_id).single();
-      if (prize) {
-        await supabaseAdmin.from("prizes").update({ stock: prize.stock + 1 }).eq("id", red.prize_id);
+      const { error: cErr } = await supabaseAdmin.rpc("cancel_redemption", { _red_id: red.id });
+      if (cErr) throw new Error(cErr.message || "Failed to cancel redemption");
+      if (data.tracking_info !== undefined) {
+        await supabaseAdmin.from("redemptions")
+          .update({ tracking_info: data.tracking_info })
+          .eq("id", red.id);
       }
-      // Refund the points that were deducted at redemption time
-      const { data: profile } = await supabaseAdmin
-        .from("profiles").select("points_balance").eq("id", red.user_id).single();
-      if (profile) {
-        await supabaseAdmin.from("profiles").update({
-          points_balance: profile.points_balance + red.points_spent,
-        }).eq("id", red.user_id);
-        await supabaseAdmin.from("points_ledger").insert({
-          user_id: red.user_id, delta: red.points_spent,
-          reason: `Cancelled: ${red.prize_name}`, source: "redemption", reference: red.id,
-        });
-      }
+      return { ok: true };
     }
-
 
     const patch: any = { status: data.status, updated_at: new Date().toISOString() };
     if (data.tracking_info !== undefined) patch.tracking_info = data.tracking_info;
