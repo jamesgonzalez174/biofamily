@@ -606,6 +606,27 @@ export type Database = {
           zoho_contact_id: string
         }[]
       }
+      cancel_redemption: {
+        Args: { _red_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          notes: string | null
+          points_spent: number
+          prize_id: string
+          prize_name: string
+          status: Database["public"]["Enums"]["redemption_status"]
+          tracking_info: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "redemptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_redemption: {
         Args: { _prize_id: string; _user_id: string }
         Returns: {
