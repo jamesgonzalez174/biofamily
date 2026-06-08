@@ -95,6 +95,10 @@ function SettingsPage() {
 
 
         <section className="lg:col-span-2">
+          <SyncSchedule />
+        </section>
+
+        <section className="lg:col-span-2">
 
           <SyncCustomers />
         </section>
