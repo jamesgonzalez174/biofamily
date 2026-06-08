@@ -306,6 +306,9 @@ export type Database = {
           id: number
           points_expire_at: string | null
           points_per_dollar: number
+          sync_hour: number
+          sync_minute: number
+          sync_timezone: string
           updated_at: string
         }
         Insert: {
@@ -313,6 +316,9 @@ export type Database = {
           id?: number
           points_expire_at?: string | null
           points_per_dollar?: number
+          sync_hour?: number
+          sync_minute?: number
+          sync_timezone?: string
           updated_at?: string
         }
         Update: {
@@ -320,6 +326,9 @@ export type Database = {
           id?: number
           points_expire_at?: string | null
           points_per_dollar?: number
+          sync_hour?: number
+          sync_minute?: number
+          sync_timezone?: string
           updated_at?: string
         }
         Relationships: []
@@ -679,6 +688,15 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      reschedule_zoho_sync: {
+        Args: {
+          _secret: string
+          _url: string
+          _utc_hour: number
+          _utc_minute: number
+        }
+        Returns: number
       }
       run_points_expiration: { Args: never; Returns: Json }
     }
