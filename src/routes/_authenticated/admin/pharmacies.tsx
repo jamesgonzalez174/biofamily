@@ -7,7 +7,7 @@ import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, Chevr
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { setPharmacyTotal } from "@/lib/admin.functions";
+import { addPharmacyPoints } from "@/lib/admin.functions";
 import { syncZohoCustomers } from "@/lib/zoho.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pharmacies")({
