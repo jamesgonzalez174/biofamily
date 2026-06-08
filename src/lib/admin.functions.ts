@@ -130,13 +130,20 @@ export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    const { data: profiles } = await supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false });
-    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
+    const [profilesRes, rolesRes, pharmaciesRes] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, created_at")
+        .order("created_at", { ascending: false }),
+      supabaseAdmin.from("user_roles").select("user_id, role"),
+      supabaseAdmin.from("pharmacies").select("id, name").order("name"),
+    ]);
     const roleMap = new Map<string, string[]>();
-    (roles ?? []).forEach((r) => {
+    (rolesRes.data ?? []).forEach((r) => {
       const arr = roleMap.get(r.user_id) ?? [];
       arr.push(r.role);
       roleMap.set(r.user_id, arr);
     });
-    return (profiles ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
+    const users = (profilesRes.data ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
+    return { users, pharmacies: pharmaciesRes.data ?? [] };
   });
