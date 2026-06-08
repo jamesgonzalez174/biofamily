@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PointsNotifier } from "@/components/PointsNotifier";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const { isAdmin } = useAuth();
@@ -71,6 +72,10 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
       </nav>
 
       <div className="space-y-1 border-t border-primary/15 p-3">
+        <div className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-foreground/70">
+          <span>Appearance</span>
+          <ThemeToggle />
+        </div>
         {isAdmin && !admin && (
           <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-white/60 hover:text-foreground">
             <ShieldCheck className="h-4 w-4 text-primary" /> Admin
@@ -107,9 +112,12 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
             {admin ? "Biomed Family \n\nAdmin" : "Biomed Family"}
           </span>
         </Link>
-        <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile drawer */}
