@@ -63,15 +63,16 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const setPharmacyTotal = createServerFn({ method: "POST" })
+export const addPharmacyPoints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
     pharmacyId: z.string().uuid(),
-    newTotal: z.number().int().min(0),
+    amount: z.number().int(),
     reason: z.string().min(1).max(200),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    if (data.amount === 0) throw new Error("Amount must be non-zero");
     const { data: members, error } = await supabaseAdmin
       .from("profiles")
       .select("id, points_balance, lifetime_points, email, full_name")
@@ -80,12 +81,16 @@ export const setPharmacyTotal = createServerFn({ method: "POST" })
     if (!members || members.length === 0) throw new Error("Pharmacy has no members to distribute to");
 
     const n = members.length;
-    const base = Math.floor(data.newTotal / n);
-    const remainder = data.newTotal - base * n;
+    const abs = Math.abs(data.amount);
+    const sign = data.amount > 0 ? 1 : -1;
+    const base = Math.floor(abs / n);
+    const remainder = abs - base * n;
 
     for (let i = 0; i < n; i++) {
       const m = members[i];
-      const newBalance = base + (i < remainder ? 1 : 0);
+      const share = (base + (i < remainder ? 1 : 0)) * sign;
+      if (share === 0) continue;
+      const newBalance = Math.max(0, m.points_balance + share);
       const delta = newBalance - m.points_balance;
       const newLifetime = delta > 0 ? m.lifetime_points + delta : m.lifetime_points;
       await supabaseAdmin.from("profiles").update({ points_balance: newBalance, lifetime_points: newLifetime }).eq("id", m.id);

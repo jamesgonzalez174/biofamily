@@ -7,7 +7,7 @@ import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, Chevr
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { setPharmacyTotal } from "@/lib/admin.functions";
+import { addPharmacyPoints } from "@/lib/admin.functions";
 import { syncZohoCustomers } from "@/lib/zoho.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pharmacies")({
@@ -56,11 +56,11 @@ function PharmaciesPage() {
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const setTotal = useServerFn(setPharmacyTotal);
+  const addPoints = useServerFn(addPharmacyPoints);
   const syncZoho = useServerFn(syncZohoCustomers);
   const [syncing, setSyncing] = useState(false);
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
-  const [newTotal, setNewTotal] = useState(0);
+  const [addAmount, setAddAmount] = useState(0);
   const [reason, setReason] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -86,11 +86,11 @@ function PharmaciesPage() {
   };
 
   const submitTotal = async () => {
-    if (!adj || !reason.trim()) return;
+    if (!adj || !reason.trim() || !addAmount) return;
     try {
-      await setTotal({ data: { pharmacyId: adj.id, newTotal, reason } });
-      toast.success("Pharmacy points redistributed");
-      setAdj(null); setNewTotal(0); setReason("");
+      await addPoints({ data: { pharmacyId: adj.id, amount: addAmount, reason } });
+      toast.success("Pharmacy points distributed");
+      setAdj(null); setAddAmount(0); setReason("");
       qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) { toast.error(e.message); }
@@ -291,7 +291,7 @@ function PharmaciesPage() {
                     <Users className="h-3.5 w-3.5" /> Members
                   </Link>
                   <button
-                    onClick={() => { setAdj({ id: p.id, name: p.name, current: p.loyalty_points, members: p.member_count }); setNewTotal(p.loyalty_points); }}
+                    onClick={() => { setAdj({ id: p.id, name: p.name, current: p.loyalty_points, members: p.member_count }); setAddAmount(0); }}
                     disabled={p.member_count === 0}
                     title={p.member_count === 0 ? "No members assigned" : "Set pharmacy total — splits evenly across members"}
                     className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
@@ -336,18 +336,18 @@ function PharmaciesPage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAdj(null)}>
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Set pharmacy total</h2>
+              <h2 className="text-xl font-semibold">Add pharmacy points</h2>
               <button onClick={() => setAdj(null)} className="rounded-lg p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{adj.name} — {adj.members} member{adj.members === 1 ? "" : "s"} · current {adj.current.toLocaleString()}</p>
             <div className="mt-4 space-y-3">
               <label className="block">
-                <span className="mb-1 block text-sm font-medium">New total points</span>
-                <input type="number" min={0} value={newTotal} onChange={(e) => setNewTotal(Math.max(0, Number(e.target.value)))} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-center text-lg font-semibold tabular-nums" />
+                <span className="mb-1 block text-sm font-medium">Points to add (use negative to subtract)</span>
+                <input type="number" value={addAmount} onChange={(e) => setAddAmount(Number(e.target.value))} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-center text-lg font-semibold tabular-nums" />
               </label>
               <p className="text-xs text-muted-foreground">
-                Splits evenly: ~{Math.floor(newTotal / Math.max(1, adj.members)).toLocaleString()} per member
-                {newTotal % adj.members !== 0 && ` (+1 to first ${newTotal % adj.members})`}
+                Splits evenly: {addAmount >= 0 ? "+" : ""}{Math.trunc(addAmount / Math.max(1, adj.members)).toLocaleString()} per member
+                {addAmount % adj.members !== 0 && ` (±1 to first ${Math.abs(addAmount % adj.members)})`}
               </p>
               <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
             </div>
