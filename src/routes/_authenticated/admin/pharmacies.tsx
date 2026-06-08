@@ -86,11 +86,11 @@ function PharmaciesPage() {
   };
 
   const submitTotal = async () => {
-    if (!adj || !reason.trim()) return;
+    if (!adj || !reason.trim() || !addAmount) return;
     try {
-      await setTotal({ data: { pharmacyId: adj.id, newTotal, reason } });
-      toast.success("Pharmacy points redistributed");
-      setAdj(null); setNewTotal(0); setReason("");
+      await addPoints({ data: { pharmacyId: adj.id, amount: addAmount, reason } });
+      toast.success("Pharmacy points distributed");
+      setAdj(null); setAddAmount(0); setReason("");
       qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) { toast.error(e.message); }
