@@ -11,6 +11,20 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Require a shared secret on every inbound Zoho webhook. Without this,
+        // anyone can POST arbitrary points balances for any user.
+        const provided =
+          request.headers.get("x-zoho-webhook-token") ||
+          request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+          "";
+        const expected = process.env.ZOHO_WEBHOOK_SECRET;
+        if (!expected || !provided || provided !== expected) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
         let payload: any;
         try {
           payload = await request.json();
