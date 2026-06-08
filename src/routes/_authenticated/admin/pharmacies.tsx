@@ -56,7 +56,7 @@ function PharmaciesPage() {
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const setTotal = useServerFn(setPharmacyTotal);
+  const addPoints = useServerFn(addPharmacyPoints);
   const syncZoho = useServerFn(syncZohoCustomers);
   const [syncing, setSyncing] = useState(false);
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
