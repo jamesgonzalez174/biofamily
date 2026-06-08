@@ -116,6 +116,55 @@ function AdminHome() {
         ))}
       </div>
 
+      <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold">Zoho Books sync</h2>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
+            <HealthIcon className="h-3.5 w-3.5" /> {healthLabel}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Last successful sync</div>
+            <div className="mt-1 text-lg font-semibold">{formatRelative(lastOk?.started_at ?? null)}</div>
+            <div className="text-xs text-muted-foreground">
+              {lastOk ? new Date(lastOk.started_at).toLocaleString() : "—"}
+            </div>
+            {lastOk && (
+              <div className="mt-2 text-xs text-muted-foreground tabular-nums">
+                {lastOk.fetched} fetched · {lastOk.upserted} upserted · {lastOk.notified_count} notified
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Last run</div>
+            <div className="mt-1 flex items-center gap-2 text-lg font-semibold">
+              {lastRun ? (lastRun.ok ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-destructive" />) : <Clock className="h-4 w-4 text-muted-foreground" />}
+              {formatRelative(lastRun?.started_at ?? null)}
+            </div>
+            <div className="text-xs text-muted-foreground capitalize">
+              {lastRun ? `${lastRun.source} · ${lastRun.ok ? "ok" : "failed"}` : "—"}
+            </div>
+            {lastRun && Array.isArray(lastRun.errors) && lastRun.errors.length > 0 && (
+              <div className="mt-2 truncate text-xs text-destructive" title={String((lastRun.errors as any[])[0])}>
+                {String((lastRun.errors as any[])[0])}
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Recent reliability</div>
+            <div className="mt-1 text-lg font-semibold tabular-nums">
+              {syncHealth ? `${syncHealth.recentCount - syncHealth.recentFailures}/${syncHealth.recentCount} ok` : "—"}
+            </div>
+            <div className="text-xs text-muted-foreground">last {syncHealth?.recentCount ?? 0} runs</div>
+            <Link to="/admin/zoho-connect" className="mt-2 inline-block text-xs text-primary hover:underline">Manage connection →</Link>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-soft">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Recent redemptions</h2>
