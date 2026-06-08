@@ -61,7 +61,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
               className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 active
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
-                  : "text-foreground/70 hover:bg-white/60 hover:text-foreground"
+                  : "text-foreground/70 hover:bg-foreground/10 hover:text-foreground"
               }`}
             >
               <n.icon className={`h-4 w-4 shrink-0 ${active ? "" : "text-primary"}`} />
@@ -77,12 +77,12 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
           <ThemeToggle />
         </div>
         {isAdmin && !admin && (
-          <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-white/60 hover:text-foreground">
+          <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-foreground/10 hover:text-foreground">
             <ShieldCheck className="h-4 w-4 text-primary" /> Admin
           </Link>
         )}
         {admin && (
-          <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-white/60 hover:text-foreground">
+          <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-foreground/10 hover:text-foreground">
             <Eye className="h-4 w-4 text-primary" /> User view
           </Link>
         )}
