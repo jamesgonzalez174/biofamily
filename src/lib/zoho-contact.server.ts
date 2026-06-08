@@ -100,7 +100,9 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
+  // history_points is cumulative: each sync ADDS the newly-reported loyalty_points.
   let pharmacyAction: "none" | "created" | "updated" = "none";
+  let pharmacyId: string | null = null;
   if (zohoContactId && fullName) {
     const { data: existingPharm } = await supabaseAdmin
       .from("pharmacies")
@@ -109,78 +111,133 @@ export async function processZohoContact(
       .maybeSingle();
 
     if (existingPharm) {
+      pharmacyId = (existingPharm as any).id as string;
       const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
-      if (lp !== null && (existingPharm as any).loyalty_points !== lp) pharmUpdates.loyalty_points = lp;
-      if (hp !== null && (existingPharm as any).history_points !== hp) pharmUpdates.history_points = hp;
+      if (lp !== null && (existingPharm as any).loyalty_points !== lp) {
+        pharmUpdates.loyalty_points = lp;
+        pharmUpdates.history_points = Number((existingPharm as any).history_points ?? 0) + lp;
+      }
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
         pharmacyAction = "updated";
       }
     } else {
-      await supabaseAdmin.from("pharmacies").insert({
-        name: fullName,
-        address,
-        zoho_contact_id: zohoContactId,
-        is_active: true,
-        loyalty_points: lp ?? 0,
-        history_points: hp ?? 0,
-      });
+      const { data: created } = await supabaseAdmin
+        .from("pharmacies")
+        .insert({
+          name: fullName,
+          address,
+          zoho_contact_id: zohoContactId,
+          is_active: true,
+          loyalty_points: lp ?? 0,
+          history_points: lp ?? 0,
+        })
+        .select("id")
+        .single();
+      pharmacyId = (created as any)?.id ?? null;
       pharmacyAction = "created";
     }
   }
 
-  // 2) Sync matching profile by email (if any)
+  // 2) Split pharmacy's cumulative points across all assigned members, ADDING the
+  //    delta since the last sync — never overwrite. Same model as runZohoSync,
+  //    so a single webhook/invoice refresh credits every member, not just the
+  //    email-matched profile.
+  let splitNote = "";
+  if (pharmacyId) {
+    const { data: pharm } = await supabaseAdmin
+      .from("pharmacies")
+      .select("history_points")
+      .eq("id", pharmacyId)
+      .maybeSingle();
+    const totalPoints = Math.max(0, Number((pharm as any)?.history_points ?? 0));
+
+    const { data: members } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email, full_name, points_balance, lifetime_points")
+      .eq("pharmacy_id", pharmacyId);
+
+    if (members && members.length > 0) {
+      const n = members.length;
+      const base = Math.floor(totalPoints / n);
+      const remainder = totalPoints - base * n;
+
+      const memberIds = members.map((m: any) => m.id);
+      const { data: ledgerRows } = await supabaseAdmin
+        .from("points_ledger")
+        .select("user_id, delta")
+        .in("user_id", memberIds)
+        .eq("source", "zoho_sync")
+        .eq("reference", pharmacyId);
+      const credited = new Map<string, number>();
+      for (const row of ledgerRows ?? []) {
+        const k = String((row as any).user_id);
+        credited.set(k, (credited.get(k) ?? 0) + Number((row as any).delta ?? 0));
+      }
+
+      let splitCount = 0;
+      for (let i = 0; i < n; i++) {
+        const m = members[i] as any;
+        const target = base + (i < remainder ? 1 : 0);
+        const already = credited.get(String(m.id)) ?? 0;
+        const delta = target - already;
+        if (delta === 0) continue;
+
+        const prevBalance = Number(m.points_balance ?? 0);
+        const prevHistory = Number(m.lifetime_points ?? 0);
+        const newBalance = Math.max(0, prevBalance + delta);
+
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            points_balance: newBalance,
+            lifetime_points: delta > 0 ? prevHistory + delta : prevHistory,
+          })
+          .eq("id", m.id);
+
+        await supabaseAdmin.from("points_ledger").insert({
+          user_id: m.id,
+          delta,
+          reason: n > 1 ? `Zoho sync — split across ${n} pharmacy members` : "Zoho sync",
+          source: "zoho_sync",
+          reference: pharmacyId,
+        });
+        splitCount++;
+      }
+      if (splitCount > 0) splitNote = `; split to ${splitCount}/${n} members`;
+    }
+  }
+
+  // 3) Keep the matched profile's name in sync — but never overwrite points here;
+  //    points are credited via the pharmacy-member split above.
   if (!email) {
     await supabaseAdmin
       .from("zoho_events")
       .update({ processed: true, error: pharmacyAction === "none" ? "no email, no pharmacy" : null })
       .eq("event_id", eventId);
-    return { ok: true, status: `pharmacy ${pharmacyAction}, no email`, eventId };
+    return { ok: true, status: `pharmacy ${pharmacyAction}${splitNote}, no email`, eventId };
   }
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("id, points_balance, lifetime_points, full_name")
+    .select("id, full_name")
     .ilike("email", email)
     .maybeSingle();
 
-  if (!profile) {
-    await supabaseAdmin
-      .from("zoho_events")
-      .update({ error: "user not found", processed: true })
-      .eq("event_id", eventId);
-    return {
-      ok: true,
-      status: `pharmacy ${pharmacyAction}, profile not found`,
-      email,
-      eventId,
-    };
+  if (profile && fullName && fullName !== profile.full_name) {
+    await supabaseAdmin.from("profiles").update({ full_name: fullName }).eq("id", profile.id);
   }
-
-  const updates: {
-    full_name?: string;
-    points_balance?: number;
-    lifetime_points?: number;
-  } = {};
-  if (fullName && fullName !== profile.full_name) updates.full_name = fullName;
-  if (loyaltyPoints !== null) updates.points_balance = Math.floor(loyaltyPoints);
-  if (historyPoints !== null) updates.lifetime_points = Math.floor(historyPoints);
-
-  if (Object.keys(updates).length > 0) {
-    await supabaseAdmin.from("profiles").update(updates).eq("id", profile.id);
-  }
-
 
   await supabaseAdmin
     .from("zoho_events")
-    .update({ processed: true, error: null })
+    .update({ processed: true, error: profile ? null : "user not found" })
     .eq("event_id", eventId);
 
   return {
     ok: true,
-    status: `pharmacy ${pharmacyAction}; profile ${Object.keys(updates).join(", ") || "no changes"}`,
+    status: `pharmacy ${pharmacyAction}${splitNote}${profile ? "" : "; profile not found"}`,
     email,
     eventId,
   };
