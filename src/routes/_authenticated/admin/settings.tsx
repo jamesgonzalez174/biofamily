@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Upload, Trash2, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { syncZohoCustomers, listZohoSyncRuns } from "@/lib/zoho.functions";
+import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
 
 
 
@@ -93,6 +93,10 @@ function SettingsPage() {
           </p>
         </section>
 
+
+        <section className="lg:col-span-2">
+          <SyncSchedule />
+        </section>
 
         <section className="lg:col-span-2">
 
@@ -428,4 +432,133 @@ function SyncHistory() {
     </div>
   );
 }
+
+const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
+  { value: "America/Belize", label: "Belize (UTC−6, no DST)" },
+  { value: "UTC", label: "UTC" },
+  { value: "America/Guatemala", label: "Guatemala (UTC−6)" },
+  { value: "America/Mexico_City", label: "Mexico City" },
+  { value: "America/New_York", label: "New York (Eastern)" },
+  { value: "America/Chicago", label: "Chicago (Central)" },
+  { value: "America/Denver", label: "Denver (Mountain)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (Pacific)" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Madrid", label: "Madrid" },
+];
+
+function formatTime12(h: number, m: number) {
+  const period = h >= 12 ? "PM" : "AM";
+  const hh = ((h + 11) % 12) + 1;
+  return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
+function SyncSchedule() {
+  const qc = useQueryClient();
+  const update = useServerFn(updateZohoSchedule);
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => (await supabase.from("settings").select("*").eq("id", 1).single()).data,
+  });
+
+  const [timezone, setTimezone] = useState("America/Belize");
+  const [hour, setHour] = useState(17);
+  const [minute, setMinute] = useState(30);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setTimezone((settings as any).sync_timezone ?? "America/Belize");
+      setHour(Number((settings as any).sync_hour ?? 17));
+      setMinute(Number((settings as any).sync_minute ?? 30));
+    }
+  }, [settings]);
+
+  const options = useMemo(() => {
+    const list = [...TIMEZONE_OPTIONS];
+    if (timezone && !list.some((o) => o.value === timezone)) {
+      list.unshift({ value: timezone, label: timezone });
+    }
+    return list;
+  }, [timezone]);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const res = await update({ data: { timezone, hour, minute } });
+      toast.success(`Rescheduled — runs daily at ${formatTime12(res.localHour, res.localMinute)} ${timezone} (${res.cronExpr} UTC)`);
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to reschedule");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Daily sync schedule</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose when the automatic Zoho sync runs each day. The scheduler updates immediately when you save.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto_auto_auto]">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">Timezone</span>
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          >
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">Hour</span>
+          <select
+            value={hour}
+            onChange={(e) => setHour(Number(e.target.value))}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums"
+          >
+            {Array.from({ length: 24 }, (_, i) => i).map((h) => (
+              <option key={h} value={h}>{h.toString().padStart(2, "0")}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">Minute</span>
+          <select
+            value={minute}
+            onChange={(e) => setMinute(Number(e.target.value))}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums"
+          >
+            {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+              <option key={m} value={m}>{m.toString().padStart(2, "0")}</option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-end">
+          <button
+            onClick={save}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+            {busy ? "Saving…" : "Save & reschedule"}
+          </button>
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Currently scheduled: <span className="font-medium text-foreground">{formatTime12(hour, minute)}</span> {timezone}
+      </p>
+    </div>
+  );
+}
+
 

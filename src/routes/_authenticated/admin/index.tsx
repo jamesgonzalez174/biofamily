@@ -54,10 +54,11 @@ function AdminHome() {
     queryKey: ["admin-zoho-sync-health"],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const [lastOkRes, lastRunRes, recentRes] = await Promise.all([
+      const [lastOkRes, lastRunRes, recentRes, settingsRes] = await Promise.all([
         supabase.from("zoho_sync_runs").select("*").eq("ok", true).order("started_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("zoho_sync_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("zoho_sync_runs").select("ok").order("started_at", { ascending: false }).limit(10),
+        supabase.from("settings").select("sync_timezone, sync_hour, sync_minute").eq("id", 1).maybeSingle(),
       ]);
       const recent = recentRes.data ?? [];
       const failures = recent.filter((r) => r.ok === false).length;
@@ -66,6 +67,7 @@ function AdminHome() {
         lastRun: lastRunRes.data,
         recentCount: recent.length,
         recentFailures: failures,
+        schedule: settingsRes.data,
       };
     },
   });
@@ -160,6 +162,11 @@ function AdminHome() {
               {syncHealth ? `${syncHealth.recentCount - syncHealth.recentFailures}/${syncHealth.recentCount} ok` : "—"}
             </div>
             <div className="text-xs text-muted-foreground">last {syncHealth?.recentCount ?? 0} runs</div>
+            {syncHealth?.schedule && (
+              <div className="mt-1 text-xs text-muted-foreground">
+                Next run: {String(syncHealth.schedule.sync_hour).padStart(2, "0")}:{String(syncHealth.schedule.sync_minute).padStart(2, "0")} {syncHealth.schedule.sync_timezone}
+              </div>
+            )}
             <Link to="/admin/zoho-connect" className="mt-2 inline-block text-xs text-primary hover:underline">Manage connection →</Link>
           </div>
         </div>

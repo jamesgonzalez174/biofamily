@@ -96,6 +96,74 @@ export const listZohoSyncRuns = createServerFn({ method: "GET" })
     return { runs: data ?? [] };
   });
 
+/** Compute the timezone's current UTC offset in minutes (positive = east of UTC). */
+function tzOffsetMinutes(timezone: string, at: Date = new Date()): number {
+  const dtf = new Intl.DateTimeFormat("en-US", { timeZone: timezone, timeZoneName: "shortOffset" });
+  const parts = dtf.formatToParts(at);
+  const tzn = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT+0";
+  const m = tzn.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
+  if (!m) return 0;
+  const sign = m[1] === "-" ? -1 : 1;
+  const h = parseInt(m[2], 10);
+  const min = m[3] ? parseInt(m[3], 10) : 0;
+  return sign * (h * 60 + min);
+}
+
+/**
+ * Update the daily Zoho sync schedule. Stores the admin's preferred timezone +
+ * local time-of-day and reschedules the pg_cron job in UTC accordingly.
+ */
+export const updateZohoSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { timezone: string; hour: number; minute: number }) => input)
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+
+    const { timezone, hour, minute } = data;
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new Error("Hour must be 0–23");
+    if (!Number.isInteger(minute) || minute < 0 || minute > 59) throw new Error("Minute must be 0–59");
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+    } catch {
+      throw new Error(`Unknown timezone: ${timezone}`);
+    }
+
+    const secret = process.env.CRON_SECRET;
+    if (!secret) throw new Error("CRON_SECRET is not configured");
+    const baseUrl = process.env.PUBLIC_APP_URL || "https://biofamily.lovable.app";
+    const url = `${baseUrl.replace(/\/$/, "")}/api/public/hooks/daily-zoho-sync`;
+
+    const offsetMin = tzOffsetMinutes(timezone);
+    const totalLocal = hour * 60 + minute;
+    const totalUtc = (((totalLocal - offsetMin) % 1440) + 1440) % 1440;
+    const utcHour = Math.floor(totalUtc / 60);
+    const utcMinute = totalUtc % 60;
+
+    const { error: upErr } = await supabaseAdmin
+      .from("settings")
+      .update({ sync_timezone: timezone, sync_hour: hour, sync_minute: minute })
+      .eq("id", 1);
+    if (upErr) throw new Error(upErr.message);
+
+    const { error: rpcErr } = await supabaseAdmin.rpc("reschedule_zoho_sync", {
+      _utc_hour: utcHour,
+      _utc_minute: utcMinute,
+      _url: url,
+      _secret: secret,
+    });
+    if (rpcErr) throw new Error(`Reschedule failed: ${rpcErr.message}`);
+
+    return {
+      ok: true,
+      timezone,
+      localHour: hour,
+      localMinute: minute,
+      utcHour,
+      utcMinute,
+      cronExpr: `${utcMinute} ${utcHour} * * *`,
+    };
+  });
+
 /**
  * Admin-only diagnostic: validate the stored Zoho connection by issuing a
  * fresh access token and listing organizations.

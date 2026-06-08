@@ -1,97 +1,52 @@
-
 ## Goal
 
-Replace the manual `ZOHO_REFRESH_TOKEN` secret with a one-click OAuth connect flow on the admin page. The admin clicks **Connect Zoho**, picks an organization, authorizes in a popup, and the token is stored in the database — auto-refreshed, region-aware, no copy-paste.
+Let admins choose the daily Zoho sync timezone (including Belize, UTC-6) and time-of-day from the admin Settings page. Saving updates pg_cron immediately — no SQL editor required.
 
-## Database
+## Changes
 
-New migration:
+### 1. Database (migration)
 
-```sql
-CREATE TABLE public.zoho_connections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  zoho_org_id text NOT NULL UNIQUE,
-  zoho_org_name text,
-  region text NOT NULL,                 -- 'com' | 'eu' | 'in' | 'com.au' | 'jp'
-  access_token text NOT NULL,
-  refresh_token text NOT NULL,
-  expires_at timestamptz NOT NULL,
-  connected_by uuid,                    -- auth user id
-  connected_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
--- admin-only via has_role; service_role full access
-```
+Add three columns to `public.settings`:
+- `sync_timezone TEXT NOT NULL DEFAULT 'America/Belize'` (IANA tz name)
+- `sync_hour SMALLINT NOT NULL DEFAULT 17` (0–23, local)
+- `sync_minute SMALLINT NOT NULL DEFAULT 30` (0–59, local)
 
-Old `ZOHO_REFRESH_TOKEN` / `ZOHO_DC` / `ZOHO_ORGANIZATION_ID` secrets become unused (leave in place; we read from DB instead).
+Add a `SECURITY DEFINER` function `public.reschedule_zoho_sync(_utc_hour int, _utc_minute int, _url text, _secret text)` owned by the `postgres` role that:
+- Unschedules any existing job named `daily-zoho-sync` (safe if absent)
+- Calls `cron.schedule('daily-zoho-sync', '<min> <hour> * * *', ...)` with a `net.http_post` body that sends `x-cron-secret: <_secret>` and an empty JSON body
+- `REVOKE EXECUTE ... FROM public, anon, authenticated` and `GRANT EXECUTE ... TO service_role` so only the admin server function can invoke it
 
-## Edge functions (3)
+### 2. Server function (`src/lib/zoho.functions.ts`)
 
-All under `supabase/functions/`, `verify_jwt = false` only on the callback.
+`updateZohoSchedule({ timezone, hour, minute })` — admin only:
+- Validates timezone via `Intl.DateTimeFormat` and bounds-checks hour/minute
+- Computes the UTC hour/minute equivalent using the timezone's current `shortOffset` (Belize has no DST; tz-aware projects keep working because we recompute on every save)
+- Writes the three settings columns via `supabaseAdmin`
+- Calls `supabaseAdmin.rpc('reschedule_zoho_sync', { _utc_hour, _utc_minute, _url, _secret: process.env.CRON_SECRET })` with the project's stable production URL `https://biofamily.lovable.app/api/public/hooks/daily-zoho-sync`
+- Returns `{ ok, utcHour, utcMinute, localLabel }` for confirmation
 
-1. **`get-zoho-client-id`** — returns `{ clientId: process.env.ZOHO_CLIENT_ID }` to the frontend so it can build the consent URL. Admin-only.
-2. **`list-zoho-organizations`** — given a region + temp access token (from initial auth), calls `https://www.zohoapis.<region>/books/v3/organizations` and returns the list. Used by the picker after first OAuth round-trip.
-3. **`zoho-oauth-callback`** — public. Receives `?code=&location=&state=`, maps `location` → region, exchanges code at `https://accounts.zoho.<region>/oauth/v2/token`, stores tokens + org info in `zoho_connections`, returns an HTML page that `postMessage`s `ZOHO_OAUTH_SUCCESS` and closes.
+### 3. Admin Settings UI (`src/routes/_authenticated/admin/settings.tsx`)
 
-State payload: `{ user_id, nonce }` (no org_id needed — single tenant).
+New "Daily Zoho sync schedule" section:
+- Timezone `<select>` with curated options (Belize, UTC, NY, Chicago, Denver, LA, Mexico City, Guatemala, London) plus the project's current value if it isn't in the list
+- Hour + minute pickers (minute in 5-min steps)
+- "Save & reschedule" button → calls `updateZohoSchedule`, shows toast with the computed UTC time so the admin can verify
+- Shows current saved local time and equivalent UTC time
 
-## Server-side token helper (rewrite)
+### 4. Dashboard widget tweak (`src/routes/_authenticated/admin/index.tsx`)
 
-`src/lib/zoho-api.server.ts` → instead of reading `process.env.ZOHO_REFRESH_TOKEN`:
+Reads `sync_timezone`/`sync_hour`/`sync_minute` and displays the next scheduled run in local terms (e.g. "Next run: 5:30 PM Belize"). No logic changes beyond that.
 
-- Read the single row from `zoho_connections` via `supabaseAdmin`.
-- If `expires_at` is >60s away, return `access_token`.
-- Otherwise POST to `accounts.zoho.<region>/oauth/v2/token` with the stored refresh token, update the row, return new access token.
-- `fetchZohoContact` and the webhook processor pick up `region` + `zoho_org_id` from the same row.
+## Technical notes
 
-This replaces the broken manual refresh-token flow everywhere (webhook included).
+- pg_cron always runs in UTC. We store the admin's intended local time + IANA tz in `settings`, and compute UTC at save time. If the user later moves to a DST-observing timezone, re-saving (or any settings change) will recompute correctly.
+- The `reschedule_zoho_sync` SQL function is the only place that touches the `cron`/`net` schemas, so the elevated grants stay narrow. The endpoint itself still requires `x-cron-secret` (unchanged from current security posture).
+- No changes to `daily-zoho-sync.ts` route handler — secret check remains.
+- Existing manually-scheduled `daily-zoho-sync` cron job will be replaced the first time an admin clicks Save.
 
-## Admin UI
+## Files touched
 
-New page `/admin/zoho-connect` (replaces `zoho-exchange`):
-
-- Shows current connection status (org name, region, last refreshed) or "Not connected".
-- **Connect Zoho** button → calls `get-zoho-client-id`, builds:
-  ```
-  https://accounts.zoho.com/oauth/v2/auth?
-    response_type=code&
-    client_id=<id>&
-    scope=ZohoBooks.fullaccess.all&
-    redirect_uri=<edge>/zoho-oauth-callback&
-    access_type=offline&prompt=consent&
-    state=<signed payload>
-  ```
-  Opens in popup; listens for `ZOHO_OAUTH_SUCCESS` message → toast + refresh.
-- **Disconnect** button → deletes the row.
-
-`/admin/zoho-test` keeps working (reads from DB now instead of env).
-
-## Files
-
-- create: `supabase/migrations/<ts>_zoho_connections.sql`
-- create: `supabase/functions/get-zoho-client-id/index.ts`
-- create: `supabase/functions/list-zoho-organizations/index.ts`
-- create: `supabase/functions/zoho-oauth-callback/index.ts`
-- create: `src/routes/_authenticated/admin/zoho-connect.tsx`
-- edit:   `src/lib/zoho-api.server.ts` (DB-backed tokens)
-- edit:   `src/lib/zoho.functions.ts` (testZohoConnection reads DB)
-- edit:   `src/routeTree.gen.ts`
-- delete: `src/routes/_authenticated/admin/zoho-exchange.tsx` (obsolete)
-
-## What stays the same
-
-- `zoho-webhook` route, `zoho-process.server.ts`, `zoho_customers`, `zoho_events` — unchanged. They just call the rewritten `getZohoAccessToken()` which now reads from `zoho_connections`.
-
-## Redirect URI to register in Zoho
-
-You'll need to add this exact URL to your Zoho self-client's **Authorized Redirect URIs** before connecting:
-
-```
-https://ihwvggkplxbszqnknzyx.supabase.co/functions/v1/zoho-oauth-callback
-```
-
-## Risks / notes
-
-- The existing `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET` secrets are reused — no new secrets needed.
-- Scope `ZohoBooks.fullaccess.all` matches what your current setup needs; can be narrowed later.
-- Single-row table: enforced by application logic (just upsert on `zoho_org_id`).
+- `supabase/migrations/*` (new): settings columns + `reschedule_zoho_sync` function
+- `src/lib/zoho.functions.ts`: add `updateZohoSchedule`
+- `src/routes/_authenticated/admin/settings.tsx`: new schedule section
+- `src/routes/_authenticated/admin/index.tsx`: show next run in local time
