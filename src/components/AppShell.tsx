@@ -50,7 +50,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
         </span>
       </Link>
 
-      <nav className="flex-1 space-y-1 px-3 bg-slate-50">
+      <nav className="flex-1 space-y-1 px-3">
         {nav.map((n) => {
           const active = isActive(n.to, (n as any).exact);
           return (
