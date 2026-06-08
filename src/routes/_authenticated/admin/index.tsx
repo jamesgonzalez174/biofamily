@@ -162,6 +162,11 @@ function AdminHome() {
               {syncHealth ? `${syncHealth.recentCount - syncHealth.recentFailures}/${syncHealth.recentCount} ok` : "—"}
             </div>
             <div className="text-xs text-muted-foreground">last {syncHealth?.recentCount ?? 0} runs</div>
+            {syncHealth?.schedule && (
+              <div className="mt-1 text-xs text-muted-foreground">
+                Next run: {String(syncHealth.schedule.sync_hour).padStart(2, "0")}:{String(syncHealth.schedule.sync_minute).padStart(2, "0")} {syncHealth.schedule.sync_timezone}
+              </div>
+            )}
             <Link to="/admin/zoho-connect" className="mt-2 inline-block text-xs text-primary hover:underline">Manage connection →</Link>
           </div>
         </div>
