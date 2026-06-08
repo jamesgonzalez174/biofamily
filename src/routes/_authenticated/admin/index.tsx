@@ -50,12 +50,55 @@ function AdminHome() {
     },
   });
 
+  const { data: syncHealth } = useQuery({
+    queryKey: ["admin-zoho-sync-health"],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const [lastOkRes, lastRunRes, recentRes] = await Promise.all([
+        supabase.from("zoho_sync_runs").select("*").eq("ok", true).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("zoho_sync_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("zoho_sync_runs").select("ok").order("started_at", { ascending: false }).limit(10),
+      ]);
+      const recent = recentRes.data ?? [];
+      const failures = recent.filter((r) => r.ok === false).length;
+      return {
+        lastOk: lastOkRes.data,
+        lastRun: lastRunRes.data,
+        recentCount: recent.length,
+        recentFailures: failures,
+      };
+    },
+  });
+
   const cards = [
     { label: "Active users", value: stats?.users ?? 0, icon: Users },
     { label: "Active prizes", value: stats?.prizes ?? 0, icon: Gift },
     { label: "Total redemptions", value: stats?.redemptions ?? 0, icon: Package },
     { label: "Points issued", value: (stats?.pointsIssued ?? 0).toLocaleString(), icon: Sparkles },
   ];
+
+  const lastRun = syncHealth?.lastRun;
+  const lastOk = syncHealth?.lastOk;
+  const hoursSinceOk = lastOk ? (Date.now() - new Date(lastOk.started_at).getTime()) / 3_600_000 : Infinity;
+  let healthLabel: string;
+  let healthTone: "ok" | "warn" | "bad";
+  let HealthIcon = CheckCircle2;
+  if (!lastRun) {
+    healthLabel = "No syncs yet"; healthTone = "warn"; HealthIcon = AlertTriangle;
+  } else if (!lastOk || hoursSinceOk > 36) {
+    healthLabel = "Stale — last success >36h ago"; healthTone = "bad"; HealthIcon = XCircle;
+  } else if ((syncHealth?.recentFailures ?? 0) >= 3) {
+    healthLabel = `Degraded — ${syncHealth?.recentFailures} of last ${syncHealth?.recentCount} failed`; healthTone = "warn"; HealthIcon = AlertTriangle;
+  } else if (lastRun.ok === false) {
+    healthLabel = "Last run failed"; healthTone = "warn"; HealthIcon = AlertTriangle;
+  } else {
+    healthLabel = "Healthy"; healthTone = "ok"; HealthIcon = CheckCircle2;
+  }
+  const toneClass = healthTone === "ok"
+    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+    : healthTone === "warn"
+    ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+    : "border-destructive/30 bg-destructive/10 text-destructive";
 
   return (
     <AppShell admin>
