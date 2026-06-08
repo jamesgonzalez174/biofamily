@@ -120,7 +120,12 @@ export function PharmacyBanner() {
           <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
         </div>
       </div>
-      <span className="text-xs text-muted-foreground">Contact an admin to change</span>
+      <span
+        title="Your pharmacy is locked once selected. Contact an admin to change it."
+        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+      >
+        <Lock className="h-3 w-3" /> Locked — contact an admin to change
+      </span>
     </div>
   );
 }
