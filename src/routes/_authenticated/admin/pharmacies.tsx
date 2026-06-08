@@ -60,7 +60,7 @@ function PharmaciesPage() {
   const syncZoho = useServerFn(syncZohoCustomers);
   const [syncing, setSyncing] = useState(false);
   const [adj, setAdj] = useState<{ id: string; name: string; current: number; members: number } | null>(null);
-  const [newTotal, setNewTotal] = useState(0);
+  const [addAmount, setAddAmount] = useState(0);
   const [reason, setReason] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
