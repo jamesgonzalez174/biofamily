@@ -27,18 +27,14 @@ function UsersPage() {
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
 
-  const { data: allUsers, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
-
-  const { data: pharmacies } = useQuery({
-    queryKey: ["pharmacies-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("pharmacies").select("id, name").order("name");
-      return data ?? [];
-    },
-  });
+  const allUsers = (data as any)?.users as any[] | undefined;
+  const pharmacies = (data as any)?.pharmacies as { id: string; name: string }[] | undefined;
 
   const users = useMemo(
     () => (pharmacy ? (allUsers ?? []).filter((u: any) => u.pharmacy_id === pharmacy) : allUsers),
