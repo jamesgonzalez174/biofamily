@@ -5,13 +5,14 @@ export const Route = createFileRoute("/api/public/hooks/daily-zoho-sync")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Require the project's anon/publishable key via the standard `apikey` header.
-        const apikey = request.headers.get("apikey");
-        const expected =
-          process.env.SUPABASE_PUBLISHABLE_KEY ||
-          process.env.SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        if (!apikey || !expected || apikey !== expected) {
+        // Require a server-only shared secret. The anon/publishable key is
+        // shipped to browsers, so it cannot be used to gate this endpoint.
+        const provided =
+          request.headers.get("x-cron-secret") ||
+          request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+          "";
+        const expected = process.env.CRON_SECRET;
+        if (!expected || !provided || provided !== expected) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },
