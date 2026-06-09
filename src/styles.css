@@ -160,8 +160,10 @@
 
 @layer base {
   html, body { -webkit-tap-highlight-color: transparent; }
-  /* Prevent iOS auto-zoom on focused inputs (<16px triggers zoom) */
-  input, textarea, select { font-size: 16px; }
+  /* Prevent iOS auto-zoom on focused inputs (<16px font triggers zoom on small screens) */
+  @media (max-width: 767px) {
+    input, textarea, select { font-size: 16px; }
+  }
 }
 
 /* ===== 3D Auth Scene ===== */
