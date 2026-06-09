@@ -95,26 +95,30 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <PointsNotifier />
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-card/50 backdrop-blur md:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-card/50 pl-safe backdrop-blur md:block">
         <SidebarInner />
       </aside>
 
       {/* Mobile header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur md:hidden">
-        <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/80 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 backdrop-blur md:hidden">
+        <Link to={admin ? "/admin" : "/dashboard"} className="flex items-center gap-2 min-w-0">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary shadow-glow">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold tracking-tight whitespace-pre-line">
+          <span className="truncate font-semibold tracking-tight whitespace-pre-line">
             {admin ? "Biomed Family \n\nAdmin" : "Biomed Family"}
           </span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <button onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="rounded-lg p-2 hover:bg-muted active:bg-muted/80 min-h-11 min-w-11 grid place-items-center"
+          >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
@@ -124,13 +128,13 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card md:hidden">
+          <aside className="fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] border-r border-border bg-card pl-safe pt-safe pb-safe md:hidden overflow-y-auto">
             <SidebarInner />
           </aside>
         </>
       )}
 
-      <main className="px-4 py-6 md:ml-64 md:px-8 md:py-10">
+      <main className="px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:ml-64 md:px-8 md:py-10">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
