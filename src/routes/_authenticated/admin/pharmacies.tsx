@@ -166,13 +166,20 @@ function PharmaciesPage() {
     qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
   };
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, name: string, memberCount: number) => {
+    if (memberCount > 0) {
+      return toast.error(
+        `Cannot delete "${name}" — ${memberCount} member${memberCount === 1 ? " is" : "s are"} still assigned. Move them to another pharmacy first.`,
+      );
+    }
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     const { error } = await supabase.from("pharmacies").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
     qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
     qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
   };
+
 
   return (
     <AppShell admin>
@@ -301,9 +308,10 @@ function PharmaciesPage() {
                   <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                     {p.is_active ? "Disable" : "Enable"}
                   </button>
-                  <button onClick={() => remove(p.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <button onClick={() => remove(p.id, p.name, p.member_count)} disabled={p.member_count > 0} title={p.member_count > 0 ? "Move members to another pharmacy first" : "Delete pharmacy"} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground">
                     <Trash2 className="h-4 w-4" />
                   </button>
+
                 </div>
               </div>
             </div>
