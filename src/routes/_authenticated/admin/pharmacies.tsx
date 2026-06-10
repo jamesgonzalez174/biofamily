@@ -166,13 +166,20 @@ function PharmaciesPage() {
     qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
   };
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, name: string, memberCount: number) => {
+    if (memberCount > 0) {
+      return toast.error(
+        `Cannot delete "${name}" — ${memberCount} member${memberCount === 1 ? " is" : "s are"} still assigned. Move them to another pharmacy first.`,
+      );
+    }
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     const { error } = await supabase.from("pharmacies").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
     qc.invalidateQueries({ queryKey: ["admin-pharmacies"] });
     qc.invalidateQueries({ queryKey: ["pharmacies-active"] });
   };
+
 
   return (
     <AppShell admin>
