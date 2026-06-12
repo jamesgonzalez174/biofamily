@@ -7,6 +7,7 @@ import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2 } from "lucide-reac
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
+import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
 
 function UsersPage() {
   const qc = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
   const { pharmacy } = Route.useSearch();
   const navigate = Route.useNavigate();
   const fetchUsers = useServerFn(listUsers);
@@ -30,6 +32,7 @@ function UsersPage() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
+    enabled: !!user && !authLoading,
     staleTime: 30_000,
     placeholderData: (prev) => prev,
   });
