@@ -92,6 +92,15 @@ function Fulfillment() {
         </button>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1 shadow-soft">
+          <label className="pl-2 text-xs text-muted-foreground">From</label>
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="rounded-lg bg-transparent px-2 py-1 text-xs" />
+          <label className="text-xs text-muted-foreground">To</label>
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="rounded-lg bg-transparent px-2 py-1 text-xs" />
+          {(fromDate || toDate) && (
+            <button onClick={() => { setFromDate(""); setToDate(""); }} className="rounded-lg px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Clear</button>
+          )}
+        </div>
 
         <div className="flex gap-1 rounded-xl border border-border bg-card p-1 shadow-soft">
           {(["all", ...STATUSES] as const).map((s) => (
