@@ -83,12 +83,13 @@ export const addPharmacyPoints = createServerFn({ method: "POST" })
     const n = members.length;
     const abs = Math.abs(data.amount);
     const sign = data.amount > 0 ? 1 : -1;
+    // Equal split — floor so every member gets the same amount.
+    // Any fractional remainder is dropped (points are whole numbers).
     const base = Math.floor(abs / n);
-    const remainder = abs - base * n;
 
     for (let i = 0; i < n; i++) {
       const m = members[i];
-      const share = (base + (i < remainder ? 1 : 0)) * sign;
+      const share = base * sign;
       if (share === 0) continue;
       const newBalance = Math.max(0, m.points_balance + share);
       const delta = newBalance - m.points_balance;
