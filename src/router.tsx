@@ -10,7 +10,11 @@ export const getRouter = () => {
         gcTime: 5 * 60_000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        retry: 1,
+        retry: (failureCount, error) => {
+          const msg = String((error as Error)?.message ?? "");
+          if (msg.includes("Unauthorized") || msg.includes("Forbidden")) return false;
+          return failureCount < 1;
+        },
       },
     },
   });
