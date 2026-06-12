@@ -19,12 +19,20 @@ function Fulfillment() {
   const qc = useQueryClient();
   const updateStatus = useServerFn(updateRedemptionStatus);
   const [filter, setFilter] = useState<string>("pending");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const { data: items } = useQuery({
-    queryKey: ["admin-fulfillment", filter],
+    queryKey: ["admin-fulfillment", filter, fromDate, toDate],
     queryFn: async () => {
       let q = supabase.from("redemptions").select("*").order("created_at", { ascending: false });
       if (filter !== "all") q = q.eq("status", filter as any);
+      if (fromDate) q = q.gte("created_at", new Date(fromDate).toISOString());
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte("created_at", end.toISOString());
+      }
       const { data } = await q;
       return data ?? [];
     },
@@ -84,6 +92,15 @@ function Fulfillment() {
         </button>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1 shadow-soft">
+          <label className="pl-2 text-xs text-muted-foreground">From</label>
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="rounded-lg bg-transparent px-2 py-1 text-xs" />
+          <label className="text-xs text-muted-foreground">To</label>
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="rounded-lg bg-transparent px-2 py-1 text-xs" />
+          {(fromDate || toDate) && (
+            <button onClick={() => { setFromDate(""); setToDate(""); }} className="rounded-lg px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Clear</button>
+          )}
+        </div>
 
         <div className="flex gap-1 rounded-xl border border-border bg-card p-1 shadow-soft">
           {(["all", ...STATUSES] as const).map((s) => (
