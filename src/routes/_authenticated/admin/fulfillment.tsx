@@ -19,12 +19,20 @@ function Fulfillment() {
   const qc = useQueryClient();
   const updateStatus = useServerFn(updateRedemptionStatus);
   const [filter, setFilter] = useState<string>("pending");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const { data: items } = useQuery({
-    queryKey: ["admin-fulfillment", filter],
+    queryKey: ["admin-fulfillment", filter, fromDate, toDate],
     queryFn: async () => {
       let q = supabase.from("redemptions").select("*").order("created_at", { ascending: false });
       if (filter !== "all") q = q.eq("status", filter as any);
+      if (fromDate) q = q.gte("created_at", new Date(fromDate).toISOString());
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte("created_at", end.toISOString());
+      }
       const { data } = await q;
       return data ?? [];
     },
