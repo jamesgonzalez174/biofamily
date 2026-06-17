@@ -34,6 +34,19 @@ function LoginPage() {
     navigate({ to: "/dashboard" });
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setLoading(false);
+      return toast.error(result.error.message);
+    }
+    if (result.redirected) return;
+    navigate({ to: "/dashboard" });
+  };
+
   return (
     <AuthScene>
       <Link to="/" className="auth-pop mb-8 flex items-center justify-center gap-2">
