@@ -10,7 +10,8 @@ function readContactCF(contact: any, ...names: string[]): number | null {
       .toLowerCase()
       .replace(/[\s_-]/g, "");
     if (lower.includes(label)) {
-      const v = Number(cf?.value ?? cf?.value_formatted ?? NaN);
+      const raw = cf?.value ?? cf?.value_formatted ?? "";
+      const v = Number(String(raw).replace(/,/g, "").trim());
       if (!Number.isNaN(v)) return v;
     }
   }
@@ -141,20 +142,28 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       const { data: existingPharms } = pharmIds.length
         ? await supabaseAdmin
             .from("pharmacies")
-            .select("zoho_contact_id, loyalty_points, history_points")
+            .select("zoho_contact_id, loyalty_points, history_points, is_active")
             .in("zoho_contact_id", pharmIds)
         : { data: [] as any[] };
-      const existingPharmMap = new Map<string, { loyalty_points: number; history_points: number }>();
+      const existingPharmMap = new Map<string, { loyalty_points: number; history_points: number; is_active: boolean; exists: boolean }>();
       for (const ep of existingPharms ?? []) {
         existingPharmMap.set(String((ep as any).zoho_contact_id), {
           loyalty_points: Number((ep as any).loyalty_points ?? 0),
           history_points: Number((ep as any).history_points ?? 0),
+          is_active: Boolean((ep as any).is_active ?? true),
+          exists: true,
         });
       }
+      // Zoho's "Loyalty Points" custom field is itself the contact's cumulative
+      // total. Treat history_points as the high-water mark so it never goes
+      // down (covers the case where Zoho briefly reports 0 / a lower value).
+      // Preserve admin-set is_active instead of forcing true on every sync.
       const pharmacyRows = pharmacyInputs.map((r) => {
         const prev = existingPharmMap.get(r.zoho_contact_id);
-        const history = (prev?.history_points ?? 0) + r.loyalty_points;
-        return { ...r, is_active: true, history_points: history };
+        const history = Math.max(prev?.history_points ?? 0, r.loyalty_points);
+        const row: any = { ...r, history_points: history };
+        if (!prev?.exists) row.is_active = true; // only set on insert
+        return row;
       });
 
       const [cRes, pRes] = await Promise.all([
@@ -172,15 +181,17 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (pharmacyInputs.length === 0) return;
       const { data: syncedPharms } = await supabaseAdmin
         .from("pharmacies")
-        .select("id, zoho_contact_id, loyalty_points, history_points")
+        .select("id, zoho_contact_id, loyalty_points, history_points, is_active")
         .in("zoho_contact_id", pharmacyInputs.map((r) => r.zoho_contact_id));
       if (!syncedPharms || syncedPharms.length === 0) return;
 
       for (const pharm of syncedPharms) {
         const pharmId = (pharm as any).id as string;
-        // Use cumulative history_points as the target so each sync ADDS the
-        // newly-reported loyalty_points instead of clobbering to the snapshot.
-        // Example: yesterday +100, today +150 → user shows 250 (not 150).
+        // Skip deactivated pharmacies — don't distribute points to their members.
+        if ((pharm as any).is_active === false) continue;
+        // history_points is the high-water mark of Zoho's cumulative
+        // "Loyalty Points" value. Per-member delta = target − already_credited
+        // (from prior zoho_sync ledger rows), so re-syncs are idempotent.
         const totalPoints = Math.max(0, Number((pharm as any).history_points ?? 0));
 
         const { data: members } = await supabaseAdmin
