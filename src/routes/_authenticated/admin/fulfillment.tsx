@@ -22,18 +22,20 @@ function Fulfillment() {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
 
+  const buildQuery = (applyStatus: boolean) => {
+    let q = supabase.from("redemptions").select("*").order("created_at", { ascending: false });
+    if (applyStatus && filter !== "all") q = q.eq("status", filter as any);
+    // Treat the date-input value as a local calendar day to avoid the UTC
+    // shift that `new Date("YYYY-MM-DD")` introduces (parsed as UTC midnight).
+    if (fromDate) q = q.gte("created_at", new Date(`${fromDate}T00:00:00`).toISOString());
+    if (toDate) q = q.lte("created_at", new Date(`${toDate}T23:59:59.999`).toISOString());
+    return q;
+  };
+
   const { data: items } = useQuery({
     queryKey: ["admin-fulfillment", filter, fromDate, toDate],
     queryFn: async () => {
-      let q = supabase.from("redemptions").select("*").order("created_at", { ascending: false });
-      if (filter !== "all") q = q.eq("status", filter as any);
-      if (fromDate) q = q.gte("created_at", new Date(fromDate).toISOString());
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(23, 59, 59, 999);
-        q = q.lte("created_at", end.toISOString());
-      }
-      const { data } = await q;
+      const { data } = await buildQuery(true);
       return data ?? [];
     },
   });
@@ -58,7 +60,8 @@ function Fulfillment() {
   };
 
   const exportCSV = async () => {
-    const { data: all } = await supabase.from("redemptions").select("*").order("created_at", { ascending: false });
+    // Export reflects the current filter (status + date range) the admin sees.
+    const { data: all } = await buildQuery(true);
     const userIds = Array.from(new Set((all ?? []).map((r) => r.user_id)));
     const { data: profiles } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
     const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -124,6 +127,7 @@ function Fulfillment() {
             </div>
             <div className="mt-3 flex gap-2">
               <input
+                key={r.tracking_info ?? ""}
                 defaultValue={r.tracking_info ?? ""}
                 placeholder="Tracking info / notes…"
                 onBlur={(e) => e.target.value !== (r.tracking_info ?? "") && update(r.id, { tracking_info: e.target.value })}
