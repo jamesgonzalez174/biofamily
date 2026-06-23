@@ -102,7 +102,7 @@ function Catalog() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold leading-tight">{p.name}</h3>
+                    <h2 className="text-base font-semibold leading-tight">{p.name}</h2>
                     <div className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
                       <Sparkles className="h-3 w-3" />{p.point_cost.toLocaleString()}
                     </div>
