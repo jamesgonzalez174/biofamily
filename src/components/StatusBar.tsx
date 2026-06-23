@@ -39,7 +39,7 @@ export function StatusBar() {
             <div className="rounded-full bg-card p-[2px]">
               <img
                 src={statuses[0].image_url}
-                alt="status"
+                alt={statuses[0].caption ?? "Latest news and updates"}
                 className="h-12 w-12 rounded-full object-cover"
               />
             </div>
