@@ -36,7 +36,14 @@ function ZohoConnectPage() {
   });
 
   useEffect(() => {
+    let expectedOrigin = "";
+    try {
+      expectedOrigin = new URL(SUPABASE_URL).origin;
+    } catch {
+      expectedOrigin = "";
+    }
     const handler = (ev: MessageEvent) => {
+      if (ev.source !== null && ev.origin !== window.location.origin && ev.origin !== expectedOrigin) return;
       const d = ev.data;
       if (!d || typeof d !== "object") return;
       if ((d as any).ok === true && (d as any).orgId) {
