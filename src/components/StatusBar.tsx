@@ -104,6 +104,7 @@ function StatusViewer({ items, onClose }: { items: Status[]; onClose: () => void
 
       <button
         onClick={onClose}
+        aria-label="Close news viewer"
         className="absolute right-3 top-6 z-20 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
       >
         <X className="h-5 w-5" />
@@ -118,7 +119,7 @@ function StatusViewer({ items, onClose }: { items: Status[]; onClose: () => void
       <div className="relative max-h-[100dvh] w-full max-w-md">
         <img
           src={current.image_url}
-          alt={current.caption ?? "status"}
+          alt={current.caption ?? "News and updates image"}
           className="mx-auto max-h-[100dvh] w-full object-contain"
         />
         {current.caption && (
