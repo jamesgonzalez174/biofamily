@@ -69,6 +69,7 @@ export function PharmacyBanner() {
                 <select
                   value={selected}
                   onChange={(e) => setSelected(e.target.value)}
+                  aria-label="Select your pharmacy"
                   size={Math.min(6, Math.max(3, (pharmacies?.filter((p) => {
                     const q = search.trim().toLowerCase();
                     if (!q) return true;

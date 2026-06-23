@@ -56,6 +56,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Biomed Family" },
+      { property: "og:site_name", content: "Biomed Family" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -63,6 +64,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
       { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Biomed Family",
+          url: "https://myprizepoint.com",
+          description:
+            "Biomed Family loyalty rewards platform — partner pharmacies and their teams earn points on every qualifying purchase and redeem them for real prizes.",
+          logo: "https://myprizepoint.com/icon-512.png",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Biomed Family",
+          url: "https://myprizepoint.com",
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,

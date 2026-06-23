@@ -102,7 +102,7 @@ function Catalog() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold leading-tight">{p.name}</h3>
+                    <h2 className="text-base font-semibold leading-tight">{p.name}</h2>
                     <div className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
                       <Sparkles className="h-3 w-3" />{p.point_cost.toLocaleString()}
                     </div>
@@ -125,7 +125,7 @@ function Catalog() {
               ) : (
                 <div className="grid h-full place-items-center"><Gift className="h-20 w-20 text-muted-foreground" /></div>
               )}
-              <button onClick={() => !busy && setSelected(null)} className="absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"><X className="h-4 w-4" /></button>
+              <button onClick={() => !busy && setSelected(null)} aria-label="Close prize details" className="absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"><X className="h-4 w-4" /></button>
             </div>
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">

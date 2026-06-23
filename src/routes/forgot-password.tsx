@@ -6,6 +6,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthScene } from "@/components/AuthScene";
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => ({
+    meta: [
+      { title: "Reset your password — Biomed Family" },
+      { name: "description", content: "Forgot your Biomed Family password? Enter your email to receive a secure password reset link." },
+      { property: "og:title", content: "Reset your password — Biomed Family" },
+      { property: "og:description", content: "Forgot your Biomed Family password? Enter your email to receive a secure password reset link." },
+      { property: "og:url", content: "https://myprizepoint.com/forgot-password" },
+      { name: "twitter:title", content: "Reset your password — Biomed Family" },
+      { name: "twitter:description", content: "Forgot your Biomed Family password? Enter your email to receive a secure password reset link." },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://myprizepoint.com/forgot-password" }],
+  }),
   component: ForgotPasswordPage,
 });
 

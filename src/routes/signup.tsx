@@ -12,6 +12,18 @@ export const Route = createFileRoute("/signup")({
     const { data: { session } } = await supabase.auth.getSession();
     if (session) throw redirect({ to: "/dashboard" });
   },
+  head: () => ({
+    meta: [
+      { title: "Create account — Biomed Family" },
+      { name: "description", content: "Create your Biomed Family member account, pick your pharmacy, and start earning points on every qualifying purchase." },
+      { property: "og:title", content: "Create account — Biomed Family" },
+      { property: "og:description", content: "Create your Biomed Family member account, pick your pharmacy, and start earning points on every qualifying purchase." },
+      { property: "og:url", content: "https://myprizepoint.com/signup" },
+      { name: "twitter:title", content: "Create account — Biomed Family" },
+      { name: "twitter:description", content: "Create your Biomed Family member account, pick your pharmacy, and start earning points on every qualifying purchase." },
+    ],
+    links: [{ rel: "canonical", href: "https://myprizepoint.com/signup" }],
+  }),
   component: SignupPage,
 });
 

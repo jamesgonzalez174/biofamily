@@ -13,6 +13,18 @@ export const Route = createFileRoute("/login")({
     const { data: { session } } = await supabase.auth.getSession();
     if (session) throw redirect({ to: "/dashboard" });
   },
+  head: () => ({
+    meta: [
+      { title: "Sign in — Biomed Family" },
+      { name: "description", content: "Sign in to your Biomed Family account to check your points balance and redeem prizes." },
+      { property: "og:title", content: "Sign in — Biomed Family" },
+      { property: "og:description", content: "Sign in to your Biomed Family account to check your points balance and redeem prizes." },
+      { property: "og:url", content: "https://myprizepoint.com/login" },
+      { name: "twitter:title", content: "Sign in — Biomed Family" },
+      { name: "twitter:description", content: "Sign in to your Biomed Family account to check your points balance and redeem prizes." },
+    ],
+    links: [{ rel: "canonical", href: "https://myprizepoint.com/login" }],
+  }),
   component: LoginPage,
 });
 
