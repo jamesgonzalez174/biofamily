@@ -1,0 +1,12 @@
+# Biomed Family
+
+> Loyalty rewards platform for Biomed Family pharmacy partners. Earn points on every qualifying purchase and redeem them for real prizes.
+
+Biomed Family connects pharmacies and their teams to a points-based rewards program. Members track their balance, browse a live prize catalog, and claim rewards as they earn.
+
+## Pages
+
+- [Home](/): Overview of the Biomed Family rewards program.
+- [Sign in](/login): Sign in to your member account.
+- [Create account](/signup): Register a new member account and pick your pharmacy.
+- [Forgot password](/forgot-password): Request a password reset email.
