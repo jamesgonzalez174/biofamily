@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /history
+Disallow: /catalog
+Disallow: /unsubscribe
+Disallow: /email/
+Disallow: /lovable/
+Disallow: /api/
+
+Sitemap: https://myprizepoint.com/sitemap.xml
