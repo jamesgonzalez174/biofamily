@@ -169,10 +169,12 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       const pharmacyRows = pharmacyInputs.map((r) => {
         const prev = existingPharmMap.get(r.zoho_contact_id);
         const history = Math.max(prev?.history_points ?? 0, r.loyalty_points);
-        const row: any = { ...r, history_points: history };
-        if (!prev?.exists) row.is_active = true; // only set on insert
-        return row;
+        // Always include is_active so PostgREST upsert doesn't send null for
+        // existing rows when other rows in the batch include the key.
+        const is_active = prev?.exists ? prev.is_active : true;
+        return { ...r, history_points: history, is_active };
       });
+
 
       const [cRes, pRes] = await Promise.all([
         supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
