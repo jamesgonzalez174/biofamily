@@ -111,7 +111,15 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       return null;
     };
 
-    const upsertPage = async (page: number, contacts: any[]) => {
+    const isContactActive = (c: any): boolean => {
+      const s = String(c?.status ?? "").toLowerCase();
+      if (s === "inactive" || s === "disabled" || s === "crm_inactive") return false;
+      if (c?.is_active === false) return false;
+      return true;
+    };
+
+    const upsertPage = async (page: number, contactsAll: any[]) => {
+      const contacts = contactsAll.filter(isContactActive);
       if (contacts.length === 0) return;
       const nowIso = new Date().toISOString();
       const customerRows = contacts.map((c) => ({
