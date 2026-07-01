@@ -134,12 +134,16 @@ export async function processZohoContact(
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
       if (lp !== null && (existingPharm as any).loyalty_points !== lp) {
         pharmUpdates.loyalty_points = lp;
-        pharmUpdates.history_points = Number((existingPharm as any).history_points ?? 0) + lp;
+        // history_points is a high-water mark of Zoho's cumulative
+        // "Loyalty Points" — never add lp on top (that double-counts).
+        const prevHistory = Number((existingPharm as any).history_points ?? 0);
+        if (lp > prevHistory) pharmUpdates.history_points = lp;
       }
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
         pharmacyAction = "updated";
       }
+
     } else {
       const { data: created } = await supabaseAdmin
         .from("pharmacies")
