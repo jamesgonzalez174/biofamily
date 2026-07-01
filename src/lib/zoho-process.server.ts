@@ -262,7 +262,9 @@ export async function processZohoPayload(
 
   // Best-effort: pull the full contact from Zoho so zoho_customers, pharmacies,
   // and the matching profile stay fresh — even if the contact wasn't edited in
-  // Zoho. Failures are logged but never block invoice processing.
+  // Zoho. Skip re-crediting points here: the invoice above already awarded
+  // them, and re-running the pharmacy split would double-credit (different
+  // ledger source/reference means the idempotency guard doesn't catch it).
   const contactIdForRefresh = String(
     invoice?.customer_id ?? invoice?.contact_id ?? invoice?.contact?.contact_id ?? "",
   ).trim();
@@ -270,12 +272,17 @@ export async function processZohoPayload(
     try {
       const freshContact = await fetchZohoContact(contactIdForRefresh);
       if (freshContact) {
-        await processZohoContact({ contact: freshContact }, `invoice-${eventId}-contact-refresh`);
+        await processZohoContact(
+          { contact: freshContact },
+          `invoice-${eventId}-contact-refresh`,
+          { skipPointsSync: true },
+        );
       }
     } catch (e) {
       console.warn("Contact refresh from Zoho failed (non-fatal):", e);
     }
   }
+
 
   await supabaseAdmin
     .from("zoho_events")
