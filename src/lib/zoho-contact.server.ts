@@ -12,6 +12,23 @@ export async function processZohoContact(
   eventId: string,
 ): Promise<{ ok: boolean; status: string; email?: string; eventId: string }> {
   const contact = payload?.contact ?? payload?.customer ?? payload;
+
+  // Skip inactive/disabled Zoho contacts entirely — don't upsert pharmacies,
+  // don't distribute points. Matches the daily-sync filter.
+  const statusStr = String(contact?.status ?? "").toLowerCase();
+  const isInactive =
+    statusStr === "inactive" ||
+    statusStr === "disabled" ||
+    statusStr === "crm_inactive" ||
+    contact?.is_active === false;
+  if (isInactive) {
+    await supabaseAdmin
+      .from("zoho_events")
+      .update({ processed: true, error: "contact inactive — skipped" })
+      .eq("event_id", eventId);
+    return { ok: true, status: "skipped inactive contact", eventId };
+  }
+
   const email = (
     contact?.email ??
     contact?.contact_email ??
