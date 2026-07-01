@@ -141,7 +141,8 @@ function Catalog() {
               <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
                 {balance < selected.point_cost
                   ? `You need ${(selected.point_cost - balance).toLocaleString()} more points to redeem this prize.`
-                  : "Points are reserved now and deducted from your balance once the admin marks your reward as claimed."}
+                  : "Points are deducted immediately when you redeem. If your order is cancelled, points are refunded automatically."}
+
               </div>
               <div className="mt-6 flex gap-2">
                 <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Close</button>
