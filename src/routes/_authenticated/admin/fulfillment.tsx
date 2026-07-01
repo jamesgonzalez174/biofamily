@@ -50,7 +50,7 @@ function Fulfillment() {
           tracking_info: patch.tracking_info,
         },
       });
-      toast.success(patch.status === "claimed" ? "Marked claimed — points deducted" : "Updated");
+      toast.success(patch.status === "cancelled" ? "Cancelled — points refunded" : "Updated");
       qc.invalidateQueries({ queryKey: ["admin-fulfillment"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["ledger"] });
@@ -88,7 +88,7 @@ function Fulfillment() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Fulfillment</h1>
-          <p className="text-sm text-muted-foreground">Points are deducted only when status is set to <strong>claimed</strong>.</p>
+          <p className="text-sm text-muted-foreground">Points are deducted at redemption. Setting status to <strong>cancelled</strong> refunds them automatically.</p>
         </div>
         <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
           <Download className="h-4 w-4" /> Download CSV
