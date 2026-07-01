@@ -44,7 +44,7 @@ function Catalog() {
     setBusy(true);
     try {
       const res = await redeem({ data: { prizeId: selected.id } });
-      toast.success(`Reserved ${selected.name}! Points deduct when admin marks it claimed.`);
+      toast.success(`Redeemed ${selected.name}! ${selected.point_cost.toLocaleString()} points deducted.`);
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["prizes"] });
       qc.invalidateQueries({ queryKey: ["redemptions"] });
