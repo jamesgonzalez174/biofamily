@@ -117,7 +117,8 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
-  // history_points is cumulative: each sync ADDS the newly-reported loyalty_points.
+  // history_points is a high-water mark of Zoho's cumulative loyalty_points.
+
   let pharmacyAction: "none" | "created" | "updated" = "none";
   let pharmacyId: string | null = null;
   if (zohoContactId && fullName) {
