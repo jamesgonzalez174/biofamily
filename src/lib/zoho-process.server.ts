@@ -191,74 +191,80 @@ export async function processZohoPayload(
       ];
     }
 
-    const share = Math.floor(pointsAwarded / recipients.length);
-    if (share > 0) {
-      const splitNote = recipients.length > 1 ? ` — split across ${recipients.length} pharmacy members` : "";
-      for (const r of recipients) {
-        // Only the invoice owner's lifetime_points should be synced from Zoho's
-        // History Points; other pharmacy members keep their own lifetime total.
-        const isOwner = r.id === profile.id;
-        const newBalance = r.points_balance + share;
-        await supabaseAdmin
-          .from("profiles")
-          .update({
-            points_balance: newBalance,
-            lifetime_points:
-              isOwner && historyPoints !== null
-                ? Math.floor(historyPoints)
-                : r.lifetime_points + share,
-          })
-          .eq("id", r.id);
+    // Split evenly, distributing the remainder so no points are lost.
+    const n = recipients.length;
+    const base = Math.floor(pointsAwarded / n);
+    const remainder = pointsAwarded - base * n;
+    const splitNote = n > 1 ? ` — split across ${n} pharmacy members` : "";
+    for (let i = 0; i < n; i++) {
+      const r = recipients[i];
+      const share = base + (i < remainder ? 1 : 0);
+      if (share <= 0) continue;
 
-        // Skip if a ledger row already exists (unique index also enforces this).
-        const { data: existingLedger } = await supabaseAdmin
-          .from("points_ledger")
-          .select("id")
-          .eq("source", "zoho")
-          .eq("reference", eventId)
-          .eq("user_id", r.id)
-          .maybeSingle();
-        if (existingLedger) continue;
+      // Only the invoice owner's lifetime_points may sync from Zoho's
+      // History Points — and never *decrease* it (lifetime is monotonic).
+      const isOwner = r.id === profile.id;
+      const newBalance = r.points_balance + share;
+      const nextLifetime =
+        isOwner && historyPoints !== null
+          ? Math.max(r.lifetime_points, Math.floor(historyPoints))
+          : r.lifetime_points + share;
+      await supabaseAdmin
+        .from("profiles")
+        .update({ points_balance: newBalance, lifetime_points: nextLifetime })
+        .eq("id", r.id);
 
-        await supabaseAdmin.from("points_ledger").insert({
-          user_id: r.id,
-          delta: share,
-          reason: `Zoho purchase (${breakdown.join(", ")})${splitNote}`,
-          source: "zoho",
-          reference: eventId,
-        });
+      // Skip if a ledger row already exists (unique index also enforces this).
+      const { data: existingLedger } = await supabaseAdmin
+        .from("points_ledger")
+        .select("id")
+        .eq("source", "zoho")
+        .eq("reference", eventId)
+        .eq("user_id", r.id)
+        .maybeSingle();
+      if (existingLedger) continue;
 
-        // Notify the recipient by email (fire-and-forget; failures shouldn't block points)
-        const { data: recipientProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("email, full_name")
-          .eq("id", r.id)
-          .maybeSingle();
-        if (recipientProfile?.email) {
-          try {
-            await sendTransactionalEmailServer({
-              templateName: "points-earned",
-              recipientEmail: recipientProfile.email,
-              idempotencyKey: `points-zoho-${eventId}-${r.id}`,
-              templateData: {
-                name: recipientProfile.full_name ?? undefined,
-                points: share,
-                reason: `Zoho purchase${splitNote}`,
-                newBalance,
-              },
-            });
-          } catch (e) {
-            console.error("Failed to send points-earned email", e);
-          }
+      await supabaseAdmin.from("points_ledger").insert({
+        user_id: r.id,
+        delta: share,
+        reason: `Zoho purchase (${breakdown.join(", ")})${splitNote}`,
+        source: "zoho",
+        reference: eventId,
+      });
+
+      // Notify the recipient by email (fire-and-forget; failures shouldn't block points)
+      const { data: recipientProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", r.id)
+        .maybeSingle();
+      if (recipientProfile?.email) {
+        try {
+          await sendTransactionalEmailServer({
+            templateName: "points-earned",
+            recipientEmail: recipientProfile.email,
+            idempotencyKey: `points-zoho-${eventId}-${r.id}`,
+            templateData: {
+              name: recipientProfile.full_name ?? undefined,
+              points: share,
+              reason: `Zoho purchase${splitNote}`,
+              newBalance,
+            },
+          });
+        } catch (e) {
+          console.error("Failed to send points-earned email", e);
         }
       }
     }
+
   }
 
 
   // Best-effort: pull the full contact from Zoho so zoho_customers, pharmacies,
   // and the matching profile stay fresh — even if the contact wasn't edited in
-  // Zoho. Failures are logged but never block invoice processing.
+  // Zoho. Skip re-crediting points here: the invoice above already awarded
+  // them, and re-running the pharmacy split would double-credit (different
+  // ledger source/reference means the idempotency guard doesn't catch it).
   const contactIdForRefresh = String(
     invoice?.customer_id ?? invoice?.contact_id ?? invoice?.contact?.contact_id ?? "",
   ).trim();
@@ -266,12 +272,17 @@ export async function processZohoPayload(
     try {
       const freshContact = await fetchZohoContact(contactIdForRefresh);
       if (freshContact) {
-        await processZohoContact({ contact: freshContact }, `invoice-${eventId}-contact-refresh`);
+        await processZohoContact(
+          { contact: freshContact },
+          `invoice-${eventId}-contact-refresh`,
+          { skipPointsSync: true },
+        );
       }
     } catch (e) {
       console.warn("Contact refresh from Zoho failed (non-fatal):", e);
     }
   }
+
 
   await supabaseAdmin
     .from("zoho_events")

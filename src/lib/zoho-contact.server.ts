@@ -10,7 +10,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 export async function processZohoContact(
   payload: any,
   eventId: string,
+  opts: { skipPointsSync?: boolean } = {},
 ): Promise<{ ok: boolean; status: string; email?: string; eventId: string }> {
+
   const contact = payload?.contact ?? payload?.customer ?? payload;
 
   // Skip inactive/disabled Zoho contacts entirely — don't upsert pharmacies,
@@ -168,7 +170,8 @@ export async function processZohoContact(
   //    so a single webhook/invoice refresh credits every member, not just the
   //    email-matched profile.
   let splitNote = "";
-  if (pharmacyId) {
+  if (pharmacyId && !opts.skipPointsSync) {
+
     const { data: pharm } = await supabaseAdmin
       .from("pharmacies")
       .select("history_points")
