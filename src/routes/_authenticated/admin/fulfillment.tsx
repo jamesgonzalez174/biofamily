@@ -50,7 +50,7 @@ function Fulfillment() {
           tracking_info: patch.tracking_info,
         },
       });
-      toast.success(patch.status === "claimed" ? "Marked claimed — points deducted" : "Updated");
+      toast.success(patch.status === "cancelled" ? "Cancelled — points refunded" : "Updated");
       qc.invalidateQueries({ queryKey: ["admin-fulfillment"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["ledger"] });
