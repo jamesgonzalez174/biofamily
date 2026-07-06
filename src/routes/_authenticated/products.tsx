@@ -55,103 +55,55 @@ function ProductsPage() {
         />
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-        {isLoading ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            {q ? "No products match your search." : "No products with points yet."}
-          </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <table className="hidden w-full text-sm sm:table">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="p-3">Product</th>
-                  <th className="p-3">SKU</th>
-                  <th className="p-3 text-right">Points / unit</th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="cursor-pointer border-t border-border transition hover:bg-muted/40"
-                  >
-                    <td className="p-0">
-                      <Link
-                        to="/products/$sku"
-                        params={{ sku: r.sku }}
-                        className="flex items-center gap-3 p-3 font-medium"
-                      >
-                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
-                          {r.image_url ? (
-                            <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                          ) : (
-                            <Package className="h-5 w-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <span className="truncate">{r.name || "—"}</span>
-                      </Link>
-                    </td>
-                    <td className="p-3 font-mono text-xs text-muted-foreground">{r.sku}</td>
-                    <td className="p-3 text-right">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary tabular-nums">
-                        <Sparkles className="h-3 w-3" />
-                        {r.points_per_unit.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <Link
-                        to="/products/$sku"
-                        params={{ sku: r.sku }}
-                        aria-label={`View ${r.name || r.sku}`}
-                        className="inline-flex rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Mobile cards */}
-            <ul className="divide-y divide-border sm:hidden">
-              {filtered.map((r) => (
-                <li key={r.id}>
-                  <Link
-                    to="/products/$sku"
-                    params={{ sku: r.sku }}
-                    className="flex items-center gap-3 p-4 active:bg-muted/60"
-                  >
-                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
-                      {r.image_url ? (
-                        <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                      )}
+      {isLoading ? (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground shadow-soft">
+          Loading…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-soft">
+          {q ? "No products match your search." : "No products with points yet."}
+        </div>
+      ) : (
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((r) => (
+            <li key={r.id}>
+              <Link
+                to="/products/$sku"
+                params={{ sku: r.sku }}
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                  {r.image_url ? (
+                    <img
+                      src={r.image_url}
+                      alt={r.name || r.sku}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-muted-foreground">
+                      <Package className="h-10 w-10" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{r.name || "—"}</div>
-                      <div className="truncate font-mono text-xs text-muted-foreground">{r.sku}</div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary tabular-nums">
-                        <Sparkles className="h-3 w-3" />
-                        {r.points_per_unit.toLocaleString()}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+                  )}
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur tabular-nums">
+                    <Sparkles className="h-3 w-3" />
+                    {r.points_per_unit.toLocaleString()} pts
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col gap-1 p-4">
+                  <div className="line-clamp-2 text-sm font-semibold leading-snug">
+                    {r.name || "—"}
+                  </div>
+                  <div className="mt-auto flex items-center justify-between pt-2">
+                    <span className="truncate font-mono text-xs text-muted-foreground">{r.sku}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </AppShell>
   );
 }
