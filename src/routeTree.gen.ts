@@ -29,6 +29,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicZohoWebhookRouteImport } from './routes/api/public/zoho-webhook'
+import { Route as AuthenticatedProductsSkuRouteImport } from './routes/_authenticated/products.$sku'
 import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
@@ -145,6 +146,12 @@ const ApiPublicZohoWebhookRoute = ApiPublicZohoWebhookRouteImport.update({
   path: '/api/public/zoho-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProductsSkuRoute =
+  AuthenticatedProductsSkuRouteImport.update({
+    id: '/$sku',
+    path: '/$sku',
+    getParentRoute: () => AuthenticatedProductsRoute,
+  } as any)
 const AuthenticatedAdminZohoConnectRoute =
   AuthenticatedAdminZohoConnectRouteImport.update({
     id: '/zoho-connect',
@@ -241,7 +248,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/products': typeof AuthenticatedProductsRoute
+  '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
+  '/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -275,7 +283,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/products': typeof AuthenticatedProductsRoute
+  '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -285,6 +293,7 @@ export interface FileRoutesByTo {
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
+  '/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -312,7 +321,7 @@ export interface FileRoutesById {
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
-  '/_authenticated/products': typeof AuthenticatedProductsRoute
+  '/_authenticated/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -322,6 +331,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/skus': typeof AuthenticatedAdminSkusRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
+  '/_authenticated/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin/skus'
     | '/admin/users'
     | '/admin/zoho-connect'
+    | '/products/$sku'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/admin/'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/admin/skus'
     | '/admin/users'
     | '/admin/zoho-connect'
+    | '/products/$sku'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/admin'
@@ -429,6 +441,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/skus'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/zoho-connect'
+    | '/_authenticated/products/$sku'
     | '/api/public/zoho-webhook'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
@@ -606,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicZohoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/products/$sku': {
+      id: '/_authenticated/products/$sku'
+      path: '/$sku'
+      fullPath: '/products/$sku'
+      preLoaderRoute: typeof AuthenticatedProductsSkuRouteImport
+      parentRoute: typeof AuthenticatedProductsRoute
+    }
     '/_authenticated/admin/zoho-connect': {
       id: '/_authenticated/admin/zoho-connect'
       path: '/zoho-connect'
@@ -732,12 +752,25 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedProductsRouteChildren {
+  AuthenticatedProductsSkuRoute: typeof AuthenticatedProductsSkuRoute
+}
+
+const AuthenticatedProductsRouteChildren: AuthenticatedProductsRouteChildren = {
+  AuthenticatedProductsSkuRoute: AuthenticatedProductsSkuRoute,
+}
+
+const AuthenticatedProductsRouteWithChildren =
+  AuthenticatedProductsRoute._addFileChildren(
+    AuthenticatedProductsRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
-  AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
+  AuthenticatedProductsRoute: typeof AuthenticatedProductsRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -745,7 +778,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
-  AuthenticatedProductsRoute: AuthenticatedProductsRoute,
+  AuthenticatedProductsRoute: AuthenticatedProductsRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
