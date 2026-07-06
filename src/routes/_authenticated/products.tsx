@@ -84,9 +84,16 @@ function ProductsPage() {
                       <Link
                         to="/products/$sku"
                         params={{ sku: r.sku }}
-                        className="block p-3 font-medium"
+                        className="flex items-center gap-3 p-3 font-medium"
                       >
-                        {r.name || "—"}
+                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+                          {r.image_url ? (
+                            <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                          ) : (
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <span className="truncate">{r.name || "—"}</span>
                       </Link>
                     </td>
                     <td className="p-3 font-mono text-xs text-muted-foreground">{r.sku}</td>
