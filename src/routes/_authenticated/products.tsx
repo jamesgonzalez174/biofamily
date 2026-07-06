@@ -125,9 +125,16 @@ function ProductsPage() {
                   <Link
                     to="/products/$sku"
                     params={{ sku: r.sku }}
-                    className="flex items-center justify-between gap-3 p-4 active:bg-muted/60"
+                    className="flex items-center gap-3 p-4 active:bg-muted/60"
                   >
-                    <div className="min-w-0">
+                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+                      {r.image_url ? (
+                        <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{r.name || "—"}</div>
                       <div className="truncate font-mono text-xs text-muted-foreground">{r.sku}</div>
                     </div>
