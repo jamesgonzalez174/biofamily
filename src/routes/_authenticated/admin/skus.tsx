@@ -52,7 +52,7 @@ function SkusPage() {
     qc.invalidateQueries({ queryKey: ["products-points"] });
   };
 
-  const updateField = async (id: string, patch: Record<string, unknown>) => {
+  const updateField = async (id: string, patch: Partial<{ name: string | null; points_per_unit: number; is_active: boolean }>) => {
     const { error } = await supabase.from("sku_points").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin-skus"] });
