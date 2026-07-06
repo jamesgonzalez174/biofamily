@@ -27,6 +27,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
     : [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/catalog", label: "Prizes", icon: Gift },
+        { to: "/products", label: "Earn points", icon: Package },
         { to: "/history", label: "History", icon: History },
       ];
 
