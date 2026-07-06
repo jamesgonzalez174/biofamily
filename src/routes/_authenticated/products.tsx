@@ -17,7 +17,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sku_points")
-        .select("id, sku, name, points_per_unit")
+        .select("id, sku, name, points_per_unit, image_url")
         .eq("is_active", true)
         .gt("points_per_unit", 0)
         .order("points_per_unit", { ascending: false });
