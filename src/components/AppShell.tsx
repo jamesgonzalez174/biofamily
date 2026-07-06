@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin, Eye } from "lucide-react";
+import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin, Eye, Package } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
