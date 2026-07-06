@@ -19,6 +19,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated/catalog'
@@ -91,6 +92,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/products': typeof AuthenticatedProductsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/products': typeof AuthenticatedProductsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
@@ -340,6 +349,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/dashboard'
     | '/history'
+    | '/products'
     | '/email/unsubscribe'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/fulfillment'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/dashboard'
     | '/history'
+    | '/products'
     | '/email/unsubscribe'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/fulfillment'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/_authenticated/catalog'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
+    | '/_authenticated/products'
     | '/email/unsubscribe'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/fulfillment'
@@ -523,6 +535,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/products': {
+      id: '/_authenticated/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthenticatedProductsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/history': {
       id: '/_authenticated/history'
@@ -718,6 +737,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -725,6 +745,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedProductsRoute: AuthenticatedProductsRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

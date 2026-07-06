@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin, Eye } from "lucide-react";
+import { Sparkles, LayoutDashboard, Gift, History, ShieldCheck, LogOut, Menu, X, MapPin, Eye, Package } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
     : [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/catalog", label: "Prizes", icon: Gift },
+        { to: "/products", label: "Earn points", icon: Package },
         { to: "/history", label: "History", icon: History },
       ];
 

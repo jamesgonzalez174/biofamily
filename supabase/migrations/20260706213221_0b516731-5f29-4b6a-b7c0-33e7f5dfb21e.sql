@@ -1,0 +1,1 @@
+CREATE POLICY "Authenticated view active skus" ON public.sku_points FOR SELECT TO authenticated USING (is_active = true);
