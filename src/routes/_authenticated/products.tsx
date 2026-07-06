@@ -71,18 +71,40 @@ function ProductsPage() {
                   <th className="p-3">Product</th>
                   <th className="p-3">SKU</th>
                   <th className="p-3 text-right">Points / unit</th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="p-3 font-medium">{r.name || "—"}</td>
+                  <tr
+                    key={r.id}
+                    className="cursor-pointer border-t border-border transition hover:bg-muted/40"
+                  >
+                    <td className="p-0">
+                      <Link
+                        to="/products/$sku"
+                        params={{ sku: r.sku }}
+                        className="block p-3 font-medium"
+                      >
+                        {r.name || "—"}
+                      </Link>
+                    </td>
                     <td className="p-3 font-mono text-xs text-muted-foreground">{r.sku}</td>
                     <td className="p-3 text-right">
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary tabular-nums">
                         <Sparkles className="h-3 w-3" />
                         {r.points_per_unit.toLocaleString()}
                       </span>
+                    </td>
+                    <td className="p-3 text-right">
+                      <Link
+                        to="/products/$sku"
+                        params={{ sku: r.sku }}
+                        aria-label={`View ${r.name || r.sku}`}
+                        className="inline-flex rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -92,15 +114,24 @@ function ProductsPage() {
             {/* Mobile cards */}
             <ul className="divide-y divide-border sm:hidden">
               {filtered.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{r.name || "—"}</div>
-                    <div className="truncate font-mono text-xs text-muted-foreground">{r.sku}</div>
-                  </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary tabular-nums">
-                    <Sparkles className="h-3 w-3" />
-                    {r.points_per_unit.toLocaleString()}
-                  </span>
+                <li key={r.id}>
+                  <Link
+                    to="/products/$sku"
+                    params={{ sku: r.sku }}
+                    className="flex items-center justify-between gap-3 p-4 active:bg-muted/60"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{r.name || "—"}</div>
+                      <div className="truncate font-mono text-xs text-muted-foreground">{r.sku}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary tabular-nums">
+                        <Sparkles className="h-3 w-3" />
+                        {r.points_per_unit.toLocaleString()}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>
