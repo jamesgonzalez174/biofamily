@@ -71,8 +71,12 @@ function ProductDetail() {
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
         {data.image_url && (
-          <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
-            <img src={data.image_url} alt={data.name || data.sku} className="h-full w-full object-cover" />
+          <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-gradient-to-br from-muted/60 to-muted p-6 sm:aspect-[4/3]">
+            <img
+              src={data.image_url}
+              alt={data.name || data.sku}
+              className="max-h-full max-w-full object-contain"
+            />
           </div>
         )}
         <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-primary-glow/10 p-8">
