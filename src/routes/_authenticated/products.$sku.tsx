@@ -40,7 +40,7 @@ function ProductDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sku_points")
-        .select("id, sku, name, points_per_unit, is_active, updated_at")
+        .select("id, sku, name, points_per_unit, is_active, image_url, updated_at")
         .eq("sku", sku)
         .maybeSingle();
       if (error) throw error;
@@ -70,6 +70,11 @@ function ProductDetail() {
       </button>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        {data.image_url && (
+          <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+            <img src={data.image_url} alt={data.name || data.sku} className="h-full w-full object-cover" />
+          </div>
+        )}
         <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-primary-glow/10 p-8">
           <div className="flex items-start gap-4">
             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-primary shadow-glow">

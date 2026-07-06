@@ -1,0 +1,1 @@
+ALTER TABLE public.sku_points ADD COLUMN IF NOT EXISTS image_url text;

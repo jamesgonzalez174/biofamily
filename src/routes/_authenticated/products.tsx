@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Search, Sparkles, ChevronRight } from "lucide-react";
+import { Search, Sparkles, ChevronRight, Package } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,7 +17,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sku_points")
-        .select("id, sku, name, points_per_unit")
+        .select("id, sku, name, points_per_unit, image_url")
         .eq("is_active", true)
         .gt("points_per_unit", 0)
         .order("points_per_unit", { ascending: false });
@@ -84,9 +84,16 @@ function ProductsPage() {
                       <Link
                         to="/products/$sku"
                         params={{ sku: r.sku }}
-                        className="block p-3 font-medium"
+                        className="flex items-center gap-3 p-3 font-medium"
                       >
-                        {r.name || "—"}
+                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+                          {r.image_url ? (
+                            <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                          ) : (
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <span className="truncate">{r.name || "—"}</span>
                       </Link>
                     </td>
                     <td className="p-3 font-mono text-xs text-muted-foreground">{r.sku}</td>
@@ -118,9 +125,16 @@ function ProductsPage() {
                   <Link
                     to="/products/$sku"
                     params={{ sku: r.sku }}
-                    className="flex items-center justify-between gap-3 p-4 active:bg-muted/60"
+                    className="flex items-center gap-3 p-4 active:bg-muted/60"
                   >
-                    <div className="min-w-0">
+                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+                      {r.image_url ? (
+                        <img src={r.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{r.name || "—"}</div>
                       <div className="truncate font-mono text-xs text-muted-foreground">{r.sku}</div>
                     </div>
