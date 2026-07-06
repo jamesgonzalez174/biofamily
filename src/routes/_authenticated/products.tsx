@@ -72,13 +72,13 @@ function ProductsPage() {
                 params={{ sku: r.sku }}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-br from-muted/60 to-muted">
                   {r.image_url ? (
                     <img
                       src={r.image_url}
                       alt={r.name || r.sku}
                       loading="lazy"
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      className="absolute inset-0 h-full w-full object-contain p-4 transition duration-300 group-hover:scale-105"
                     />
                   ) : (
                     <div className="grid h-full w-full place-items-center text-muted-foreground">
