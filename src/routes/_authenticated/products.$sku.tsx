@@ -35,7 +35,7 @@ function ProductDetail() {
   const { sku } = Route.useParams();
   const router = useRouter();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["product-detail", sku],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,7 +44,6 @@ function ProductDetail() {
         .eq("sku", sku)
         .maybeSingle();
       if (error) throw error;
-      if (!data || !data.is_active) throw notFound();
       return data;
     },
   });
@@ -56,7 +55,7 @@ function ProductDetail() {
       </AppShell>
     );
   }
-  if (error || !data) return null;
+  if (!data || !data.is_active) return <NotFoundView sku={sku} />;
 
   const pts = data.points_per_unit;
 
