@@ -38,6 +38,7 @@ import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_authenticated/admin/pharmacies'
 import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_authenticated/admin/fulfillment'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -198,6 +199,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof AuthenticatedHistoryRoute
   '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
   '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/history': typeof AuthenticatedHistoryRoute
   '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
   '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
   '/_authenticated/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/products'
     | '/email/unsubscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/fulfillment'
     | '/admin/pharmacies'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/products'
     | '/email/unsubscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/fulfillment'
     | '/admin/pharmacies'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/products'
     | '/email/unsubscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/fulfillment'
     | '/_authenticated/admin/pharmacies'
@@ -466,6 +478,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicZohoWebhookRoute: typeof ApiPublicZohoWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -682,6 +695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -799,6 +819,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicZohoWebhookRoute: ApiPublicZohoWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
