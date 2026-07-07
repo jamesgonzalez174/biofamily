@@ -36,6 +36,7 @@ function SignupPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [pharmacyId, setPharmacyId] = useState("");
+  const [pharmacySearch, setPharmacySearch] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -81,22 +82,37 @@ function SignupPage() {
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
           <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
-          {pharmacies.length > 0 && (
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Pharmacy</span>
-              <select
-                value={pharmacyId}
-                onChange={(e) => setPharmacyId(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-              >
-                <option value="">Select your pharmacy (optional)</option>
-                {pharmacies.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
-                ))}
-              </select>
-              <span className="mt-1 block text-xs text-muted-foreground">You can change this later from your dashboard.</span>
-            </label>
-          )}
+          {pharmacies.length > 0 && (() => {
+            const q = pharmacySearch.trim().toLowerCase();
+            const filtered = q
+              ? pharmacies.filter((p) => p.name.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q))
+              : pharmacies;
+            return (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium">Pharmacy</span>
+                <input
+                  type="text"
+                  value={pharmacySearch}
+                  onChange={(e) => setPharmacySearch(e.target.value)}
+                  placeholder="Search pharmacies by name or address…"
+                  className="mb-2 w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+                />
+                <select
+                  value={pharmacyId}
+                  onChange={(e) => setPharmacyId(e.target.value)}
+                  size={Math.min(6, Math.max(3, filtered.length + 1))}
+                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+                >
+                  <option value="">Select your pharmacy (optional)</option>
+                  {filtered.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
+                  ))}
+                  {filtered.length === 0 && <option value="" disabled>No matches</option>}
+                </select>
+                <span className="mt-1 block text-xs text-muted-foreground">You can change this later from your dashboard.</span>
+              </label>
+            );
+          })()}
           <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60">
             {loading ? "Creating…" : "Create account"}
           </button>
