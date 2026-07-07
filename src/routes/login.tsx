@@ -7,11 +7,23 @@ import { lovable } from "@/integrations/lovable";
 import { AuthScene } from "@/components/AuthScene";
 
 
+function safeNext(n: unknown): string | null {
+  if (typeof n !== "string" || !n.startsWith("/") || n.startsWith("//")) return null;
+  return n;
+}
+
 export const Route = createFileRoute("/login")({
-  beforeLoad: async () => {
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
+  beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) throw redirect({ to: "/dashboard" });
+    if (session) {
+      const next = safeNext(search.next);
+      if (next) throw redirect({ href: next });
+      throw redirect({ to: "/dashboard" });
+    }
   },
   head: () => ({
     meta: [
@@ -30,9 +42,16 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const nextSafe = safeNext(next);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const goNext = () => {
+    if (nextSafe) { window.location.href = nextSafe; return; }
+    navigate({ to: "/dashboard" });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,20 +62,21 @@ function LoginPage() {
       return toast.error(error.message);
     }
     toast.success("Welcome back!");
-    navigate({ to: "/dashboard" });
+    goNext();
   };
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
+    const redirect_uri = nextSafe
+      ? `${window.location.origin}/login?next=${encodeURIComponent(nextSafe)}`
+      : window.location.origin;
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
     if (result.error) {
       setLoading(false);
       return toast.error(result.error.message);
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    goNext();
   };
 
   return (
