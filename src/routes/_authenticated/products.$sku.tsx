@@ -13,23 +13,23 @@ export const Route = createFileRoute("/_authenticated/products/$sku")({
       </div>
     </AppShell>
   ),
-  notFoundComponent: () => {
-    const { sku } = Route.useParams();
-    return (
-      <AppShell>
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <h1 className="text-2xl font-semibold">Product not found</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            No active product matches SKU <span className="font-mono">{sku}</span>.
-          </p>
-          <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">
-            <ArrowLeft className="h-4 w-4" /> Back to products
-          </Link>
-        </div>
-      </AppShell>
-    );
-  },
 });
+
+function NotFoundView({ sku }: { sku: string }) {
+  return (
+    <AppShell>
+      <div className="rounded-2xl border border-border bg-card p-8 text-center">
+        <h1 className="text-2xl font-semibold">Product not found</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          No active product matches SKU <span className="font-mono">{sku}</span>.
+        </p>
+        <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">
+          <ArrowLeft className="h-4 w-4" /> Back to products
+        </Link>
+      </div>
+    </AppShell>
+  );
+}
 
 function ProductDetail() {
   const { sku } = Route.useParams();
