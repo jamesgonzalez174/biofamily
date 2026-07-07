@@ -137,7 +137,7 @@ function SignupPage() {
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
 
-          Already have one? <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
+          Already have one? <Link to="/login" search={nextSafe ? { next: nextSafe } : undefined} className="font-medium text-primary hover:underline">Sign in</Link>
         </p>
       </div>
     </AuthScene>
