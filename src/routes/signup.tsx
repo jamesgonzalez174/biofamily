@@ -7,10 +7,22 @@ import { AuthScene } from "@/components/AuthScene";
 import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
 
 
+function safeNext(n: unknown): string | null {
+  if (typeof n !== "string" || !n.startsWith("/") || n.startsWith("//")) return null;
+  return n;
+}
+
 export const Route = createFileRoute("/signup")({
-  beforeLoad: async () => {
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
+  beforeLoad: async ({ search }) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) throw redirect({ to: "/dashboard" });
+    if (session) {
+      const next = safeNext(search.next);
+      if (next) throw redirect({ href: next });
+      throw redirect({ to: "/dashboard" });
+    }
   },
   head: () => ({
     meta: [
@@ -31,6 +43,8 @@ type Pharmacy = { id: string; name: string; address: string | null };
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const nextSafe = safeNext(next);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -50,11 +64,14 @@ function SignupPage() {
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
     if (!phone.trim()) return toast.error("Phone number is required.");
     setLoading(true);
+    const emailRedirect = nextSafe
+      ? `${window.location.origin}${nextSafe}`
+      : getAuthEmailRedirectUrl();
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { full_name: fullName, phone: phone.trim() },
-        emailRedirectTo: getAuthEmailRedirectUrl(),
+        emailRedirectTo: emailRedirect,
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
@@ -63,6 +80,7 @@ function SignupPage() {
     }
     setLoading(false);
     toast.success("Welcome! Your account is ready.");
+    if (nextSafe) { window.location.href = nextSafe; return; }
     navigate({ to: "/dashboard" });
   };
 

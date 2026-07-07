@@ -125,7 +125,7 @@ function LoginPage() {
           <Link to="/forgot-password" className="font-medium text-primary hover:underline">Forgot password?</Link>
         </p>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          No account? <Link to="/signup" className="font-medium text-primary hover:underline">Sign up</Link>
+          No account? <Link to="/signup" search={nextSafe ? { next: nextSafe } : undefined} className="font-medium text-primary hover:underline">Sign up</Link>
         </p>
       </div>
     </AuthScene>
