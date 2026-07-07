@@ -36,6 +36,7 @@ function SignupPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [pharmacyId, setPharmacyId] = useState("");
+  const [pharmacySearch, setPharmacySearch] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
 
