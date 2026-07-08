@@ -187,8 +187,8 @@ export async function processZohoContact(
 
     if (members && members.length > 0) {
       const n = members.length;
+      // Equal split — every member gets the same amount; drop the remainder.
       const base = Math.floor(totalPoints / n);
-      const remainder = totalPoints - base * n;
 
       const memberIds = members.map((m: any) => m.id);
       const { data: ledgerRows } = await supabaseAdmin
@@ -206,7 +206,8 @@ export async function processZohoContact(
       let splitCount = 0;
       for (let i = 0; i < n; i++) {
         const m = members[i] as any;
-        const target = base + (i < remainder ? 1 : 0);
+        const target = base;
+
         const already = credited.get(String(m.id)) ?? 0;
         const delta = target - already;
         if (delta === 0) continue;
