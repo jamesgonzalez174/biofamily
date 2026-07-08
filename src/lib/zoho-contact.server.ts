@@ -119,10 +119,10 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
-  // Zoho moves earned points from "Loyalty Points" → "History Points" over time.
-  // Cumulative earned = Loyalty + History. Mirror that as the pharmacy's
-  // loyalty_points, and treat history_points as a high-water mark.
-  const cumulative = (lp ?? 0) + (hp ?? 0);
+  // Zoho's "History Points" is the cumulative earned total (points move from
+  // Loyalty → History over time). Distribute members' shares based on History.
+  const cumulative = hp ?? lp ?? 0;
+
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
   let pharmacyId: string | null = null;
