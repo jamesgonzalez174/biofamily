@@ -119,7 +119,10 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id — store loyalty/history directly on it.
-  // history_points is a high-water mark of Zoho's cumulative loyalty_points.
+  // Zoho moves earned points from "Loyalty Points" → "History Points" over time.
+  // Cumulative earned = Loyalty + History. Mirror that as the pharmacy's
+  // loyalty_points, and treat history_points as a high-water mark.
+  const cumulative = (lp ?? 0) + (hp ?? 0);
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
   let pharmacyId: string | null = null;
@@ -135,12 +138,10 @@ export async function processZohoContact(
       const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
-      if (lp !== null && (existingPharm as any).loyalty_points !== lp) {
-        pharmUpdates.loyalty_points = lp;
-        // history_points is a high-water mark of Zoho's cumulative
-        // "Loyalty Points" — never add lp on top (that double-counts).
+      if ((lp !== null || hp !== null) && (existingPharm as any).loyalty_points !== cumulative) {
+        pharmUpdates.loyalty_points = cumulative;
         const prevHistory = Number((existingPharm as any).history_points ?? 0);
-        if (lp > prevHistory) pharmUpdates.history_points = lp;
+        if (cumulative > prevHistory) pharmUpdates.history_points = cumulative;
       }
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
@@ -155,8 +156,8 @@ export async function processZohoContact(
           address,
           zoho_contact_id: zohoContactId,
           is_active: true,
-          loyalty_points: lp ?? 0,
-          history_points: lp ?? 0,
+          loyalty_points: cumulative,
+          history_points: cumulative,
         })
         .select("id")
         .single();
