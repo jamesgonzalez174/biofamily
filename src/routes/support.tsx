@@ -65,10 +65,10 @@ function SupportPage() {
           <div className="prose-content mt-8 space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
               <p>
-                Welcome to the Biomed Family support center. We’re here to help you get the most
+              Welcome to the Biomed Family support center. We’re here to help you get the most
                 out of the Biomed Family mobile app and the My Prize Point website at{" "}
                 <a href="https://myprizepoint.com" className="text-primary hover:underline">
-                  myprizepepoint.com
+                  myprizepoint.com
                 </a>
                 . If you can’t find what you need below, please reach out and we’ll get back to
                 you as soon as possible.
