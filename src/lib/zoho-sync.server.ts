@@ -122,26 +122,34 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       const contacts = contactsAll.filter(isContactActive);
       if (contacts.length === 0) return;
       const nowIso = new Date().toISOString();
-      const customerRows = contacts.map((c) => ({
-        zoho_contact_id: String(c.contact_id),
-        email: c.email ? String(c.email).toLowerCase().trim() : null,
-        full_name: c.contact_name || null,
-        company_name: c.company_name || null,
-        loyalty_points: readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints"),
-        history_points: null,
-        raw: c,
-        last_synced_at: nowIso,
-      }));
+      const customerRows = contacts.map((c) => {
+        const lpRaw = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
+        const hpRaw = readContactCF(c, "History Points", "history_points", "HistoryPoints");
+        return {
+          zoho_contact_id: String(c.contact_id),
+          email: c.email ? String(c.email).toLowerCase().trim() : null,
+          full_name: c.contact_name || null,
+          company_name: c.company_name || null,
+          loyalty_points: lpRaw,
+          history_points: hpRaw,
+          raw: c,
+          last_synced_at: nowIso,
+        };
+      });
       const pharmacyInputs = contacts
         .map((c) => {
           const name = (c.contact_name || c.company_name || "").toString().trim();
           if (!name) return null;
           const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
+          const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
+          // Zoho moves earned points from Loyalty → History over time.
+          // Cumulative earned = Loyalty + History.
+          const cumulative = (lp !== null ? Math.floor(lp) : 0) + (hp !== null ? Math.floor(hp) : 0);
           return {
             zoho_contact_id: String(c.contact_id),
             name,
             address: c.billing_address?.address || null,
-            loyalty_points: lp !== null ? Math.floor(lp) : 0,
+            loyalty_points: cumulative,
           };
         })
         .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
@@ -162,15 +170,12 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           exists: true,
         });
       }
-      // Zoho's "Loyalty Points" custom field is itself the contact's cumulative
-      // total. Treat history_points as the high-water mark so it never goes
-      // down (covers the case where Zoho briefly reports 0 / a lower value).
-      // Preserve admin-set is_active instead of forcing true on every sync.
+      // `loyalty_points` on the pharmacy row now already reflects Zoho's
+      // Loyalty + History cumulative earned total. Treat history_points as a
+      // high-water mark so it never goes down if Zoho briefly reports lower.
       const pharmacyRows = pharmacyInputs.map((r) => {
         const prev = existingPharmMap.get(r.zoho_contact_id);
         const history = Math.max(prev?.history_points ?? 0, r.loyalty_points);
-        // Always include is_active so PostgREST upsert doesn't send null for
-        // existing rows when other rows in the batch include the key.
         const is_active = prev?.exists ? prev.is_active : true;
         return { ...r, history_points: history, is_active };
       });
