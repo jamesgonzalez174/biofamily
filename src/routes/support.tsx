@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, ArrowLeft, HelpCircle, MessageSquare, Mail, Phone } from "lucide-react";
+import { Sparkles, ArrowLeft, HelpCircle, Mail, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/support")({
   head: () => ({
