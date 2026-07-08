@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 
 /** Immersive 3D backdrop + tilting glass card for auth screens. */
 export function AuthScene({ children }: { children: ReactNode }) {
