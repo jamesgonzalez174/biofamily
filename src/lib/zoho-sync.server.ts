@@ -217,8 +217,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         if (!members || members.length === 0) continue;
 
         const n = members.length;
+        // Equal split — every member gets the same amount. Any fractional
+        // remainder is dropped so shares stay identical across members.
         const base = Math.floor(totalPoints / n);
-        const remainder = totalPoints - base * n;
 
         // Fetch each member's cumulative Zoho-sync credits for THIS pharmacy so we
         // can compute a delta (target − already_credited) instead of overwriting
@@ -239,7 +240,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
 
         for (let i = 0; i < n; i++) {
           const m = members[i] as any;
-          const target = base + (i < remainder ? 1 : 0);
+          const target = base;
+
           const already = credited.get(String(m.id)) ?? 0;
           const delta = target - already;
           if (delta === 0) continue;
