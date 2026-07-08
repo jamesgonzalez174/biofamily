@@ -142,9 +142,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           if (!name) return null;
           const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
           const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
-          // Zoho moves earned points from Loyalty → History over time.
-          // Cumulative earned = Loyalty + History.
-          const cumulative = (lp !== null ? Math.floor(lp) : 0) + (hp !== null ? Math.floor(hp) : 0);
+          // Zoho's "History Points" is the cumulative earned total (points move
+          // from Loyalty → History over time). Distribute based on History.
+          const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
           return {
             zoho_contact_id: String(c.contact_id),
             name,
@@ -153,6 +153,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           };
         })
         .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
+
 
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
       const { data: existingPharms } = pharmIds.length
