@@ -65,6 +65,8 @@ export function AuthScene({ children }: { children: ReactNode }) {
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           <span>© {new Date().getFullYear()} Biomed Family</span>
           <span aria-hidden>·</span>
+          <Link to="/support" className="hover:text-foreground hover:underline">Support</Link>
+          <span aria-hidden>·</span>
           <Link to="/privacy-policy" className="hover:text-foreground hover:underline">Privacy Policy</Link>
         </div>
       </footer>
