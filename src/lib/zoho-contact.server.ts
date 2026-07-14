@@ -157,10 +157,11 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id.
-  // pharmacy.loyalty_points = Zoho's History Points (cumulative earned),
-  // falling back to Loyalty Points if History is missing/zero.
-  const source = hp !== null && hp > 0 ? hp : (lp ?? 0);
-  const currentLoyalty = Math.max(0, Math.floor(source));
+  // pharmacy.loyalty_points = Zoho's Loyalty Points (points earned that day).
+  // If Loyalty is 0 or missing, skip — don't overwrite existing loyalty.
+  void hp;
+  const hasLoyalty = lp !== null && lp > 0;
+  const currentLoyalty = hasLoyalty ? Math.max(0, Math.floor(lp!)) : 0;
 
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
@@ -177,12 +178,8 @@ export async function processZohoContact(
       const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number; invoice_references?: string[] } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
-      if (lp !== null && (existingPharm as any).loyalty_points !== currentLoyalty) {
+      if (hasLoyalty && (existingPharm as any).loyalty_points !== currentLoyalty) {
         pharmUpdates.loyalty_points = currentLoyalty;
-        const prevLoyalty = Number((existingPharm as any).loyalty_points ?? 0);
-        const prevHistory = Number((existingPharm as any).history_points ?? 0);
-        const gained = Math.max(0, currentLoyalty - prevLoyalty);
-        if (gained > 0) pharmUpdates.history_points = prevHistory + gained;
       }
       // Cross-pharmacy dedup: strip these refs from any other pharmacy first,
       // then assign to this one — an invoice number can't belong to two pharmacies.
