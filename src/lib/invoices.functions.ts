@@ -37,7 +37,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       supabaseAdmin.from("profiles").select("pharmacy_id").eq("id", context.userId).maybeSingle(),
       supabaseAdmin
         .from("pharmacies")
-        .select("id, invoice_references")
+        .select("id, invoice_references, loyalty_points")
         .eq("id", data.pharmacyId)
         .maybeSingle(),
     ]);
@@ -49,6 +49,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)
       : [];
+    const pharmacyLoyalty = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
     if (refs.length === 0) return { ok: true, invoices: [] };
 
     let accessToken: string, apiDomain: string, orgId: string;
