@@ -197,7 +197,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             zoho_contact_id: String(c.contact_id),
             name,
             address: c.billing_address?.address || null,
-            loyalty_points: cumulative,
+            loyalty_points: loyalty,
             invoice_references: invoiceRefs,
           };
         })
