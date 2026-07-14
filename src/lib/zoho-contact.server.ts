@@ -113,15 +113,19 @@ export async function processZohoContact(
   };
   const parseInvoiceRefs = (raw: string | null): string[] => {
     if (!raw) return [];
-    return Array.from(
-      new Set(
-        raw
-          .split(/[\s,;\n\r|]+/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0),
-      ),
-    );
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const part of raw.split(/[\s,;\n\r|]+/)) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const key = trimmed.toUpperCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(trimmed);
+    }
+    return out;
   };
+
   const invoiceRefs = parseInvoiceRefs(
     readCFText("Reference Invoiced", "reference_invoiced", "cf_reference_invoiced", "Invoice References", "invoice_references"),
   );
@@ -177,14 +181,55 @@ export async function processZohoContact(
         const prevHistory = Number((existingPharm as any).history_points ?? 0);
         if (cumulative > prevHistory) pharmUpdates.history_points = cumulative;
       }
-      // Always mirror the latest invoice references from Zoho when the CF is present
-      if (invoiceRefs.length > 0) pharmUpdates.invoice_references = invoiceRefs;
+      // Cross-pharmacy dedup: strip these refs from any other pharmacy first,
+      // then assign to this one — an invoice number can't belong to two pharmacies.
+      if (invoiceRefs.length > 0) {
+        const { data: otherPharms } = await supabaseAdmin
+          .from("pharmacies")
+          .select("id, invoice_references")
+          .overlaps("invoice_references", invoiceRefs)
+          .neq("zoho_contact_id", zohoContactId);
+        const incomingUpper = new Set(invoiceRefs.map((r) => r.toUpperCase()));
+        for (const op of otherPharms ?? []) {
+          const current: string[] = Array.isArray((op as any).invoice_references)
+            ? ((op as any).invoice_references as string[])
+            : [];
+          const filtered = current.filter((r) => !incomingUpper.has(r.toUpperCase()));
+          if (filtered.length !== current.length) {
+            await supabaseAdmin
+              .from("pharmacies")
+              .update({ invoice_references: filtered })
+              .eq("id", (op as any).id);
+          }
+        }
+        pharmUpdates.invoice_references = invoiceRefs;
+      }
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
         pharmacyAction = "updated";
       }
 
     } else {
+      // New pharmacy: strip incoming refs from any existing pharmacy that has them.
+      if (invoiceRefs.length > 0) {
+        const { data: otherPharms } = await supabaseAdmin
+          .from("pharmacies")
+          .select("id, invoice_references")
+          .overlaps("invoice_references", invoiceRefs);
+        const incomingUpper = new Set(invoiceRefs.map((r) => r.toUpperCase()));
+        for (const op of otherPharms ?? []) {
+          const current: string[] = Array.isArray((op as any).invoice_references)
+            ? ((op as any).invoice_references as string[])
+            : [];
+          const filtered = current.filter((r) => !incomingUpper.has(r.toUpperCase()));
+          if (filtered.length !== current.length) {
+            await supabaseAdmin
+              .from("pharmacies")
+              .update({ invoice_references: filtered })
+              .eq("id", (op as any).id);
+          }
+        }
+      }
       const { data: created } = await supabaseAdmin
         .from("pharmacies")
         .insert({
@@ -201,6 +246,7 @@ export async function processZohoContact(
       pharmacyId = (created as any)?.id ?? null;
       pharmacyAction = "created";
     }
+
   }
 
   // 2) Split pharmacy's cumulative points across all assigned members, ADDING the

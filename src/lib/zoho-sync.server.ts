@@ -49,15 +49,19 @@ function readContactCFText(contact: any, ...names: string[]): string | null {
 
 function parseInvoiceRefs(raw: string | null): string[] {
   if (!raw) return [];
-  return Array.from(
-    new Set(
-      raw
-        .split(/[\s,;\n\r|]+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0),
-    ),
-  );
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[\s,;\n\r|]+/)) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
 }
+
 
 export interface SyncResult {
   ok: boolean;
@@ -211,12 +215,52 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       // `loyalty_points` on the pharmacy row now already reflects Zoho's
       // Loyalty + History cumulative earned total. Treat history_points as a
       // high-water mark so it never goes down if Zoho briefly reports lower.
+      // Cross-pharmacy dedup (case-insensitive): each invoice reference may
+      // belong to only one pharmacy. If two contacts in this batch list the
+      // same reference, the first wins; the later one drops it.
+      const claimedRefs = new Map<string, string>(); // upper(ref) -> zoho_contact_id
       const pharmacyRows = pharmacyInputs.map((r) => {
         const prev = existingPharmMap.get(r.zoho_contact_id);
         const history = Math.max(prev?.history_points ?? 0, r.loyalty_points);
         const is_active = prev?.exists ? prev.is_active : true;
-        return { ...r, history_points: history, is_active };
+        const uniqueRefs: string[] = [];
+        for (const ref of r.invoice_references) {
+          const key = ref.toUpperCase();
+          const owner = claimedRefs.get(key);
+          if (owner && owner !== r.zoho_contact_id) continue;
+          claimedRefs.set(key, r.zoho_contact_id);
+          uniqueRefs.push(ref);
+        }
+        return { ...r, invoice_references: uniqueRefs, history_points: history, is_active };
       });
+
+      // Strip any of the incoming refs from OTHER pharmacies in the DB so the
+      // same invoice number can't appear on two pharmacy rows at once.
+      const allIncomingRefs = Array.from(
+        new Set(pharmacyRows.flatMap((r) => r.invoice_references)),
+      );
+      if (allIncomingRefs.length > 0) {
+        const incomingIds = new Set(pharmacyRows.map((r) => r.zoho_contact_id));
+        const { data: otherPharms } = await supabaseAdmin
+          .from("pharmacies")
+          .select("id, zoho_contact_id, invoice_references")
+          .overlaps("invoice_references", allIncomingRefs);
+        const incomingUpper = new Set(allIncomingRefs.map((r) => r.toUpperCase()));
+        for (const op of otherPharms ?? []) {
+          if (incomingIds.has(String((op as any).zoho_contact_id))) continue;
+          const current: string[] = Array.isArray((op as any).invoice_references)
+            ? ((op as any).invoice_references as string[])
+            : [];
+          const filtered = current.filter((r) => !incomingUpper.has(r.toUpperCase()));
+          if (filtered.length !== current.length) {
+            await supabaseAdmin
+              .from("pharmacies")
+              .update({ invoice_references: filtered })
+              .eq("id", (op as any).id);
+          }
+        }
+      }
+
 
 
       const [cRes, pRes] = await Promise.all([
