@@ -35,6 +35,9 @@ function EmailsPage() {
   const [days, setDays] = useState(7);
   const [template, setTemplate] = useState<string>("");
   const [status, setStatus] = useState<string>("");
+  const qc = useQueryClient();
+  const retry = useServerFn(retryEmailFromDlq);
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-emails", days, template, status],
@@ -46,6 +49,24 @@ function EmailsPage() {
   const rows = (data as any)?.rows as any[] | undefined;
   const stats = (data as any)?.stats;
   const templates = (data as any)?.templates as string[] | undefined;
+
+  const doRetry = async (r: any) => {
+    if (!r.message_id) return toast.error("No message id");
+    setRetrying(r.message_id);
+    try {
+      const res = await retry({ data: { messageId: r.message_id, recipient: r.recipient_email, template: r.template_name } });
+      if (res.ok) {
+        toast.success("Re-queued — sending on next cycle");
+        qc.invalidateQueries({ queryKey: ["admin-emails"] });
+      } else {
+        toast.warning(res.message ?? "Not found in DLQ");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Retry failed");
+    } finally {
+      setRetrying(null);
+    }
+  };
 
   const exportCsv = () => {
     if (!rows?.length) return;
