@@ -12,6 +12,7 @@ export type InvoiceDetail = {
   balance: number | null;
   currencyCode: string | null;
   status: string | null;
+  points: number;
   error?: string;
 };
 
