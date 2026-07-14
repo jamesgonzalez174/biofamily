@@ -26,6 +26,39 @@ function readContactCF(contact: any, ...names: string[]): number | null {
   return null;
 }
 
+function readContactCFText(contact: any, ...names: string[]): string | null {
+  const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+  const cfs: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  for (const cf of cfs) {
+    const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+      .toLowerCase()
+      .replace(/[\s_-]/g, "");
+    if (lower.includes(label)) {
+      const raw = cf?.value ?? cf?.value_formatted ?? "";
+      const s = String(raw).trim();
+      if (s) return s;
+    }
+  }
+  for (const n of names) {
+    const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+    const v = contact?.[key];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return null;
+}
+
+function parseInvoiceRefs(raw: string | null): string[] {
+  if (!raw) return [];
+  return Array.from(
+    new Set(
+      raw
+        .split(/[\s,;\n\r|]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  );
+}
+
 export interface SyncResult {
   ok: boolean;
   fetched: number;
