@@ -1,14 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ScrollText, Download } from "lucide-react";
+import { ScrollText, Download, X } from "lucide-react";
+import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listAuditLog } from "@/lib/admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/audit")({
+  validateSearch: z.object({
+    target: z.string().optional(),
+    targetType: z.string().optional(),
+    targetLabel: z.string().optional(),
+  }),
   component: AuditPage,
 });
 
@@ -19,6 +25,15 @@ const ACTION_LABELS: Record<string, string> = {
   pharmacy_points: "Pharmacy points",
   delete_user: "Delete user",
   bulk_import_points: "Bulk import",
+  prize_create: "Prize created",
+  prize_update: "Prize updated",
+  prize_delete: "Prize deleted",
+  sku_create: "SKU added",
+  sku_update: "SKU updated",
+  sku_delete: "SKU deleted",
+  settings_update: "Settings updated",
+  fulfillment_update: "Fulfillment updated",
+  email_retry: "Email retried",
 };
 
 const ACTION_TONES: Record<string, string> = {
@@ -28,17 +43,35 @@ const ACTION_TONES: Record<string, string> = {
   pharmacy_points: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
   delete_user: "bg-destructive/10 text-destructive",
   bulk_import_points: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  prize_create: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  prize_update: "bg-primary/10 text-primary",
+  prize_delete: "bg-destructive/10 text-destructive",
+  sku_create: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  sku_update: "bg-primary/10 text-primary",
+  sku_delete: "bg-destructive/10 text-destructive",
+  settings_update: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  fulfillment_update: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+  email_retry: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
 };
 
 function AuditPage() {
   const { user, loading } = useAuth();
   const fetchAudit = useServerFn(listAuditLog);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [action, setAction] = useState<string>("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-audit", action],
+    queryKey: ["admin-audit", action, search.target, search.targetType],
     enabled: !!user && !loading,
-    queryFn: () => fetchAudit({ data: { action: action || undefined, limit: 300 } }),
+    queryFn: () => fetchAudit({
+      data: {
+        action: action || undefined,
+        targetId: search.target,
+        targetType: search.targetType,
+        limit: 300,
+      },
+    }),
     staleTime: 15_000,
   });
 
@@ -90,6 +123,28 @@ function AuditPage() {
         </div>
       </div>
 
+      {search.target && (
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+          <span>
+            Filtered to{" "}
+            <span className="font-semibold">
+              {search.targetLabel ?? search.target.slice(0, 8)}
+            </span>
+            {search.targetType && (
+              <span className="ml-1 text-xs uppercase tracking-widest text-muted-foreground">
+                {search.targetType}
+              </span>
+            )}
+          </span>
+          <button
+            onClick={() => navigate({ search: {} })}
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            <X className="h-3 w-3" /> Clear filter
+          </button>
+        </div>
+      )}
+
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -123,7 +178,17 @@ function AuditPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    {r.target_label ?? r.target_id ?? <span className="text-muted-foreground">—</span>}
+                    {r.target_id ? (
+                      <Link
+                        to="/admin/audit"
+                        search={{ target: r.target_id, targetType: r.target_type ?? undefined, targetLabel: r.target_label ?? undefined }}
+                        className="hover:underline"
+                      >
+                        {r.target_label ?? r.target_id.slice(0, 8)}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                     {r.target_type && (
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{r.target_type}</div>
                     )}
