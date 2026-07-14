@@ -8,6 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
+import { sendTestExpiryReminder } from "@/lib/admin.functions";
 
 
 
