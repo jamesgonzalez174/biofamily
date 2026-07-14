@@ -77,9 +77,9 @@ export interface SyncResult {
   notifiedCount: number;
 }
 
-/** Core Zoho contacts → DB sync. When notify=true, emails users whose loyalty went up. */
+/** Core Zoho contacts → DB sync. Syncs loyalty_points and invoice_references onto pharmacies only. */
 export async function runZohoSync(opts: { notify?: boolean; source?: string; triggeredBy?: string | null } = {}): Promise<SyncResult> {
-  const notify = opts.notify ?? false;
+  void opts.notify;
   const source = opts.source ?? "manual";
   const triggeredBy = opts.triggeredBy ?? null;
   const startedAt = new Date().toISOString();
