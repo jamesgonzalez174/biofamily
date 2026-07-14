@@ -24,9 +24,10 @@ export async function sendTransactionalEmailServer(params: {
   recipientEmail: string
   idempotencyKey?: string
   templateData?: Record<string, any>
+  messageId?: string
 }): Promise<{ ok: boolean; reason?: string }> {
   const { templateName, recipientEmail, templateData = {} } = params
-  const messageId = crypto.randomUUID()
+  const messageId = params.messageId || crypto.randomUUID()
   const idempotencyKey = params.idempotencyKey || messageId
 
   const template = TEMPLATES[templateName]

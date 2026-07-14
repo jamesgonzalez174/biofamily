@@ -10,7 +10,9 @@ export interface TemplateEntry {
 }
 
 import { template as pointsEarned } from './points-earned'
+import { template as pointsExpiring } from './points-expiring'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'points-earned': pointsEarned,
+  'points-expiring': pointsExpiring,
 }
