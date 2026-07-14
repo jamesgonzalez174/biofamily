@@ -258,6 +258,8 @@ export const listAuditLog = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({
     limit: z.number().int().min(1).max(500).optional(),
     action: z.string().optional(),
+    targetId: z.string().optional(),
+    targetType: z.string().optional(),
   }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
@@ -267,9 +269,63 @@ export const listAuditLog = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 200);
     if (data.action) q = q.eq("action", data.action);
+    if (data.targetId) q = q.eq("target_id", data.targetId);
+    if (data.targetType) q = q.eq("target_type", data.targetType);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return { rows: rows ?? [] };
+  });
+
+// Generic audit logger for admin pages that mutate directly via RLS
+// (prizes, SKUs, settings, fulfillment) instead of a dedicated server fn.
+export const logAdminAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    action: z.string().min(1).max(60),
+    targetType: z.string().min(1).max(40).optional(),
+    targetId: z.string().max(120).optional(),
+    targetLabel: z.string().max(200).optional(),
+    details: z.record(z.string(), z.any()).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await logAudit({
+      actorUserId: context.userId,
+      action: data.action,
+      targetType: data.targetType,
+      targetId: data.targetId,
+      targetLabel: data.targetLabel,
+      details: data.details,
+    });
+    return { ok: true };
+  });
+
+// Retry a failed (DLQ) email by moving it back into its main queue.
+export const retryEmailFromDlq = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    messageId: z.string().min(1),
+    recipient: z.string().optional(),
+    template: z.string().optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: res, error } = await supabaseAdmin.rpc("retry_dlq_message" as any, {
+      _message_id: data.messageId,
+    });
+    if (error) throw new Error(error.message);
+    const retried = !!(res as any)?.retried;
+    if (retried) {
+      await logAudit({
+        actorUserId: context.userId,
+        action: "email_retry",
+        targetType: "email",
+        targetId: data.messageId,
+        targetLabel: data.recipient ?? data.template,
+        details: { template: data.template, recipient: data.recipient },
+      });
+    }
+    return { ok: retried, message: retried ? "Re-queued" : "Message not found in DLQ" };
   });
 
 // ---------- Email dashboard ----------
