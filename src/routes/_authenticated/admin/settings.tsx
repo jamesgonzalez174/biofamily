@@ -81,7 +81,10 @@ function SettingsPage() {
               </div>
               <span className="mt-1 block text-xs text-muted-foreground">All accumulated points expire on this date. Leave empty for no expiration.</span>
             </label>
-            <button onClick={save} className="mt-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">Save</button>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button onClick={save} className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">Save</button>
+              <TestExpiryReminderButton />
+            </div>
           </div>
         </section>
 
