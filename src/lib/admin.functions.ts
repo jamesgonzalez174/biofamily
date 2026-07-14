@@ -153,3 +153,42 @@ export const listUsers = createServerFn({ method: "GET" })
     const users = (profilesRes.data ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
     return { users, pharmacies: pharmaciesRes.data ?? [] };
   });
+
+export const sendTestExpiryReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("email, full_name, points_balance")
+      .eq("id", context.userId)
+      .single();
+    if (!profile?.email) throw new Error("Your profile has no email address");
+
+    const { data: settings } = await supabaseAdmin
+      .from("settings").select("points_expire_at").eq("id", 1).single();
+    const expireAt = (settings as any)?.points_expire_at as string | null;
+
+    let daysLeft = 7;
+    let expireLabel = "soon";
+    if (expireAt) {
+      const expire = new Date(expireAt);
+      const ms = expire.getTime() - Date.now();
+      daysLeft = Math.max(1, Math.ceil(ms / 86_400_000));
+      expireLabel = expire.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    const res = await sendTransactionalEmailServer({
+      templateName: "points-expiring",
+      recipientEmail: profile.email,
+      idempotencyKey: `expiry-test-${context.userId}-${Date.now()}`,
+      templateData: {
+        name: profile.full_name ?? undefined,
+        points: profile.points_balance || 500,
+        daysLeft,
+        expireDate: expireLabel,
+      },
+    });
+    if (!res.ok) throw new Error(res.reason ?? "Failed to send test email");
+    return { ok: true, sentTo: profile.email };
+  });

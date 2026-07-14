@@ -8,6 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
+import { sendTestExpiryReminder } from "@/lib/admin.functions";
 
 
 
@@ -15,6 +16,31 @@ import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/z
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: SettingsPage,
 });
+
+function TestExpiryReminderButton() {
+  const send = useServerFn(sendTestExpiryReminder);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await send({});
+      toast.success(`Test reminder sent to ${res.sentTo}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      onClick={run}
+      disabled={busy}
+      className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+    >
+      {busy ? "Sending…" : "Send test reminder to me"}
+    </button>
+  );
+}
 
 function SettingsPage() {
   const qc = useQueryClient();
@@ -80,7 +106,10 @@ function SettingsPage() {
               </div>
               <span className="mt-1 block text-xs text-muted-foreground">All accumulated points expire on this date. Leave empty for no expiration.</span>
             </label>
-            <button onClick={save} className="mt-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">Save</button>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button onClick={save} className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95">Save</button>
+              <TestExpiryReminderButton />
+            </div>
           </div>
         </section>
 
