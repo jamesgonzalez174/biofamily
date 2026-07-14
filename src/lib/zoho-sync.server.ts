@@ -49,15 +49,19 @@ function readContactCFText(contact: any, ...names: string[]): string | null {
 
 function parseInvoiceRefs(raw: string | null): string[] {
   if (!raw) return [];
-  return Array.from(
-    new Set(
-      raw
-        .split(/[\s,;\n\r|]+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0),
-    ),
-  );
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[\s,;\n\r|]+/)) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
 }
+
 
 export interface SyncResult {
   ok: boolean;
