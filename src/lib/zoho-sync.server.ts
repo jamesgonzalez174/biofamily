@@ -40,12 +40,17 @@ function readContactCFText(contact: any, ...names: string[]): string | null {
     }
   }
   for (const n of names) {
+    // Try the raw name as a top-level key first (e.g. "cf_reference_invoiced"),
+    // then fall back to the cf_<snake> convention.
+    const direct = contact?.[n];
+    if (direct !== undefined && direct !== null && String(direct).trim() !== "") return String(direct).trim();
     const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
     const v = contact?.[key];
     if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
   }
   return null;
 }
+
 
 function parseInvoiceRefs(raw: string | null): string[] {
   if (!raw) return [];
@@ -183,8 +188,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           // from Loyalty → History over time). Distribute based on History.
           const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
           const invoiceRefs = parseInvoiceRefs(
-            readContactCFText(c, "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
+            readContactCFText(c, "cf_reference_invoiced", "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
           );
+
           return {
             zoho_contact_id: String(c.contact_id),
             name,
