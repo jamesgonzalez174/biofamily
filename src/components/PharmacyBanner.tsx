@@ -131,20 +131,12 @@ export function PharmacyBanner() {
           <Lock className="h-3 w-3" /> Locked — contact an admin to change
         </span>
       </div>
-      {invoiceRefs.length > 0 && (
-        <details className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-soft" open>
-          <summary className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-            <Receipt className="h-3.5 w-3.5" />
-            Your invoices ({invoiceRefs.length})
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {invoiceRefs.map((ref) => (
-              <span key={ref} className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px]">
-                {ref}
-              </span>
-            ))}
-          </div>
-        </details>
+      {invoiceRefs.length > 0 && profile.pharmacy_id && (
+        <InvoiceDetailsDrawer
+          pharmacyId={profile.pharmacy_id}
+          pharmacyName={current?.name ?? undefined}
+          references={invoiceRefs}
+        />
       )}
     </div>
   );
