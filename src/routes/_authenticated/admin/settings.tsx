@@ -17,6 +17,31 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: SettingsPage,
 });
 
+function TestExpiryReminderButton() {
+  const send = useServerFn(sendTestExpiryReminder);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await send({});
+      toast.success(`Test reminder sent to ${res.sentTo}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      onClick={run}
+      disabled={busy}
+      className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+    >
+      {busy ? "Sending…" : "Send test reminder to me"}
+    </button>
+  );
+}
+
 function SettingsPage() {
   const qc = useQueryClient();
   const [origin, setOrigin] = useState("");
