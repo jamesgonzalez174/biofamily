@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
-import { sendTestExpiryReminder } from "@/lib/admin.functions";
+import { sendTestExpiryReminder, logAdminAction } from "@/lib/admin.functions";
 
 
 
@@ -44,6 +44,7 @@ function TestExpiryReminderButton() {
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const log = useServerFn(logAdminAction);
   const [origin, setOrigin] = useState("");
   const { data: settings } = useQuery({
     queryKey: ["settings"],
@@ -67,13 +68,21 @@ function SettingsPage() {
   }, []);
 
   const save = async () => {
+    const nextExpire = expireAt ? new Date(expireAt).toISOString() : null;
     const { error } = await supabase.from("settings").update({
       points_per_dollar: rate,
       enable_invoice_total_fallback: fallback,
-      points_expire_at: expireAt ? new Date(expireAt).toISOString() : null,
+      points_expire_at: nextExpire,
     } as any).eq("id", 1);
     if (error) return toast.error(error.message);
     toast.success("Saved");
+    try {
+      await log({ data: {
+        action: "settings_update",
+        targetType: "settings",
+        details: { points_per_dollar: rate, enable_invoice_total_fallback: fallback, points_expire_at: nextExpire },
+      } });
+    } catch {}
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
 

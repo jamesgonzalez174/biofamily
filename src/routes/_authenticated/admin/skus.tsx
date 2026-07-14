@@ -25,6 +25,7 @@ async function uploadProductImage(file: File): Promise<string> {
 
 function SkusPage() {
   const qc = useQueryClient();
+  const log = useServerFn(logAdminAction);
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
   const [points, setPoints] = useState<number>(0);
@@ -66,16 +67,25 @@ function SkusPage() {
     if (trimmedSku.length > 120) return toast.error("SKU is too long");
     if (!Number.isFinite(points) || points < 0) return toast.error("Points must be 0 or greater");
     setSaving(true);
-    const { error } = await supabase.from("sku_points").insert({
+    const { data: inserted, error } = await supabase.from("sku_points").insert({
       sku: trimmedSku,
       name: name.trim() || null,
       points_per_unit: Math.floor(points),
       is_active: active,
       image_url: imageUrl,
-    });
+    }).select().maybeSingle();
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Product added");
+    try {
+      await log({ data: {
+        action: "sku_create",
+        targetType: "sku",
+        targetId: (inserted as any)?.id,
+        targetLabel: name.trim() || trimmedSku,
+        details: { sku: trimmedSku, points_per_unit: Math.floor(points), is_active: active },
+      } });
+    } catch {}
     setSku(""); setName(""); setPoints(0); setActive(true); setImageUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     qc.invalidateQueries({ queryKey: ["admin-skus"] });
@@ -86,8 +96,18 @@ function SkusPage() {
     id: string,
     patch: Partial<{ name: string | null; points_per_unit: number; is_active: boolean; image_url: string | null }>,
   ) => {
+    const target = (items ?? []).find((s: any) => s.id === id);
     const { error } = await supabase.from("sku_points").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
+    try {
+      await log({ data: {
+        action: "sku_update",
+        targetType: "sku",
+        targetId: id,
+        targetLabel: (target as any)?.name || (target as any)?.sku,
+        details: patch as Record<string, any>,
+      } });
+    } catch {}
     qc.invalidateQueries({ queryKey: ["admin-skus"] });
     qc.invalidateQueries({ queryKey: ["products-points"] });
   };
@@ -106,6 +126,9 @@ function SkusPage() {
     const { error } = await supabase.from("sku_points").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
+    try {
+      await log({ data: { action: "sku_delete", targetType: "sku", targetId: id, targetLabel: label } });
+    } catch {}
     qc.invalidateQueries({ queryKey: ["admin-skus"] });
     qc.invalidateQueries({ queryKey: ["products-points"] });
   };

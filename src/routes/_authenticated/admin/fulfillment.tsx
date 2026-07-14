@@ -7,6 +7,7 @@ import { Download } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { updateRedemptionStatus } from "@/lib/redemption.functions";
+import { logAdminAction } from "@/lib/admin.functions";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/fulfillment")({
@@ -18,6 +19,7 @@ const STATUSES = ["pending", "shipped", "claimed", "cancelled"] as const;
 function Fulfillment() {
   const qc = useQueryClient();
   const updateStatus = useServerFn(updateRedemptionStatus);
+  const log = useServerFn(logAdminAction);
   const [filter, setFilter] = useState<string>("pending");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
@@ -25,8 +27,6 @@ function Fulfillment() {
   const buildQuery = (applyStatus: boolean) => {
     let q = supabase.from("redemptions").select("*").order("created_at", { ascending: false });
     if (applyStatus && filter !== "all") q = q.eq("status", filter as any);
-    // Treat the date-input value as a local calendar day to avoid the UTC
-    // shift that `new Date("YYYY-MM-DD")` introduces (parsed as UTC midnight).
     if (fromDate) q = q.gte("created_at", new Date(`${fromDate}T00:00:00`).toISOString());
     if (toDate) q = q.lte("created_at", new Date(`${toDate}T23:59:59.999`).toISOString());
     return q;
@@ -51,6 +51,18 @@ function Fulfillment() {
         },
       });
       toast.success(patch.status === "cancelled" ? "Cancelled — points refunded" : "Updated");
+      try {
+        await log({ data: {
+          action: "fulfillment_update",
+          targetType: "redemption",
+          targetId: id,
+          targetLabel: current?.prize_name,
+          details: {
+            ...(patch.status ? { from: current?.status, to: patch.status } : {}),
+            ...(patch.tracking_info !== undefined ? { tracking_info: patch.tracking_info } : {}),
+          },
+        } });
+      } catch {}
       qc.invalidateQueries({ queryKey: ["admin-fulfillment"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["ledger"] });
