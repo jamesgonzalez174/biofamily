@@ -143,10 +143,11 @@ export function InvoiceDetailsDrawer({
 
           {sorted.length > 0 && (
             <div className="overflow-hidden rounded-lg border border-border">
-              <div className="hidden grid-cols-[minmax(0,1.2fr)_110px_120px_110px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+              <div className="hidden grid-cols-[minmax(0,1.2fr)_100px_110px_90px_100px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
                 <div>Invoice #</div>
                 <div>Date</div>
                 <div className="text-right">Total</div>
+                <div className="text-right">Points</div>
                 <div className="text-right">Status</div>
               </div>
               <ul className="divide-y divide-border">
@@ -155,7 +156,7 @@ export function InvoiceDetailsDrawer({
                   return (
                     <li
                       key={inv.number + (inv.invoiceId ?? "")}
-                      className="grid gap-1 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1.2fr)_110px_120px_110px] sm:items-center sm:gap-2"
+                      className="grid gap-1 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1.2fr)_100px_110px_90px_100px] sm:items-center sm:gap-2"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate font-mono text-xs sm:text-sm">{inv.number}</span>
@@ -180,6 +181,10 @@ export function InvoiceDetailsDrawer({
                             {formatMoney(inv.balance, inv.currencyCode)} due
                           </div>
                         )}
+                      </div>
+                      <div className="text-xs tabular-nums sm:text-right sm:text-sm">
+                        <span className="sm:hidden text-muted-foreground">Points: </span>
+                        <span className="font-semibold text-primary">{inv.points.toLocaleString()}</span>
                       </div>
                       <div className="sm:text-right">
                         <span
