@@ -143,6 +143,7 @@ export type Database = {
           created_at: string
           history_points: number
           id: string
+          invoice_references: string[]
           is_active: boolean
           loyalty_points: number
           name: string
@@ -154,6 +155,7 @@ export type Database = {
           created_at?: string
           history_points?: number
           id?: string
+          invoice_references?: string[]
           is_active?: boolean
           loyalty_points?: number
           name: string
@@ -165,6 +167,7 @@ export type Database = {
           created_at?: string
           history_points?: number
           id?: string
+          invoice_references?: string[]
           is_active?: boolean
           loyalty_points?: number
           name?: string
@@ -644,6 +647,7 @@ export type Database = {
           address: string
           history_points: number
           id: string
+          invoice_references: string[]
           is_active: boolean
           loyalty_points: number
           member_count: number
