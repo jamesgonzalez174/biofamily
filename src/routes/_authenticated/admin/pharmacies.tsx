@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef, useMemo } from "react";
-import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight, ScrollText } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -305,6 +305,14 @@ function PharmaciesPage() {
                   >
                     <Coins className="h-3.5 w-3.5" /> Points
                   </button>
+                  <Link
+                    to="/admin/audit"
+                    search={{ target: p.id, targetType: "pharmacy", targetLabel: p.name }}
+                    title="View audit trail"
+                    className="rounded-lg border border-border p-2 hover:bg-muted"
+                  >
+                    <ScrollText className="h-3.5 w-3.5" />
+                  </Link>
                   <button onClick={() => toggle(p.id, p.is_active)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                     {p.is_active ? "Disable" : "Enable"}
                   </button>

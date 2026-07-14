@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Download, CheckCircle2, XCircle, Clock, ShieldOff } from "lucide-react";
+import { toast } from "sonner";
+import { Mail, Download, CheckCircle2, XCircle, Clock, ShieldOff, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { listEmailLog } from "@/lib/admin.functions";
+import { listEmailLog, retryEmailFromDlq } from "@/lib/admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
@@ -34,6 +35,9 @@ function EmailsPage() {
   const [days, setDays] = useState(7);
   const [template, setTemplate] = useState<string>("");
   const [status, setStatus] = useState<string>("");
+  const qc = useQueryClient();
+  const retry = useServerFn(retryEmailFromDlq);
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-emails", days, template, status],
@@ -45,6 +49,24 @@ function EmailsPage() {
   const rows = (data as any)?.rows as any[] | undefined;
   const stats = (data as any)?.stats;
   const templates = (data as any)?.templates as string[] | undefined;
+
+  const doRetry = async (r: any) => {
+    if (!r.message_id) return toast.error("No message id");
+    setRetrying(r.message_id);
+    try {
+      const res = await retry({ data: { messageId: r.message_id, recipient: r.recipient_email, template: r.template_name } });
+      if (res.ok) {
+        toast.success("Re-queued — sending on next cycle");
+        qc.invalidateQueries({ queryKey: ["admin-emails"] });
+      } else {
+        toast.warning(res.message ?? "Not found in DLQ");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Retry failed");
+    } finally {
+      setRetrying(null);
+    }
+  };
 
   const exportCsv = () => {
     if (!rows?.length) return;
@@ -126,18 +148,21 @@ function EmailsPage() {
                 <th className="px-4 py-3">Recipient</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Error</th>
+                <th className="px-4 py-3 text-right"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && (rows ?? []).length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No emails in this range.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails in this range.</td></tr>
               )}
               {rows?.map((r: any) => {
                 const tone = STATUS_TONES[r.status] ?? STATUS_TONES.pending;
                 const Icon = tone.icon;
+                const canRetry = r.status === "dlq" || r.status === "failed" || r.status === "bounced";
+                const busy = retrying === r.message_id;
                 return (
                   <tr key={r.id} className="border-t border-border/60">
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
@@ -150,6 +175,19 @@ function EmailsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-destructive max-w-xs truncate" title={r.error_message ?? ""}>
                       {r.error_message ?? ""}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {canRetry && (
+                        <button
+                          onClick={() => doRetry(r)}
+                          disabled={busy || !r.message_id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                          title="Move back to the sending queue"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${busy ? "animate-spin" : ""}`} />
+                          {busy ? "Retrying…" : "Retry"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

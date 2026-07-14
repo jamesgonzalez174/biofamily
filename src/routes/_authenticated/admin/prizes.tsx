@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { logAdminAction } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/prizes")({
   component: AdminPrizes,
@@ -17,6 +19,7 @@ function AdminPrizes() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Prize | null>(null);
   const [uploading, setUploading] = useState(false);
+  const log = useServerFn(logAdminAction);
 
   const { data: prizes } = useQuery({
     queryKey: ["admin-prizes"],
@@ -28,22 +31,36 @@ function AdminPrizes() {
 
   const save = async () => {
     if (!editing) return;
+    const isCreate = !editing.id;
     const payload = { ...editing, point_cost: Number(editing.point_cost), stock: Number(editing.stock) };
-    const { error } = editing.id
-      ? await supabase.from("prizes").update(payload).eq("id", editing.id)
-      : await supabase.from("prizes").insert(payload);
+    const { data: saved, error } = editing.id
+      ? await supabase.from("prizes").update(payload).eq("id", editing.id).select().maybeSingle()
+      : await supabase.from("prizes").insert(payload).select().maybeSingle();
     if (error) return toast.error(error.message);
     toast.success("Saved");
+    try {
+      await log({ data: {
+        action: isCreate ? "prize_create" : "prize_update",
+        targetType: "prize",
+        targetId: (saved?.id as string) ?? editing.id,
+        targetLabel: editing.name,
+        details: { point_cost: payload.point_cost, stock: payload.stock, is_active: payload.is_active },
+      } });
+    } catch {}
     setEditing(null);
     qc.invalidateQueries({ queryKey: ["admin-prizes"] });
     qc.invalidateQueries({ queryKey: ["prizes"] });
   };
 
   const remove = async (id: string) => {
+    const target = (prizes ?? []).find((p: any) => p.id === id);
     if (!confirm("Delete this prize?")) return;
     const { error } = await supabase.from("prizes").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
+    try {
+      await log({ data: { action: "prize_delete", targetType: "prize", targetId: id, targetLabel: (target as any)?.name } });
+    } catch {}
     qc.invalidateQueries({ queryKey: ["admin-prizes"] });
   };
 

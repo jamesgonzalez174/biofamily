@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2 } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
@@ -150,6 +150,14 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
+                      <Link
+                        to="/admin/audit"
+                        search={{ target: u.id, targetType: "user", targetLabel: u.full_name || u.email }}
+                        title="View audit trail"
+                        className="rounded-lg border border-border p-1.5 hover:bg-muted"
+                      >
+                        <ScrollText className="h-3.5 w-3.5" />
+                      </Link>
                       <button onClick={() => toggleAdmin(u.id, isAdmin)} title={isAdmin ? "Revoke admin" : "Grant admin"} className="rounded-lg border border-border p-1.5 hover:bg-muted">
                         {isAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
                       </button>
