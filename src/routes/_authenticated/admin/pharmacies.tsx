@@ -2,10 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef, useMemo } from "react";
-import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight, ScrollText, Receipt } from "lucide-react";
+import { Plus, Trash2, MapPin, Upload, Users, Coins, X, RefreshCw, Search, ChevronLeft, ChevronRight, ScrollText } from "lucide-react";
 
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { InvoiceDetailsDrawer } from "@/components/InvoiceDetailsDrawer";
 import { supabase } from "@/integrations/supabase/client";
 import { addPharmacyPoints } from "@/lib/admin.functions";
 import { syncZohoCustomers } from "@/lib/zoho.functions";
@@ -323,19 +324,12 @@ function PharmaciesPage() {
                 </div>
               </div>
               {Array.isArray((p as any).invoice_references) && (p as any).invoice_references.length > 0 && (
-                <details className="mt-3 border-t border-border pt-3">
-                  <summary className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-                    <Receipt className="h-3.5 w-3.5" />
-                    Invoice references ({(p as any).invoice_references.length})
-                  </summary>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {((p as any).invoice_references as string[]).map((ref) => (
-                      <span key={ref} className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px]">
-                        {ref}
-                      </span>
-                    ))}
-                  </div>
-                </details>
+                <div className="mt-3">
+                  <InvoiceDetailsDrawer
+                    pharmacyId={p.id}
+                    references={(p as any).invoice_references as string[]}
+                  />
+                </div>
               )}
             </div>
           ))}
