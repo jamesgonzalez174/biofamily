@@ -240,8 +240,8 @@ export async function processZohoContact(
           address,
           zoho_contact_id: zohoContactId,
           is_active: true,
-          loyalty_points: cumulative,
-          history_points: cumulative,
+          loyalty_points: currentLoyalty,
+          history_points: currentLoyalty,
           invoice_references: invoiceRefs,
         })
         .select("id")
