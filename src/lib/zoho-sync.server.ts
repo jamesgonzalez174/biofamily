@@ -183,11 +183,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           if (!name) return null;
           const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
           const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
-          // `loyalty_points` on the pharmacy row = Zoho's raw Loyalty Points
-          // (current balance). `history_points` accumulates on the sync side.
-          // hp is intentionally unused here (kept for zoho_customers snapshot).
-          void hp;
-          const loyalty = lp !== null ? Math.floor(lp) : 0;
+          // pharmacy.loyalty_points = Zoho's History Points (cumulative earned).
+          // Fall back to Loyalty Points if History is missing/zero.
+          const source = hp !== null && hp > 0 ? hp : (lp ?? 0);
+          const loyalty = Math.max(0, Math.floor(source));
           const invoiceRefs = parseInvoiceRefs(
             readContactCFText(c, "cf_reference_invoiced", "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
           );
