@@ -322,6 +322,21 @@ function PharmaciesPage() {
 
                 </div>
               </div>
+              {Array.isArray((p as any).invoice_references) && (p as any).invoice_references.length > 0 && (
+                <details className="mt-3 border-t border-border pt-3">
+                  <summary className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                    <Receipt className="h-3.5 w-3.5" />
+                    Invoice references ({(p as any).invoice_references.length})
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {((p as any).invoice_references as string[]).map((ref) => (
+                      <span key={ref} className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px]">
+                        {ref}
+                      </span>
+                    ))}
+                  </div>
+                </details>
+              )}
             </div>
           ))}
           {pageCount > 1 && (
