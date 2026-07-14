@@ -169,7 +169,7 @@ export async function processZohoContact(
 
     if (existingPharm) {
       pharmacyId = (existingPharm as any).id as string;
-      const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number } = {};
+      const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number; invoice_references?: string[] } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
       if ((lp !== null || hp !== null) && (existingPharm as any).loyalty_points !== cumulative) {
@@ -177,6 +177,8 @@ export async function processZohoContact(
         const prevHistory = Number((existingPharm as any).history_points ?? 0);
         if (cumulative > prevHistory) pharmUpdates.history_points = cumulative;
       }
+      // Always mirror the latest invoice references from Zoho when the CF is present
+      if (invoiceRefs.length > 0) pharmUpdates.invoice_references = invoiceRefs;
       if (Object.keys(pharmUpdates).length > 0) {
         await supabaseAdmin.from("pharmacies").update(pharmUpdates).eq("id", existingPharm.id);
         pharmacyAction = "updated";
@@ -192,6 +194,7 @@ export async function processZohoContact(
           is_active: true,
           loyalty_points: cumulative,
           history_points: cumulative,
+          invoice_references: invoiceRefs,
         })
         .select("id")
         .single();
