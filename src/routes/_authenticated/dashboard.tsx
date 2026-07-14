@@ -4,6 +4,7 @@ import { Sparkles, TrendingUp, Gift, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBar } from "@/components/StatusBar";
 import { PharmacyBanner } from "@/components/PharmacyBanner";
+import { PointsExpiryBanner } from "@/components/PointsExpiryBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { tierFor } from "@/lib/tiers";
@@ -57,6 +58,7 @@ function Dashboard() {
         </div>
 
         <PharmacyBanner />
+        <PointsExpiryBanner />
 
 
 
