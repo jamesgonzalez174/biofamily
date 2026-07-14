@@ -178,14 +178,18 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           // Zoho's "History Points" is the cumulative earned total (points move
           // from Loyalty → History over time). Distribute based on History.
           const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
+          const invoiceRefs = parseInvoiceRefs(
+            readContactCFText(c, "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
+          );
           return {
             zoho_contact_id: String(c.contact_id),
             name,
             address: c.billing_address?.address || null,
             loyalty_points: cumulative,
+            invoice_references: invoiceRefs,
           };
         })
-        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
+        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number; invoice_references: string[] } => r !== null);
 
 
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
