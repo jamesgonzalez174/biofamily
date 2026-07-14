@@ -157,10 +157,10 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id.
-  // pharmacy.loyalty_points = Zoho's current Loyalty Points (raw).
-  // pharmacy.history_points accumulates by any *increase* in loyalty.
-  void hp;
-  const currentLoyalty = lp ?? 0;
+  // pharmacy.loyalty_points = Zoho's History Points (cumulative earned),
+  // falling back to Loyalty Points if History is missing/zero.
+  const source = hp !== null && hp > 0 ? hp : (lp ?? 0);
+  const currentLoyalty = Math.max(0, Math.floor(source));
 
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
