@@ -38,7 +38,11 @@ import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenticated/admin/prizes'
 import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_authenticated/admin/pharmacies'
+import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin/import'
 import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_authenticated/admin/fulfillment'
+import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin/emails'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -200,10 +204,33 @@ const AuthenticatedAdminPharmaciesRoute =
     path: '/pharmacies',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminImportRoute =
+  AuthenticatedAdminImportRouteImport.update({
+    id: '/import',
+    path: '/import',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFulfillmentRoute =
   AuthenticatedAdminFulfillmentRouteImport.update({
     id: '/fulfillment',
     path: '/fulfillment',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEmailsRoute =
+  AuthenticatedAdminEmailsRouteImport.update({
+    id: '/emails',
+    path: '/emails',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -279,7 +306,11 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -318,7 +349,11 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -360,7 +395,11 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
   '/_authenticated/admin/fulfillment': typeof AuthenticatedAdminFulfillmentRoute
+  '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/admin/pharmacies': typeof AuthenticatedAdminPharmaciesRoute
   '/_authenticated/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -402,7 +441,11 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/analytics'
+    | '/admin/audit'
+    | '/admin/emails'
     | '/admin/fulfillment'
+    | '/admin/import'
     | '/admin/pharmacies'
     | '/admin/prizes'
     | '/admin/settings'
@@ -441,7 +484,11 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/analytics'
+    | '/admin/audit'
+    | '/admin/emails'
     | '/admin/fulfillment'
+    | '/admin/import'
     | '/admin/pharmacies'
     | '/admin/prizes'
     | '/admin/settings'
@@ -482,7 +529,11 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/emails'
     | '/_authenticated/admin/fulfillment'
+    | '/_authenticated/admin/import'
     | '/_authenticated/admin/pharmacies'
     | '/_authenticated/admin/prizes'
     | '/_authenticated/admin/settings'
@@ -735,11 +786,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPharmaciesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/import': {
+      id: '/_authenticated/admin/import'
+      path: '/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AuthenticatedAdminImportRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/fulfillment': {
       id: '/_authenticated/admin/fulfillment'
       path: '/fulfillment'
       fullPath: '/admin/fulfillment'
       preLoaderRoute: typeof AuthenticatedAdminFulfillmentRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/emails': {
+      id: '/_authenticated/admin/emails'
+      path: '/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AuthenticatedAdminEmailsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/.mcp/invoke-tool/$tool': {
@@ -809,7 +888,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminEmailsRoute: typeof AuthenticatedAdminEmailsRoute
   AuthenticatedAdminFulfillmentRoute: typeof AuthenticatedAdminFulfillmentRoute
+  AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
   AuthenticatedAdminPharmaciesRoute: typeof AuthenticatedAdminPharmaciesRoute
   AuthenticatedAdminPrizesRoute: typeof AuthenticatedAdminPrizesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -820,7 +903,11 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminEmailsRoute: AuthenticatedAdminEmailsRoute,
   AuthenticatedAdminFulfillmentRoute: AuthenticatedAdminFulfillmentRoute,
+  AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
   AuthenticatedAdminPharmaciesRoute: AuthenticatedAdminPharmaciesRoute,
   AuthenticatedAdminPrizesRoute: AuthenticatedAdminPrizesRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
