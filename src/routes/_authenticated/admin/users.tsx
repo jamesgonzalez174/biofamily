@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2 } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
