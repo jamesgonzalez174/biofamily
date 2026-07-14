@@ -25,12 +25,13 @@ export function PharmacyBanner() {
   const { data: pharmacies } = useQuery({
     queryKey: ["pharmacies-active"],
     queryFn: async () => {
-      const { data } = await supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name");
+      const { data } = await supabase.from("pharmacies").select("id, name, address, invoice_references").eq("is_active", true).order("name");
       return data ?? [];
     },
   });
 
   const current = pharmacies?.find((p) => p.id === profile?.pharmacy_id);
+  const invoiceRefs: string[] = Array.isArray((current as any)?.invoice_references) ? ((current as any).invoice_references as string[]) : [];
 
   const save = async () => {
     if (!user || !selected) return;
