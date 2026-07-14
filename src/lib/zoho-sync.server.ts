@@ -26,6 +26,39 @@ function readContactCF(contact: any, ...names: string[]): number | null {
   return null;
 }
 
+function readContactCFText(contact: any, ...names: string[]): string | null {
+  const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+  const cfs: any[] = Array.isArray(contact?.custom_fields) ? contact.custom_fields : [];
+  for (const cf of cfs) {
+    const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+      .toLowerCase()
+      .replace(/[\s_-]/g, "");
+    if (lower.includes(label)) {
+      const raw = cf?.value ?? cf?.value_formatted ?? "";
+      const s = String(raw).trim();
+      if (s) return s;
+    }
+  }
+  for (const n of names) {
+    const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+    const v = contact?.[key];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return null;
+}
+
+function parseInvoiceRefs(raw: string | null): string[] {
+  if (!raw) return [];
+  return Array.from(
+    new Set(
+      raw
+        .split(/[\s,;\n\r|]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  );
+}
+
 export interface SyncResult {
   ok: boolean;
   fetched: number;
@@ -145,14 +178,18 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           // Zoho's "History Points" is the cumulative earned total (points move
           // from Loyalty → History over time). Distribute based on History.
           const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
+          const invoiceRefs = parseInvoiceRefs(
+            readContactCFText(c, "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
+          );
           return {
             zoho_contact_id: String(c.contact_id),
             name,
             address: c.billing_address?.address || null,
             loyalty_points: cumulative,
+            invoice_references: invoiceRefs,
           };
         })
-        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number } => r !== null);
+        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number; invoice_references: string[] } => r !== null);
 
 
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);

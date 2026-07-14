@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { MapPin, Check, Lock } from "lucide-react";
+import { MapPin, Check, Lock, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -25,12 +25,13 @@ export function PharmacyBanner() {
   const { data: pharmacies } = useQuery({
     queryKey: ["pharmacies-active"],
     queryFn: async () => {
-      const { data } = await supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name");
+      const { data } = await supabase.from("pharmacies").select("id, name, address, invoice_references").eq("is_active", true).order("name");
       return data ?? [];
     },
   });
 
   const current = pharmacies?.find((p) => p.id === profile?.pharmacy_id);
+  const invoiceRefs: string[] = Array.isArray((current as any)?.invoice_references) ? ((current as any).invoice_references as string[]) : [];
 
   const save = async () => {
     if (!user || !selected) return;
@@ -109,24 +110,41 @@ export function PharmacyBanner() {
     );
   }
 
-  // Has pharmacy — compact chip with change action
+  // Has pharmacy — compact chip with change action + invoice references
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-soft">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-accent-foreground">
-          <MapPin className="h-3.5 w-3.5" />
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-soft">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-accent-foreground">
+            <MapPin className="h-3.5 w-3.5" />
+          </div>
+          <div>
+            <span className="text-xs text-muted-foreground">Your pharmacy</span>
+            <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
+          </div>
         </div>
-        <div>
-          <span className="text-xs text-muted-foreground">Your pharmacy</span>
-          <div className="font-medium leading-tight">{current?.name ?? "Unknown"}</div>
-        </div>
+        <span
+          title="Your pharmacy is locked once selected. Contact an admin to change it."
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+        >
+          <Lock className="h-3 w-3" /> Locked — contact an admin to change
+        </span>
       </div>
-      <span
-        title="Your pharmacy is locked once selected. Contact an admin to change it."
-        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-      >
-        <Lock className="h-3 w-3" /> Locked — contact an admin to change
-      </span>
+      {invoiceRefs.length > 0 && (
+        <details className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm shadow-soft" open>
+          <summary className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <Receipt className="h-3.5 w-3.5" />
+            Your invoices ({invoiceRefs.length})
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {invoiceRefs.map((ref) => (
+              <span key={ref} className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px]">
+                {ref}
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
