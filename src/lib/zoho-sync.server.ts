@@ -184,9 +184,11 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           if (!name) return null;
           const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
           const hp = readContactCF(c, "History Points", "history_points", "HistoryPoints");
-          // Zoho's "History Points" is the cumulative earned total (points move
-          // from Loyalty → History over time). Distribute based on History.
-          const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
+          // `loyalty_points` on the pharmacy row = Zoho's raw Loyalty Points
+          // (current balance). `history_points` accumulates on the sync side.
+          // hp is intentionally unused here (kept for zoho_customers snapshot).
+          void hp;
+          const loyalty = lp !== null ? Math.floor(lp) : 0;
           const invoiceRefs = parseInvoiceRefs(
             readContactCFText(c, "cf_reference_invoiced", "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
           );
@@ -195,7 +197,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             zoho_contact_id: String(c.contact_id),
             name,
             address: c.billing_address?.address || null,
-            loyalty_points: cumulative,
+            loyalty_points: loyalty,
             invoice_references: invoiceRefs,
           };
         })
@@ -218,16 +220,19 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           exists: true,
         });
       }
-      // `loyalty_points` on the pharmacy row now already reflects Zoho's
-      // Loyalty + History cumulative earned total. Treat history_points as a
-      // high-water mark so it never goes down if Zoho briefly reports lower.
+      // `loyalty_points` mirrors Zoho's current Loyalty Points (can go up or
+      // down as invoices are added/spent). `history_points` = previous history
+      // + any *increase* in loyalty since the last sync — cumulative earned.
       // Cross-pharmacy dedup (case-insensitive): each invoice reference may
       // belong to only one pharmacy. If two contacts in this batch list the
       // same reference, the first wins; the later one drops it.
       const claimedRefs = new Map<string, string>(); // upper(ref) -> zoho_contact_id
       const pharmacyRows = pharmacyInputs.map((r) => {
         const prev = existingPharmMap.get(r.zoho_contact_id);
-        const history = Math.max(prev?.history_points ?? 0, r.loyalty_points);
+        const prevLoyalty = prev?.loyalty_points ?? 0;
+        const prevHistory = prev?.history_points ?? 0;
+        const gained = Math.max(0, r.loyalty_points - prevLoyalty);
+        const history = prevHistory + gained;
         const is_active = prev?.exists ? prev.is_active : true;
         const uniqueRefs: string[] = [];
         for (const ref of r.invoice_references) {
