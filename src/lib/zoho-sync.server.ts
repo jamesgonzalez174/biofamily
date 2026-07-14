@@ -183,8 +183,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           // from Loyalty → History over time). Distribute based on History.
           const cumulative = hp !== null ? Math.floor(hp) : (lp !== null ? Math.floor(lp) : 0);
           const invoiceRefs = parseInvoiceRefs(
-            readContactCFText(c, "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
+            readContactCFText(c, "cf_reference_invoiced", "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
           );
+
           return {
             zoho_contact_id: String(c.contact_id),
             name,
