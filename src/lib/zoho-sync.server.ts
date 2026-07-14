@@ -1,6 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getZohoAccessToken } from "./zoho-api.server";
-import { sendTransactionalEmailServer } from "@/lib/email/send.server";
 
 function readContactCF(contact: any, ...names: string[]): number | null {
   const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
