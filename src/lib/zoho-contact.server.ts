@@ -92,6 +92,40 @@ export async function processZohoContact(
   const lp = loyaltyPoints !== null ? Math.floor(loyaltyPoints) : null;
   const hp = historyPoints !== null ? Math.floor(historyPoints) : null;
 
+  // Read "Reference Invoiced" custom field (single value or comma/newline separated list of invoice numbers)
+  const readCFText = (...names: string[]): string | null => {
+    const wanted = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, "").replace(/^cf/, ""));
+    for (const cf of customFields) {
+      const candidates = [cf?.label, cf?.api_name, cf?.placeholder]
+        .map((x) => String(x ?? "").toLowerCase().replace(/[\s_-]/g, "").replace(/^cf/, ""));
+      if (candidates.some((c) => c && wanted.includes(c))) {
+        const v = cf?.value ?? cf?.value_formatted ?? "";
+        const s = String(v).trim();
+        return s || null;
+      }
+    }
+    for (const n of names) {
+      const key = n.toLowerCase().startsWith("cf_") ? n.toLowerCase() : `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+      const v = contact?.[key];
+      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+    }
+    return null;
+  };
+  const parseInvoiceRefs = (raw: string | null): string[] => {
+    if (!raw) return [];
+    return Array.from(
+      new Set(
+        raw
+          .split(/[\s,;\n\r|]+/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
+      ),
+    );
+  };
+  const invoiceRefs = parseInvoiceRefs(
+    readCFText("Reference Invoiced", "reference_invoiced", "cf_reference_invoiced", "Invoice References", "invoice_references"),
+  );
+
   // 1a) Upsert zoho_customers row so the customer list mirrors Zoho contacts.
   if (zohoContactId) {
     const companyName =
