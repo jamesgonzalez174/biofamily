@@ -738,6 +738,7 @@ export type Database = {
         }
         Returns: number
       }
+      retry_dlq_message: { Args: { _message_id: string }; Returns: Json }
       run_points_expiration: { Args: never; Returns: Json }
     }
     Enums: {
