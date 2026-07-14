@@ -46,6 +46,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksPointsExpiryRemindersRouteImport } from './routes/api/public/hooks/points-expiry-reminders'
 import { Route as ApiPublicHooksDailyZohoSyncRouteImport } from './routes/api/public/hooks/daily-zoho-sync'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
@@ -244,6 +245,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksPointsExpiryRemindersRoute =
+  ApiPublicHooksPointsExpiryRemindersRouteImport.update({
+    id: '/api/public/hooks/points-expiry-reminders',
+    path: '/api/public/hooks/points-expiry-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDailyZohoSyncRoute =
   ApiPublicHooksDailyZohoSyncRouteImport.update({
     id: '/api/public/hooks/daily-zoho-sync',
@@ -284,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
+  '/api/public/hooks/points-expiry-reminders': typeof ApiPublicHooksPointsExpiryRemindersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -322,6 +330,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
+  '/api/public/hooks/points-expiry-reminders': typeof ApiPublicHooksPointsExpiryRemindersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -363,6 +372,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
+  '/api/public/hooks/points-expiry-reminders': typeof ApiPublicHooksPointsExpiryRemindersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/'
     | '/api/public/hooks/daily-zoho-sync'
+    | '/api/public/hooks/points-expiry-reminders'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin'
     | '/api/public/hooks/daily-zoho-sync'
+    | '/api/public/hooks/points-expiry-reminders'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -482,6 +494,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/api/public/hooks/daily-zoho-sync'
+    | '/api/public/hooks/points-expiry-reminders'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -509,6 +522,7 @@ export interface RootRouteChildren {
   ApiPublicZohoWebhookRoute: typeof ApiPublicZohoWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyZohoSyncRoute: typeof ApiPublicHooksDailyZohoSyncRoute
+  ApiPublicHooksPointsExpiryRemindersRoute: typeof ApiPublicHooksPointsExpiryRemindersRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -777,6 +791,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/points-expiry-reminders': {
+      id: '/api/public/hooks/points-expiry-reminders'
+      path: '/api/public/hooks/points-expiry-reminders'
+      fullPath: '/api/public/hooks/points-expiry-reminders'
+      preLoaderRoute: typeof ApiPublicHooksPointsExpiryRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/daily-zoho-sync': {
       id: '/api/public/hooks/daily-zoho-sync'
       path: '/api/public/hooks/daily-zoho-sync'
@@ -866,6 +887,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicZohoWebhookRoute: ApiPublicZohoWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyZohoSyncRoute: ApiPublicHooksDailyZohoSyncRoute,
+  ApiPublicHooksPointsExpiryRemindersRoute:
+    ApiPublicHooksPointsExpiryRemindersRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
