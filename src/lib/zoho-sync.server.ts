@@ -204,36 +204,24 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number; invoice_references: string[] } => r !== null);
 
 
+      // Only sync loyalty_points and invoice_references onto pharmacies —
+      // don't touch history_points or member profile balances here.
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
       const { data: existingPharms } = pharmIds.length
         ? await supabaseAdmin
             .from("pharmacies")
-            .select("zoho_contact_id, loyalty_points, history_points, is_active")
+            .select("zoho_contact_id, is_active")
             .in("zoho_contact_id", pharmIds)
         : { data: [] as any[] };
-      const existingPharmMap = new Map<string, { loyalty_points: number; history_points: number; is_active: boolean; exists: boolean }>();
+      const existingActive = new Map<string, boolean>();
       for (const ep of existingPharms ?? []) {
-        existingPharmMap.set(String((ep as any).zoho_contact_id), {
-          loyalty_points: Number((ep as any).loyalty_points ?? 0),
-          history_points: Number((ep as any).history_points ?? 0),
-          is_active: Boolean((ep as any).is_active ?? true),
-          exists: true,
-        });
+        existingActive.set(String((ep as any).zoho_contact_id), Boolean((ep as any).is_active ?? true));
       }
-      // `loyalty_points` mirrors Zoho's current Loyalty Points (can go up or
-      // down as invoices are added/spent). `history_points` = previous history
-      // + any *increase* in loyalty since the last sync — cumulative earned.
-      // Cross-pharmacy dedup (case-insensitive): each invoice reference may
-      // belong to only one pharmacy. If two contacts in this batch list the
-      // same reference, the first wins; the later one drops it.
-      const claimedRefs = new Map<string, string>(); // upper(ref) -> zoho_contact_id
+
+      // Cross-pharmacy dedup within this batch (case-insensitive): each
+      // invoice reference may belong to only one pharmacy.
+      const claimedRefs = new Map<string, string>();
       const pharmacyRows = pharmacyInputs.map((r) => {
-        const prev = existingPharmMap.get(r.zoho_contact_id);
-        const prevLoyalty = prev?.loyalty_points ?? 0;
-        const prevHistory = prev?.history_points ?? 0;
-        const gained = Math.max(0, r.loyalty_points - prevLoyalty);
-        const history = prevHistory + gained;
-        const is_active = prev?.exists ? prev.is_active : true;
         const uniqueRefs: string[] = [];
         for (const ref of r.invoice_references) {
           const key = ref.toUpperCase();
@@ -242,7 +230,11 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           claimedRefs.set(key, r.zoho_contact_id);
           uniqueRefs.push(ref);
         }
-        return { ...r, invoice_references: uniqueRefs, history_points: history, is_active };
+        return {
+          ...r,
+          invoice_references: uniqueRefs,
+          is_active: existingActive.get(r.zoho_contact_id) ?? true,
+        };
       });
 
       // Strip any of the incoming refs from OTHER pharmacies in the DB so the
@@ -272,8 +264,6 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
-
-
       const [cRes, pRes] = await Promise.all([
         supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
         pharmacyRows.length > 0
@@ -283,99 +273,6 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);
       else upserted += customerRows.length;
       if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
-
-      // Split each pharmacy's loyalty_points across its assigned members.
-      // If only one member is assigned, that member receives all points.
-      if (pharmacyInputs.length === 0) return;
-      const { data: syncedPharms } = await supabaseAdmin
-        .from("pharmacies")
-        .select("id, zoho_contact_id, loyalty_points, history_points, is_active")
-        .in("zoho_contact_id", pharmacyInputs.map((r) => r.zoho_contact_id));
-      if (!syncedPharms || syncedPharms.length === 0) return;
-
-      for (const pharm of syncedPharms) {
-        const pharmId = (pharm as any).id as string;
-        // Skip deactivated pharmacies — don't distribute points to their members.
-        if ((pharm as any).is_active === false) continue;
-        // history_points is the high-water mark of Zoho's cumulative
-        // "Loyalty Points" value. Per-member delta = target − already_credited
-        // (from prior zoho_sync ledger rows), so re-syncs are idempotent.
-        const totalPoints = Math.max(0, Number((pharm as any).history_points ?? 0));
-
-        const { data: members } = await supabaseAdmin
-          .from("profiles")
-          .select("id, email, full_name, points_balance, lifetime_points")
-          .eq("pharmacy_id", pharmId);
-        if (!members || members.length === 0) continue;
-
-        const n = members.length;
-        // Equal split — every member gets the same amount. Any fractional
-        // remainder is dropped so shares stay identical across members.
-        const base = Math.floor(totalPoints / n);
-
-        // Fetch each member's cumulative Zoho-sync credits for THIS pharmacy so we
-        // can compute a delta (target − already_credited) instead of overwriting
-        // points_balance. Overwriting would erase redemption deductions made
-        // between syncs — a real bug at scale.
-        const memberIds = members.map((m: any) => m.id);
-        const { data: ledgerRows } = await supabaseAdmin
-          .from("points_ledger")
-          .select("user_id, delta")
-          .in("user_id", memberIds)
-          .eq("source", "zoho_sync")
-          .eq("reference", pharmId);
-        const credited = new Map<string, number>();
-        for (const row of ledgerRows ?? []) {
-          const k = String((row as any).user_id);
-          credited.set(k, (credited.get(k) ?? 0) + Number((row as any).delta ?? 0));
-        }
-
-        for (let i = 0; i < n; i++) {
-          const m = members[i] as any;
-          const target = base;
-
-          const already = credited.get(String(m.id)) ?? 0;
-          const delta = target - already;
-          if (delta === 0) continue;
-
-          const prevBalance = Number(m.points_balance ?? 0);
-          const prevHistory = Number(m.lifetime_points ?? 0);
-          const newBalance = Math.max(0, prevBalance + delta);
-
-          await supabaseAdmin
-            .from("profiles")
-            .update({
-              points_balance: newBalance,
-              lifetime_points: delta > 0 ? prevHistory + delta : prevHistory,
-            })
-            .eq("id", m.id);
-
-          await supabaseAdmin.from("points_ledger").insert({
-            user_id: m.id,
-            delta,
-            reason: n > 1 ? `Zoho sync — split across ${n} pharmacy members` : "Zoho sync",
-            source: "zoho_sync",
-            reference: pharmId,
-          });
-
-
-          if (notify && delta > 0 && m.email) {
-            const dayKey = new Date().toISOString().slice(0, 10);
-            const r = await sendTransactionalEmailServer({
-              templateName: "points-earned",
-              recipientEmail: m.email,
-              idempotencyKey: `daily-sync-${dayKey}-${m.id}`,
-              templateData: {
-                name: m.full_name || undefined,
-                points: delta,
-                reason: n > 1 ? `Daily Zoho sync (split across ${n} members)` : "Daily Zoho sync",
-                newBalance,
-              },
-            });
-            if (r.ok) notifiedCount++;
-          }
-        }
-      }
     };
 
     let page = 1;
