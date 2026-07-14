@@ -148,18 +148,21 @@ function EmailsPage() {
                 <th className="px-4 py-3">Recipient</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Error</th>
+                <th className="px-4 py-3 text-right"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && (rows ?? []).length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No emails in this range.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails in this range.</td></tr>
               )}
               {rows?.map((r: any) => {
                 const tone = STATUS_TONES[r.status] ?? STATUS_TONES.pending;
                 const Icon = tone.icon;
+                const canRetry = r.status === "dlq" || r.status === "failed" || r.status === "bounced";
+                const busy = retrying === r.message_id;
                 return (
                   <tr key={r.id} className="border-t border-border/60">
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
@@ -172,6 +175,19 @@ function EmailsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-destructive max-w-xs truncate" title={r.error_message ?? ""}>
                       {r.error_message ?? ""}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {canRetry && (
+                        <button
+                          onClick={() => doRetry(r)}
+                          disabled={busy || !r.message_id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                          title="Move back to the sending queue"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${busy ? "animate-spin" : ""}`} />
+                          {busy ? "Retrying…" : "Retry"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
