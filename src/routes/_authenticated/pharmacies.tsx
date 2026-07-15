@@ -37,10 +37,13 @@ function MyPharmaciesPage() {
         .in("id", [...ids])
         .order("name");
       if (pErr) throw pErr;
-      return pharms ?? [];
+      return { pharmacies: pharms ?? [], primaryId: primary as string | null };
     },
     staleTime: 30_000,
   });
+
+  const pharmacies = (data as any)?.pharmacies as any[] | undefined;
+  const primaryId = (data as any)?.primaryId as string | null | undefined;
 
   return (
     <AppShell>
