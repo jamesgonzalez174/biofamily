@@ -186,6 +186,9 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
+                      <button onClick={() => openAccess(u.id, u.full_name || u.email)} title="Pharmacy access" className="rounded-lg border border-border p-1.5 hover:bg-muted">
+                        <MapPin className="h-3.5 w-3.5" />
+                      </button>
                       <Link
                         to="/admin/audit"
                         search={{ target: u.id, targetType: "user", targetLabel: u.full_name || u.email }}
