@@ -243,13 +243,14 @@ export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    const [profilesRes, rolesRes, pharmaciesRes] = await Promise.all([
+    const [profilesRes, rolesRes, pharmaciesRes, accessRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
         .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, created_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("pharmacies").select("id, name").order("name"),
+      supabaseAdmin.from("user_pharmacy_access").select("user_id, pharmacy_id"),
     ]);
     const roleMap = new Map<string, string[]>();
     (rolesRes.data ?? []).forEach((r) => {
@@ -257,7 +258,15 @@ export const listUsers = createServerFn({ method: "GET" })
       arr.push(r.role);
       roleMap.set(r.user_id, arr);
     });
-    const users = (profilesRes.data ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
+    const accessMap = new Map<string, number>();
+    (accessRes.data ?? []).forEach((r: any) => {
+      accessMap.set(r.user_id, (accessMap.get(r.user_id) ?? 0) + 1);
+    });
+    const users = (profilesRes.data ?? []).map((p) => ({
+      ...p,
+      roles: roleMap.get(p.id) ?? [],
+      access_count: accessMap.get(p.id) ?? 0,
+    }));
     return { users, pharmacies: pharmaciesRes.data ?? [] };
   });
 

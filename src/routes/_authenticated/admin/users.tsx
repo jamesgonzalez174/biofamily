@@ -34,6 +34,7 @@ function UsersPage() {
   const [accessIds, setAccessIds] = useState<Set<string>>(new Set());
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessSaving, setAccessSaving] = useState(false);
+  const [accessSearch, setAccessSearch] = useState("");
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
@@ -186,8 +187,13 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
-                      <button onClick={() => openAccess(u.id, u.full_name || u.email)} title="Pharmacy access" className="rounded-lg border border-border p-1.5 hover:bg-muted">
+                      <button onClick={() => openAccess(u.id, u.full_name || u.email)} title="Pharmacy access" className="relative rounded-lg border border-border p-1.5 hover:bg-muted">
                         <MapPin className="h-3.5 w-3.5" />
+                        {u.access_count > 0 && (
+                          <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                            {u.access_count}
+                          </span>
+                        )}
                       </button>
                       <Link
                         to="/admin/audit"
@@ -249,26 +255,58 @@ function UsersPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Choose which pharmacies <span className="font-medium text-foreground">{accessFor.name}</span> can view in the app.
             </p>
-            <div className="mt-4 max-h-72 overflow-y-auto rounded-xl border border-border">
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                value={accessSearch}
+                onChange={(e) => setAccessSearch(e.target.value)}
+                placeholder="Search pharmacies…"
+                className="flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              {(() => {
+                const filtered = (pharmacies ?? []).filter((p) => p.name.toLowerCase().includes(accessSearch.toLowerCase()));
+                const allSelected = filtered.length > 0 && filtered.every((p) => accessIds.has(p.id));
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccessIds((prev) => {
+                        const next = new Set(prev);
+                        if (allSelected) filtered.forEach((p) => next.delete(p.id));
+                        else filtered.forEach((p) => next.add(p.id));
+                        return next;
+                      });
+                    }}
+                    className="whitespace-nowrap rounded-lg border border-border px-2 py-1.5 text-xs font-medium hover:bg-muted"
+                  >
+                    {allSelected ? "Clear" : "Select all"}
+                  </button>
+                );
+              })()}
+            </div>
+            <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-border">
               {accessLoading ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
               ) : (pharmacies ?? []).length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">No pharmacies.</div>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {(pharmacies ?? []).map((p) => {
-                    const checked = accessIds.has(p.id);
-                    return (
-                      <li key={p.id}>
-                        <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/50">
-                          <input type="checkbox" checked={checked} onChange={() => toggleAccess(p.id)} className="h-4 w-4 accent-primary" />
-                          <span className="flex-1 truncate">{p.name}</span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              ) : (() => {
+                const filtered = (pharmacies ?? []).filter((p) => p.name.toLowerCase().includes(accessSearch.toLowerCase()));
+                if (filtered.length === 0) return <div className="p-4 text-center text-sm text-muted-foreground">No matches.</div>;
+                return (
+                  <ul className="divide-y divide-border">
+                    {filtered.map((p) => {
+                      const checked = accessIds.has(p.id);
+                      return (
+                        <li key={p.id}>
+                          <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/50">
+                            <input type="checkbox" checked={checked} onChange={() => toggleAccess(p.id)} className="h-4 w-4 accent-primary" />
+                            <span className="flex-1 truncate">{p.name}</span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
             </div>
             <div className="mt-2 text-xs text-muted-foreground">{accessIds.size} selected</div>
             <div className="mt-4 flex gap-2">

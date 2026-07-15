@@ -30,17 +30,20 @@ function MyPharmaciesPage() {
       const ids = new Set<string>((accessRes.data ?? []).map((r: any) => r.pharmacy_id));
       const primary = (profileRes.data as any)?.pharmacy_id;
       if (primary) ids.add(primary);
-      if (ids.size === 0) return [];
+      if (ids.size === 0) return { pharmacies: [] as any[], primaryId: (primary ?? null) as string | null };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
         .select("id, name, address, loyalty_points, history_points, is_active")
         .in("id", [...ids])
         .order("name");
       if (pErr) throw pErr;
-      return pharms ?? [];
+      return { pharmacies: pharms ?? [], primaryId: primary as string | null };
     },
     staleTime: 30_000,
   });
+
+  const pharmacies = (data as any)?.pharmacies as any[] | undefined;
+  const primaryId = (data as any)?.primaryId as string | null | undefined;
 
   return (
     <AppShell>
@@ -59,21 +62,26 @@ function MyPharmaciesPage() {
           Failed to load: {(error as Error)?.message}
         </div>
       )}
-      {!isLoading && !isError && (data ?? []).length === 0 && (
+      {!isLoading && !isError && (pharmacies ?? []).length === 0 && (
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
           You don't have access to any pharmacies yet.
         </div>
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {(data ?? []).map((p: any) => (
+        {(pharmacies ?? []).map((p: any) => (
           <div key={p.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-primary shadow-glow">
                 <MapPin className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div className="min-w-0">
-                <div className="truncate font-semibold">{p.name}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="truncate font-semibold">{p.name}</div>
+                  {primaryId === p.id && (
+                    <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">Primary</span>
+                  )}
+                </div>
                 {p.address && <div className="text-xs text-muted-foreground line-clamp-2">{p.address}</div>}
               </div>
             </div>
