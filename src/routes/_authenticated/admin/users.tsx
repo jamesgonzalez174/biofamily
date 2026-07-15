@@ -25,9 +25,15 @@ function UsersPage() {
   const adjust = useServerFn(adjustPoints);
   const setRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteUser);
+  const getAccess = useServerFn(getUserPharmacyAccess);
+  const saveAccess = useServerFn(setUserPharmacyAccess);
   const [adj, setAdj] = useState<{ id: string; name: string } | null>(null);
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
+  const [accessFor, setAccessFor] = useState<{ id: string; name: string } | null>(null);
+  const [accessIds, setAccessIds] = useState<Set<string>>(new Set());
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessSaving, setAccessSaving] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
