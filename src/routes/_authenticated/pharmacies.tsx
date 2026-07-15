@@ -33,7 +33,7 @@ function MyPharmaciesPage() {
       if (ids.size === 0) return { pharmacies: [] as any[], primaryId: (primary ?? null) as string | null };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
-        .select("id, name, address, loyalty_points, history_points, is_active")
+        .select("id, name, address, loyalty_points, history_points, is_active, invoice_references")
         .in("id", [...ids])
         .order("name");
       if (pErr) throw pErr;
@@ -98,6 +98,28 @@ function MyPharmaciesPage() {
                 <div className="mt-1 font-semibold tabular-nums">{(p.history_points ?? 0).toLocaleString()}</div>
               </div>
             </div>
+            {Array.isArray(p.invoice_references) && p.invoice_references.length > 0 && (
+              <div className="mt-4">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Invoice references ({p.invoice_references.length})
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {p.invoice_references.slice(0, 8).map((ref: string) => (
+                    <span
+                      key={ref}
+                      className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-foreground/80"
+                    >
+                      {ref}
+                    </span>
+                  ))}
+                  {p.invoice_references.length > 8 && (
+                    <span className="rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      +{p.invoice_references.length - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
