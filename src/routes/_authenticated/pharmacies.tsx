@@ -22,13 +22,14 @@ function MyPharmaciesPage() {
     queryKey: ["my-pharmacies", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data: access, error: accessErr } = await supabase
-        .from("user_pharmacy_access")
-        .select("pharmacy_id")
-        .eq("user_id", user!.id);
-      if (accessErr) throw accessErr;
-      const ids = new Set<string>((access ?? []).map((r: any) => r.pharmacy_id));
-      if (profile?.pharmacy_id) ids.add(profile.pharmacy_id);
+      const [accessRes, profileRes] = await Promise.all([
+        supabase.from("user_pharmacy_access").select("pharmacy_id").eq("user_id", user!.id),
+        supabase.from("profiles").select("pharmacy_id").eq("id", user!.id).maybeSingle(),
+      ]);
+      if (accessRes.error) throw accessRes.error;
+      const ids = new Set<string>((accessRes.data ?? []).map((r: any) => r.pharmacy_id));
+      const primary = (profileRes.data as any)?.pharmacy_id;
+      if (primary) ids.add(primary);
       if (ids.size === 0) return [];
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
