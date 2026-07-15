@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/pharmacies")({
 });
 
 function MyPharmaciesPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["my-pharmacies", user?.id],
