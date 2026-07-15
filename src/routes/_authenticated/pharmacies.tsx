@@ -33,7 +33,7 @@ function MyPharmaciesPage() {
       if (ids.size === 0) return { pharmacies: [] as any[], primaryId: (primary ?? null) as string | null };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
-        .select("id, name, address, loyalty_points, history_points, is_active")
+        .select("id, name, address, loyalty_points, history_points, is_active, invoice_references")
         .in("id", [...ids])
         .order("name");
       if (pErr) throw pErr;
