@@ -238,6 +238,48 @@ function UsersPage() {
           </div>
         </div>
       )}
+
+      {accessFor && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAccessFor(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Pharmacy access</h2>
+              <button onClick={() => setAccessFor(null)} className="rounded-lg p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose which pharmacies <span className="font-medium text-foreground">{accessFor.name}</span> can view in the app.
+            </p>
+            <div className="mt-4 max-h-72 overflow-y-auto rounded-xl border border-border">
+              {accessLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : (pharmacies ?? []).length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">No pharmacies.</div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(pharmacies ?? []).map((p) => {
+                    const checked = accessIds.has(p.id);
+                    return (
+                      <li key={p.id}>
+                        <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/50">
+                          <input type="checkbox" checked={checked} onChange={() => toggleAccess(p.id)} className="h-4 w-4 accent-primary" />
+                          <span className="flex-1 truncate">{p.name}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">{accessIds.size} selected</div>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setAccessFor(null)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
+              <button onClick={submitAccess} disabled={accessSaving || accessLoading} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95 disabled:opacity-50">
+                {accessSaving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
