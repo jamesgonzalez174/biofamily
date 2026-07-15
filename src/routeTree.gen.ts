@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin/emails'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
+import { Route as Char91DotwellKnownChar93AssetlinksJsonRouteImport } from './routes/[.well-known]/assetlinks.json'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -239,6 +240,12 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const Char91DotwellKnownChar93AssetlinksJsonRoute =
+  Char91DotwellKnownChar93AssetlinksJsonRouteImport.update({
+    id: '/.well-known/assetlinks/json',
+    path: '/.well-known/assetlinks/json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -313,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/.well-known/assetlinks/json': typeof Char91DotwellKnownChar93AssetlinksJsonRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -357,6 +365,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/.well-known/assetlinks/json': typeof Char91DotwellKnownChar93AssetlinksJsonRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -404,6 +413,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/.well-known/assetlinks/json': typeof Char91DotwellKnownChar93AssetlinksJsonRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/emails': typeof AuthenticatedAdminEmailsRoute
@@ -451,6 +461,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/.well-known/assetlinks/json'
     | '/admin/analytics'
     | '/admin/audit'
     | '/admin/emails'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/.well-known/assetlinks/json'
     | '/admin/analytics'
     | '/admin/audit'
     | '/admin/emails'
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/.well-known/assetlinks/json'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/emails'
@@ -582,6 +595,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  Char91DotwellKnownChar93AssetlinksJsonRoute: typeof Char91DotwellKnownChar93AssetlinksJsonRoute
   ApiPublicZohoWebhookRoute: typeof ApiPublicZohoWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyZohoSyncRoute: typeof ApiPublicHooksDailyZohoSyncRoute
@@ -840,6 +854,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/.well-known/assetlinks/json': {
+      id: '/.well-known/assetlinks/json'
+      path: '/.well-known/assetlinks/json'
+      fullPath: '/.well-known/assetlinks/json'
+      preLoaderRoute: typeof Char91DotwellKnownChar93AssetlinksJsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -992,6 +1013,8 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  Char91DotwellKnownChar93AssetlinksJsonRoute:
+    Char91DotwellKnownChar93AssetlinksJsonRoute,
   ApiPublicZohoWebhookRoute: ApiPublicZohoWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyZohoSyncRoute: ApiPublicHooksDailyZohoSyncRoute,
