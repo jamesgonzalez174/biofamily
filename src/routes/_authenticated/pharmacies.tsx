@@ -30,7 +30,7 @@ function MyPharmaciesPage() {
       const ids = new Set<string>((accessRes.data ?? []).map((r: any) => r.pharmacy_id));
       const primary = (profileRes.data as any)?.pharmacy_id;
       if (primary) ids.add(primary);
-      if (ids.size === 0) return [];
+      if (ids.size === 0) return { pharmacies: [] as any[], primaryId: (primary ?? null) as string | null };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
         .select("id, name, address, loyalty_points, history_points, is_active")
