@@ -86,6 +86,36 @@ function UsersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const openAccess = async (id: string, name: string) => {
+    setAccessFor({ id, name });
+    setAccessIds(new Set());
+    setAccessLoading(true);
+    try {
+      const res: any = await getAccess({ data: { targetUserId: id } });
+      setAccessIds(new Set(res.pharmacyIds ?? []));
+    } catch (e: any) { toast.error(e.message); }
+    finally { setAccessLoading(false); }
+  };
+
+  const toggleAccess = (pid: string) => {
+    setAccessIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid); else next.add(pid);
+      return next;
+    });
+  };
+
+  const submitAccess = async () => {
+    if (!accessFor) return;
+    setAccessSaving(true);
+    try {
+      await saveAccess({ data: { targetUserId: accessFor.id, pharmacyIds: [...accessIds] } });
+      toast.success("Pharmacy access updated");
+      setAccessFor(null);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setAccessSaving(false); }
+  };
+
   const exportCSV = () => {
     const pmap = new Map((pharmacies ?? []).map((p) => [p.id, p.name]));
     const rows = (users ?? []).map((u: any) => ({
