@@ -202,17 +202,17 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
 
 
       // Only sync loyalty_points and invoice_references onto pharmacies —
-      // don't touch history_points or member profile balances here.
+      // history_points is accumulated (old + delta) and split across members.
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
       const { data: existingPharms } = pharmIds.length
         ? await supabaseAdmin
             .from("pharmacies")
-            .select("zoho_contact_id, is_active")
+            .select("id, zoho_contact_id, is_active, loyalty_points, history_points")
             .in("zoho_contact_id", pharmIds)
         : { data: [] as any[] };
-      const existingActive = new Map<string, boolean>();
+      const existingByZoho = new Map<string, any>();
       for (const ep of existingPharms ?? []) {
-        existingActive.set(String((ep as any).zoho_contact_id), Boolean((ep as any).is_active ?? true));
+        existingByZoho.set(String((ep as any).zoho_contact_id), ep);
       }
 
       // Cross-pharmacy dedup within this batch (case-insensitive): each
@@ -227,12 +227,20 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           claimedRefs.set(key, r.zoho_contact_id);
           uniqueRefs.push(ref);
         }
+        const existing = existingByZoho.get(r.zoho_contact_id);
+        const oldLoyalty = Number(existing?.loyalty_points ?? 0);
+        const oldHistory = Number(existing?.history_points ?? 0);
+        const delta = Math.max(0, r.loyalty_points - oldLoyalty);
         return {
           ...r,
           invoice_references: uniqueRefs,
-          is_active: existingActive.get(r.zoho_contact_id) ?? true,
+          is_active: existing?.is_active ?? true,
+          history_points: oldHistory + delta,
+          _delta: delta,
+          _existingId: existing?.id ?? null,
         };
       });
+
 
       // Strip any of the incoming refs from OTHER pharmacies in the DB so the
       // same invoice number can't appear on two pharmacy rows at once.
