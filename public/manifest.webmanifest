@@ -45,7 +45,35 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Biomed Family on mobile"
+      "label": "Sign in to Biomed Family"
+    },
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard showing points and tier progress"
+    },
+    {
+      "src": "/screenshots/catalog.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Prize catalog with real rewards"
+    },
+    {
+      "src": "/screenshots/history.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Activity and redemption history"
+    },
+    {
+      "src": "/screenshots/products.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Products that earn loyalty points"
     },
     {
       "src": "/screenshots/wide.png",
