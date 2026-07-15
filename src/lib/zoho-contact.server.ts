@@ -166,6 +166,7 @@ export async function processZohoContact(
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
   let pharmacyId: string | null = null;
+  let loyaltyDelta = 0;
   if (zohoContactId && fullName) {
     const { data: existingPharm } = await supabaseAdmin
       .from("pharmacies")
@@ -175,11 +176,24 @@ export async function processZohoContact(
 
     if (existingPharm) {
       pharmacyId = (existingPharm as any).id as string;
-      const pharmUpdates: { name?: string; address?: string | null; loyalty_points?: number; history_points?: number; invoice_references?: string[] } = {};
+      const oldLoyalty = Number((existingPharm as any).loyalty_points ?? 0);
+      const oldHistory = Number((existingPharm as any).history_points ?? 0);
+      loyaltyDelta = hasLoyalty ? Math.max(0, currentLoyalty - oldLoyalty) : 0;
+
+      const pharmUpdates: {
+        name?: string;
+        address?: string | null;
+        loyalty_points?: number;
+        history_points?: number;
+        invoice_references?: string[];
+      } = {};
       if (existingPharm.name !== fullName) pharmUpdates.name = fullName;
       if (address && existingPharm.address !== address) pharmUpdates.address = address;
-      if (hasLoyalty && (existingPharm as any).loyalty_points !== currentLoyalty) {
+      if (hasLoyalty && oldLoyalty !== currentLoyalty) {
         pharmUpdates.loyalty_points = currentLoyalty;
+      }
+      if (loyaltyDelta > 0) {
+        pharmUpdates.history_points = oldHistory + loyaltyDelta;
       }
       // Cross-pharmacy dedup: strip these refs from any other pharmacy first,
       // then assign to this one — an invoice number can't belong to two pharmacies.
@@ -230,6 +244,7 @@ export async function processZohoContact(
           }
         }
       }
+      loyaltyDelta = currentLoyalty;
       const { data: created } = await supabaseAdmin
         .from("pharmacies")
         .insert({
@@ -246,79 +261,41 @@ export async function processZohoContact(
       pharmacyId = (created as any)?.id ?? null;
       pharmacyAction = "created";
     }
-
   }
 
-  // 2) Split pharmacy's cumulative points across all assigned members, ADDING the
-  //    delta since the last sync — never overwrite. Same model as runZohoSync,
-  //    so a single webhook/invoice refresh credits every member, not just the
-  //    email-matched profile.
+  // 2) Split the loyalty delta (today's newly earned points) equally across
+  //    all members of this pharmacy, adding to each member's balance + lifetime.
   let splitNote = "";
-  if (pharmacyId && !opts.skipPointsSync) {
-
-    const { data: pharm } = await supabaseAdmin
-      .from("pharmacies")
-      .select("history_points")
-      .eq("id", pharmacyId)
-      .maybeSingle();
-    const totalPoints = Math.max(0, Number((pharm as any)?.history_points ?? 0));
-
+  if (pharmacyId && !opts.skipPointsSync && loyaltyDelta > 0) {
     const { data: members } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, full_name, points_balance, lifetime_points")
+      .select("id, points_balance, lifetime_points")
       .eq("pharmacy_id", pharmacyId);
 
     if (members && members.length > 0) {
       const n = members.length;
-      // Equal split — every member gets the same amount; drop the remainder.
-      const base = Math.floor(totalPoints / n);
-
-      const memberIds = members.map((m: any) => m.id);
-      const { data: ledgerRows } = await supabaseAdmin
-        .from("points_ledger")
-        .select("user_id, delta")
-        .in("user_id", memberIds)
-        .eq("source", "zoho_sync")
-        .eq("reference", pharmacyId);
-      const credited = new Map<string, number>();
-      for (const row of ledgerRows ?? []) {
-        const k = String((row as any).user_id);
-        credited.set(k, (credited.get(k) ?? 0) + Number((row as any).delta ?? 0));
+      const share = Math.floor(loyaltyDelta / n);
+      if (share > 0) {
+        for (const m of members as any[]) {
+          const newBal = Math.max(0, Number(m.points_balance ?? 0) + share);
+          const newHist = Number(m.lifetime_points ?? 0) + share;
+          await supabaseAdmin
+            .from("profiles")
+            .update({ points_balance: newBal, lifetime_points: newHist })
+            .eq("id", m.id);
+          await supabaseAdmin.from("points_ledger").insert({
+            user_id: m.id,
+            delta: share,
+            reason: n > 1 ? `Zoho sync — split across ${n} pharmacy members` : "Zoho sync",
+            source: "zoho_sync",
+            reference: pharmacyId,
+          });
+        }
+        splitNote = `; split ${share}×${n} to members`;
       }
-
-      let splitCount = 0;
-      for (let i = 0; i < n; i++) {
-        const m = members[i] as any;
-        const target = base;
-
-        const already = credited.get(String(m.id)) ?? 0;
-        const delta = target - already;
-        if (delta === 0) continue;
-
-        const prevBalance = Number(m.points_balance ?? 0);
-        const prevHistory = Number(m.lifetime_points ?? 0);
-        const newBalance = Math.max(0, prevBalance + delta);
-
-        await supabaseAdmin
-          .from("profiles")
-          .update({
-            points_balance: newBalance,
-            lifetime_points: delta > 0 ? prevHistory + delta : prevHistory,
-          })
-          .eq("id", m.id);
-
-        await supabaseAdmin.from("points_ledger").insert({
-          user_id: m.id,
-          delta,
-          reason: n > 1 ? `Zoho sync — split across ${n} pharmacy members` : "Zoho sync",
-          source: "zoho_sync",
-          reference: pharmacyId,
-        });
-        splitCount++;
-      }
-      if (splitCount > 0) splitNote = `; split to ${splitCount}/${n} members`;
     }
   }
+
 
   // 3) Keep the matched profile's name in sync — but never overwrite points here;
   //    points are credited via the pharmacy-member split above.
