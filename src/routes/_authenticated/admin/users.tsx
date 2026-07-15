@@ -34,6 +34,7 @@ function UsersPage() {
   const [accessIds, setAccessIds] = useState<Set<string>>(new Set());
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessSaving, setAccessSaving] = useState(false);
+  const [accessSearch, setAccessSearch] = useState("");
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
