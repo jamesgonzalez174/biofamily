@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText, MapPin } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
-import { listUsers, adjustPoints, setUserRole, deleteUser } from "@/lib/admin.functions";
+import { listUsers, adjustPoints, setUserRole, deleteUser, getUserPharmacyAccess, setUserPharmacyAccess } from "@/lib/admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
@@ -25,9 +25,15 @@ function UsersPage() {
   const adjust = useServerFn(adjustPoints);
   const setRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteUser);
+  const getAccess = useServerFn(getUserPharmacyAccess);
+  const saveAccess = useServerFn(setUserPharmacyAccess);
   const [adj, setAdj] = useState<{ id: string; name: string } | null>(null);
   const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState("");
+  const [accessFor, setAccessFor] = useState<{ id: string; name: string } | null>(null);
+  const [accessIds, setAccessIds] = useState<Set<string>>(new Set());
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessSaving, setAccessSaving] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
@@ -78,6 +84,36 @@ function UsersPage() {
       setAdj(null); setDelta(0); setReason("");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  const openAccess = async (id: string, name: string) => {
+    setAccessFor({ id, name });
+    setAccessIds(new Set());
+    setAccessLoading(true);
+    try {
+      const res: any = await getAccess({ data: { targetUserId: id } });
+      setAccessIds(new Set(res.pharmacyIds ?? []));
+    } catch (e: any) { toast.error(e.message); }
+    finally { setAccessLoading(false); }
+  };
+
+  const toggleAccess = (pid: string) => {
+    setAccessIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid); else next.add(pid);
+      return next;
+    });
+  };
+
+  const submitAccess = async () => {
+    if (!accessFor) return;
+    setAccessSaving(true);
+    try {
+      await saveAccess({ data: { targetUserId: accessFor.id, pharmacyIds: [...accessIds] } });
+      toast.success("Pharmacy access updated");
+      setAccessFor(null);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setAccessSaving(false); }
   };
 
   const exportCSV = () => {
@@ -150,6 +186,9 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
+                      <button onClick={() => openAccess(u.id, u.full_name || u.email)} title="Pharmacy access" className="rounded-lg border border-border p-1.5 hover:bg-muted">
+                        <MapPin className="h-3.5 w-3.5" />
+                      </button>
                       <Link
                         to="/admin/audit"
                         search={{ target: u.id, targetType: "user", targetLabel: u.full_name || u.email }}
@@ -195,6 +234,48 @@ function UsersPage() {
             <div className="mt-6 flex gap-2">
               <button onClick={() => setAdj(null)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
               <button onClick={submitAdjust} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accessFor && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAccessFor(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Pharmacy access</h2>
+              <button onClick={() => setAccessFor(null)} className="rounded-lg p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose which pharmacies <span className="font-medium text-foreground">{accessFor.name}</span> can view in the app.
+            </p>
+            <div className="mt-4 max-h-72 overflow-y-auto rounded-xl border border-border">
+              {accessLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : (pharmacies ?? []).length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">No pharmacies.</div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(pharmacies ?? []).map((p) => {
+                    const checked = accessIds.has(p.id);
+                    return (
+                      <li key={p.id}>
+                        <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/50">
+                          <input type="checkbox" checked={checked} onChange={() => toggleAccess(p.id)} className="h-4 w-4 accent-primary" />
+                          <span className="flex-1 truncate">{p.name}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">{accessIds.size} selected</div>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setAccessFor(null)} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted">Cancel</button>
+              <button onClick={submitAccess} disabled={accessSaving || accessLoading} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95 disabled:opacity-50">
+                {accessSaving ? "Saving…" : "Save"}
+              </button>
             </div>
           </div>
         </div>

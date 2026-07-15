@@ -105,6 +105,55 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getUserPharmacyAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ targetUserId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("user_pharmacy_access")
+      .select("pharmacy_id")
+      .eq("user_id", data.targetUserId);
+    if (error) throw new Error(error.message);
+    return { pharmacyIds: (rows ?? []).map((r) => r.pharmacy_id) };
+  });
+
+export const setUserPharmacyAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    targetUserId: z.string().uuid(),
+    pharmacyIds: z.array(z.string().uuid()),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: existing } = await supabaseAdmin
+      .from("user_pharmacy_access").select("pharmacy_id").eq("user_id", data.targetUserId);
+    const existingIds = new Set((existing ?? []).map((r) => r.pharmacy_id));
+    const desiredIds = new Set(data.pharmacyIds);
+    const toAdd = data.pharmacyIds.filter((id) => !existingIds.has(id));
+    const toRemove = [...existingIds].filter((id) => !desiredIds.has(id));
+    if (toAdd.length) {
+      const { error } = await supabaseAdmin.from("user_pharmacy_access")
+        .insert(toAdd.map((pid) => ({ user_id: data.targetUserId, pharmacy_id: pid })));
+      if (error) throw new Error(error.message);
+    }
+    if (toRemove.length) {
+      const { error } = await supabaseAdmin.from("user_pharmacy_access")
+        .delete().eq("user_id", data.targetUserId).in("pharmacy_id", toRemove);
+      if (error) throw new Error(error.message);
+    }
+    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name, email").eq("id", data.targetUserId).maybeSingle();
+    await logAudit({
+      actorUserId: context.userId,
+      action: "set_pharmacy_access",
+      targetType: "user",
+      targetId: data.targetUserId,
+      targetLabel: profile?.full_name || profile?.email || undefined,
+      details: { added: toAdd.length, removed: toRemove.length, total: data.pharmacyIds.length },
+    });
+    return { ok: true, added: toAdd.length, removed: toRemove.length };
+  });
+
 export const addPharmacyPoints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
