@@ -22,6 +22,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
+import { Route as AuthenticatedPharmaciesRouteImport } from './routes/_authenticated/pharmacies'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated/catalog'
@@ -115,6 +116,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
 const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPharmaciesRoute = AuthenticatedPharmaciesRouteImport.update({
+  id: '/pharmacies',
+  path: '/pharmacies',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/pharmacies': typeof AuthenticatedPharmaciesRoute
   '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -345,6 +352,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof AuthenticatedCatalogRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/pharmacies': typeof AuthenticatedPharmaciesRoute
   '/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -391,6 +399,7 @@ export interface FileRoutesById {
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/pharmacies': typeof AuthenticatedPharmaciesRoute
   '/_authenticated/products': typeof AuthenticatedProductsRouteWithChildren
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/dashboard'
     | '/history'
+    | '/pharmacies'
     | '/products'
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
@@ -480,6 +490,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/dashboard'
     | '/history'
+    | '/pharmacies'
     | '/products'
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/_authenticated/catalog'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
+    | '/_authenticated/pharmacies'
     | '/_authenticated/products'
     | '/email/unsubscribe'
     | '/.lovable/oauth/consent'
@@ -672,6 +684,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof AuthenticatedProductsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pharmacies': {
+      id: '/_authenticated/pharmacies'
+      path: '/pharmacies'
+      fullPath: '/pharmacies'
+      preLoaderRoute: typeof AuthenticatedPharmaciesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/history': {
@@ -938,6 +957,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedPharmaciesRoute: typeof AuthenticatedPharmaciesRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRouteWithChildren
 }
 
@@ -946,6 +966,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedPharmaciesRoute: AuthenticatedPharmaciesRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRouteWithChildren,
 }
 
