@@ -76,6 +76,34 @@
       "label": "Products that earn loyalty points"
     },
     {
+      "src": "/screenshots/tablet-dashboard.png",
+      "sizes": "2048x1200",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tablet dashboard"
+    },
+    {
+      "src": "/screenshots/tablet-catalog.png",
+      "sizes": "2048x1200",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tablet prize catalog"
+    },
+    {
+      "src": "/screenshots/tablet-history.png",
+      "sizes": "2048x1200",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tablet activity history"
+    },
+    {
+      "src": "/screenshots/tablet-products.png",
+      "sizes": "2048x1200",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tablet products with points"
+    },
+    {
       "src": "/screenshots/wide.png",
       "sizes": "1280x800",
       "type": "image/png",
