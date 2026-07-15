@@ -456,6 +456,32 @@ export type Database = {
         }
         Relationships: []
       }
+      user_pharmacy_access: {
+        Row: {
+          created_at: string
+          pharmacy_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pharmacy_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pharmacy_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pharmacy_access_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
