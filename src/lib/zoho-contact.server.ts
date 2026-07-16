@@ -157,11 +157,13 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id.
-  // pharmacy.loyalty_points = Zoho's Loyalty Points (points earned that day).
-  // If Loyalty is 0 or missing, skip — don't overwrite existing loyalty.
-  void hp;
+  // Point delta comes from monotonic History Points (Zoho resets Loyalty
+  // when moving earned points into History). Fall back to Loyalty delta
+  // only when Zoho hasn't reported History yet.
   const hasLoyalty = lp !== null && lp > 0;
   const currentLoyalty = hasLoyalty ? Math.max(0, Math.floor(lp!)) : 0;
+  const hasHistory = hp !== null;
+  const currentHistory = hasHistory ? Math.max(0, Math.floor(hp!)) : 0;
 
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
@@ -178,7 +180,12 @@ export async function processZohoContact(
       pharmacyId = (existingPharm as any).id as string;
       const oldLoyalty = Number((existingPharm as any).loyalty_points ?? 0);
       const oldHistory = Number((existingPharm as any).history_points ?? 0);
-      loyaltyDelta = hasLoyalty ? Math.max(0, currentLoyalty - oldLoyalty) : 0;
+      if (hasHistory) {
+        loyaltyDelta = Math.max(0, currentHistory - oldHistory);
+      } else if (hasLoyalty) {
+        loyaltyDelta = Math.max(0, currentLoyalty - oldLoyalty);
+      }
+      const nextHistory = hasHistory ? Math.max(oldHistory, currentHistory) : oldHistory + loyaltyDelta;
 
       const pharmUpdates: {
         name?: string;
@@ -192,8 +199,8 @@ export async function processZohoContact(
       if (hasLoyalty && oldLoyalty !== currentLoyalty) {
         pharmUpdates.loyalty_points = currentLoyalty;
       }
-      if (loyaltyDelta > 0) {
-        pharmUpdates.history_points = oldHistory + loyaltyDelta;
+      if (nextHistory !== oldHistory) {
+        pharmUpdates.history_points = nextHistory;
       }
       // Cross-pharmacy dedup: strip these refs from any other pharmacy first,
       // then assign to this one — an invoice number can't belong to two pharmacies.
@@ -244,7 +251,9 @@ export async function processZohoContact(
           }
         }
       }
-      loyaltyDelta = currentLoyalty;
+      // First observation: credit today's earned points once (prefer history
+      // when Zoho already reports it, otherwise fall back to loyalty).
+      loyaltyDelta = hasHistory ? currentHistory : currentLoyalty;
       const { data: created } = await supabaseAdmin
         .from("pharmacies")
         .insert({
@@ -253,7 +262,7 @@ export async function processZohoContact(
           zoho_contact_id: zohoContactId,
           is_active: true,
           loyalty_points: currentLoyalty,
-          history_points: currentLoyalty,
+          history_points: hasHistory ? currentHistory : currentLoyalty,
           invoice_references: invoiceRefs,
         })
         .select("id")
