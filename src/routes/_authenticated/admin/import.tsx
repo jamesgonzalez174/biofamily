@@ -18,8 +18,12 @@ function parseCSV(text: string): { rows: ParsedRow[]; errors: string[] } {
   const rows: ParsedRow[] = [];
   const lines = text.trim().split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return { rows, errors: ["Empty file"] };
-  const first = lines[0].toLowerCase();
-  const hasHeader = first.includes("identifier") || first.includes("email") || first.includes("user");
+  // Only treat the first row as a header when its FIRST cell exactly matches a
+  // known header token. Substring matching against the whole line dropped rows
+  // like "user123@example.com,10,New user bonus" (contains "user"/"email").
+  const firstCell = (lines[0].split(",")[0] ?? "").trim().toLowerCase().replace(/^"|"$/g, "");
+  const HEADER_TOKENS = new Set(["identifier", "email", "user", "user_id", "userid"]);
+  const hasHeader = HEADER_TOKENS.has(firstCell);
   const start = hasHeader ? 1 : 0;
   for (let i = start; i < lines.length; i++) {
     const raw = lines[i];
