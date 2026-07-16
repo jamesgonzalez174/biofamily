@@ -181,11 +181,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         .map((c) => {
           const name = (c.contact_name || c.company_name || "").toString().trim();
           if (!name) return null;
-          const lp = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
-          // Only sync Zoho's Loyalty Points (points earned that day).
-          // Skip contacts with 0 / missing loyalty — don't overwrite the pharmacy.
-          if (lp === null || lp <= 0) return null;
-          const loyalty = Math.max(0, Math.floor(lp));
+          const lpRaw = readContactCF(c, "Loyalty Points", "loyalty_points", "LoyaltyPoints");
+          const hpRaw = readContactCF(c, "History Points", "history_points", "HistoryPoints");
+          // Keep syncing name/address/invoice_references even when today's
+          // Loyalty is 0/missing — otherwise the invoice list & pharmacy info
+          // go stale for pharmacies that aren't actively earning right now.
+          const loyalty = lpRaw !== null && lpRaw > 0 ? Math.max(0, Math.floor(lpRaw)) : null;
+          const history = hpRaw !== null ? Math.max(0, Math.floor(hpRaw)) : null;
           const invoiceRefs = parseInvoiceRefs(
             readContactCFText(c, "cf_reference_invoiced", "Reference Invoiced", "reference_invoiced", "Invoice References", "invoice_references"),
           );
@@ -195,14 +197,15 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             name,
             address: c.billing_address?.address || null,
             loyalty_points: loyalty,
+            history_points: history,
             invoice_references: invoiceRefs,
           };
         })
-        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number; invoice_references: string[] } => r !== null);
+        .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number | null; history_points: number | null; invoice_references: string[] } => r !== null);
 
 
-      // Only sync loyalty_points and invoice_references onto pharmacies —
-      // history_points is accumulated (old + delta) and split across members.
+      // Compute per-pharmacy point delta from monotonic History Points, not
+      // from Loyalty (Zoho resets Loyalty when moving points into History).
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
       const { data: existingPharms } = pharmIds.length
         ? await supabaseAdmin
@@ -228,14 +231,28 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           uniqueRefs.push(ref);
         }
         const existing = existingByZoho.get(r.zoho_contact_id);
-        const oldLoyalty = Number(existing?.loyalty_points ?? 0);
         const oldHistory = Number(existing?.history_points ?? 0);
-        const delta = Math.max(0, r.loyalty_points - oldLoyalty);
+        const oldLoyalty = Number(existing?.loyalty_points ?? 0);
+        // History Points is monotonic in Zoho — safe basis for the delta.
+        // Fall back to Loyalty delta only when Zoho didn't report history yet.
+        let delta = 0;
+        if (r.history_points !== null) {
+          delta = Math.max(0, r.history_points - oldHistory);
+        } else if (r.loyalty_points !== null) {
+          delta = Math.max(0, r.loyalty_points - oldLoyalty);
+        }
+        const nextHistory = r.history_points !== null
+          ? Math.max(oldHistory, r.history_points)
+          : oldHistory + delta;
+        const nextLoyalty = r.loyalty_points !== null ? r.loyalty_points : oldLoyalty;
         return {
-          ...r,
+          zoho_contact_id: r.zoho_contact_id,
+          name: r.name,
+          address: r.address,
           invoice_references: uniqueRefs,
           is_active: existing?.is_active ?? true,
-          history_points: oldHistory + delta,
+          loyalty_points: nextLoyalty,
+          history_points: nextHistory,
           _delta: delta,
           _existingId: existing?.id ?? null,
         };
