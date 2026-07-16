@@ -13,7 +13,7 @@ const ASSETLINKS = [
   },
 ];
 
-export const Route = createFileRoute("/.well-known/assetlinks/json")({
+export const Route = createFileRoute("/.well-known/assetlinks.json")({
   server: {
     handlers: {
       GET: () =>
