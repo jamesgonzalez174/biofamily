@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { InvoiceDetailsDrawer } from "@/components/InvoiceDetailsDrawer";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/_authenticated/pharmacies")({
   head: () => ({
@@ -119,7 +121,16 @@ function MyPharmaciesPage() {
                   )}
                 </div>
               </div>
+            {Array.isArray(p.invoice_references) && p.invoice_references.length > 0 && (
+              <div className="mt-3">
+                <InvoiceDetailsDrawer
+                  pharmacyId={p.id}
+                  pharmacyName={p.name}
+                  referenceCount={p.invoice_references.length}
+                />
+              </div>
             )}
+
           </div>
         ))}
       </div>
