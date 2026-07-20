@@ -121,7 +121,9 @@ function MyPharmaciesPage() {
                   )}
                 </div>
               </div>
+            )}
             {Array.isArray(p.invoice_references) && p.invoice_references.length > 0 && (
+
               <div className="mt-3">
                 <InvoiceDetailsDrawer
                   pharmacyId={p.id}
