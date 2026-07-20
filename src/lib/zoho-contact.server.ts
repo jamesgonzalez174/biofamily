@@ -115,7 +115,7 @@ export async function processZohoContact(
     if (!raw) return [];
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const part of raw.split(/[\s,;\n\r|]+/)) {
+    for (const part of raw.split(/[,;\n\r|]+/)) {
       const trimmed = part.trim();
       if (!trimmed) continue;
       const key = trimmed.toUpperCase();
