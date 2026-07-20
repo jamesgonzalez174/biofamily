@@ -31,21 +31,12 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     return input;
   })
   .handler(async ({ context, data }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
-    // Authorize: admin OR user has explicit access to this pharmacy.
-    // Users are NOT considered owners of a pharmacy — access is granted
-    // exclusively through user_pharmacy_access (admin-managed).
-    const [{ data: roleRow }, { data: access }, { data: pharm }] = await Promise.all([
-      supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle(),
-      supabaseAdmin.from("user_pharmacy_access").select("pharmacy_id").eq("user_id", context.userId).eq("pharmacy_id", data.pharmacyId).maybeSingle(),
-      supabaseAdmin
-        .from("pharmacies")
-        .select("id, invoice_references, loyalty_points")
-        .eq("id", data.pharmacyId)
-        .maybeSingle(),
-    ]);
-    const isAdmin = !!roleRow;
-    const hasAccess = !!access;
-    if (!isAdmin && !hasAccess) throw new Error("Forbidden");
+    // Any authenticated user can view invoice details for any pharmacy.
+    const { data: pharm } = await supabaseAdmin
+      .from("pharmacies")
+      .select("id, invoice_references, loyalty_points")
+      .eq("id", data.pharmacyId)
+      .maybeSingle();
     if (!pharm) throw new Error("Pharmacy not found");
 
 
