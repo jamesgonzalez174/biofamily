@@ -83,6 +83,22 @@ function StatusViewer({ items, onClose }: { items: Status[]; onClose: () => void
     return () => clearInterval(t);
   }, [idx, items.length, onClose]);
 
+  // Record view for the current status (idempotent via PK)
+  useEffect(() => {
+    const current = items[idx];
+    if (!current) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("status_views")
+        .upsert(
+          { status_id: current.id, user_id: user.id },
+          { onConflict: "status_id,user_id", ignoreDuplicates: true },
+        );
+    })();
+  }, [idx, items]);
+
   const next = () => (idx < items.length - 1 ? setIdx(idx + 1) : onClose());
   const prev = () => idx > 0 && setIdx(idx - 1);
 
