@@ -100,7 +100,7 @@ function SignupPage() {
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
-          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required />
+          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required pattern="[\d\s()+\-]{7,}" title="Enter at least 7 digits" placeholder="e.g. +1 809 555 0100" />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
           {pharmacies.length > 0 && (() => {
             const q = pharmacySearch.trim().toLowerCase();
