@@ -31,10 +31,11 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     return input;
   })
   .handler(async ({ context, data }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
-    // Authorize: admin OR owner-of-pharmacy
-    const [{ data: roleRow }, { data: profile }, { data: pharm }] = await Promise.all([
+    // Authorize: admin OR owner-of-pharmacy OR user has access to it
+    const [{ data: roleRow }, { data: profile }, { data: access }, { data: pharm }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle(),
       supabaseAdmin.from("profiles").select("pharmacy_id").eq("id", context.userId).maybeSingle(),
+      supabaseAdmin.from("user_pharmacy_access").select("pharmacy_id").eq("user_id", context.userId).eq("pharmacy_id", data.pharmacyId).maybeSingle(),
       supabaseAdmin
         .from("pharmacies")
         .select("id, invoice_references, loyalty_points")
@@ -43,8 +44,10 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     ]);
     const isAdmin = !!roleRow;
     const isOwner = profile?.pharmacy_id === data.pharmacyId;
-    if (!isAdmin && !isOwner) throw new Error("Forbidden");
+    const hasAccess = !!access;
+    if (!isAdmin && !isOwner && !hasAccess) throw new Error("Forbidden");
     if (!pharm) throw new Error("Pharmacy not found");
+
 
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)
