@@ -157,13 +157,11 @@ export async function processZohoContact(
   }
 
   // 1) Upsert pharmacy by zoho_contact_id.
-  // Point delta comes from monotonic History Points (Zoho resets Loyalty
-  // when moving earned points into History). Fall back to Loyalty delta
-  // only when Zoho hasn't reported History yet.
-  const hasLoyalty = lp !== null && lp > 0;
+  // Point delta = change in Zoho's Loyalty Points field since last sync.
+  // History Points on the pharmacy row is the cumulative sum of deltas.
+  const hasLoyalty = lp !== null;
   const currentLoyalty = hasLoyalty ? Math.max(0, Math.floor(lp!)) : 0;
-  const hasHistory = hp !== null;
-  const currentHistory = hasHistory ? Math.max(0, Math.floor(hp!)) : 0;
+  void hp;
 
 
   let pharmacyAction: "none" | "created" | "updated" = "none";
@@ -180,12 +178,10 @@ export async function processZohoContact(
       pharmacyId = (existingPharm as any).id as string;
       const oldLoyalty = Number((existingPharm as any).loyalty_points ?? 0);
       const oldHistory = Number((existingPharm as any).history_points ?? 0);
-      if (hasHistory) {
-        loyaltyDelta = Math.max(0, currentHistory - oldHistory);
-      } else if (hasLoyalty) {
+      if (hasLoyalty) {
         loyaltyDelta = Math.max(0, currentLoyalty - oldLoyalty);
       }
-      const nextHistory = hasHistory ? Math.max(oldHistory, currentHistory) : oldHistory + loyaltyDelta;
+      const nextHistory = oldHistory + loyaltyDelta;
 
       const pharmUpdates: {
         name?: string;
@@ -251,9 +247,8 @@ export async function processZohoContact(
           }
         }
       }
-      // First observation: credit today's earned points once (prefer history
-      // when Zoho already reports it, otherwise fall back to loyalty).
-      loyaltyDelta = hasHistory ? currentHistory : currentLoyalty;
+      // First observation: credit the current Loyalty Points as today's delta.
+      loyaltyDelta = currentLoyalty;
       const { data: created } = await supabaseAdmin
         .from("pharmacies")
         .insert({
@@ -262,7 +257,7 @@ export async function processZohoContact(
           zoho_contact_id: zohoContactId,
           is_active: true,
           loyalty_points: currentLoyalty,
-          history_points: hasHistory ? currentHistory : currentLoyalty,
+          history_points: currentLoyalty,
           invoice_references: invoiceRefs,
         })
         .select("id")
@@ -271,6 +266,7 @@ export async function processZohoContact(
       pharmacyAction = "created";
     }
   }
+
 
   // 2) Split the loyalty delta (today's newly earned points) equally across
   //    all members of this pharmacy, adding to each member's balance + lifetime.

@@ -204,8 +204,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         .filter((r): r is { zoho_contact_id: string; name: string; address: string | null; loyalty_points: number | null; history_points: number | null; invoice_references: string[] } => r !== null);
 
 
-      // Compute per-pharmacy point delta from monotonic History Points, not
-      // from Loyalty (Zoho resets Loyalty when moving points into History).
+      // Compute per-pharmacy point delta from Zoho's Loyalty Points value
+      // (this is what "1160" reads on a Zoho contact). History Points is
+      // reconstructed here as the cumulative sum of loyalty deltas.
       const pharmIds = pharmacyInputs.map((r) => r.zoho_contact_id);
       const { data: existingPharms } = pharmIds.length
         ? await supabaseAdmin
@@ -231,20 +232,14 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           uniqueRefs.push(ref);
         }
         const existing = existingByZoho.get(r.zoho_contact_id);
-        const oldHistory = Number(existing?.history_points ?? 0);
         const oldLoyalty = Number(existing?.loyalty_points ?? 0);
-        // History Points is monotonic in Zoho — safe basis for the delta.
-        // Fall back to Loyalty delta only when Zoho didn't report history yet.
-        let delta = 0;
-        if (r.history_points !== null) {
-          delta = Math.max(0, r.history_points - oldHistory);
-        } else if (r.loyalty_points !== null) {
-          delta = Math.max(0, r.loyalty_points - oldLoyalty);
-        }
-        const nextHistory = r.history_points !== null
-          ? Math.max(oldHistory, r.history_points)
-          : oldHistory + delta;
+        const oldHistory = Number(existing?.history_points ?? 0);
+        // Delta = change in Zoho's Loyalty Points field since last sync.
+        const delta = r.loyalty_points !== null
+          ? Math.max(0, r.loyalty_points - oldLoyalty)
+          : 0;
         const nextLoyalty = r.loyalty_points !== null ? r.loyalty_points : oldLoyalty;
+        const nextHistory = oldHistory + delta;
         return {
           zoho_contact_id: r.zoho_contact_id,
           name: r.name,
@@ -257,6 +252,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           _existingId: existing?.id ?? null,
         };
       });
+
 
 
       // Strip any of the incoming refs from OTHER pharmacies in the DB so the
