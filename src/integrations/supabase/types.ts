@@ -405,6 +405,32 @@ export type Database = {
         }
         Relationships: []
       }
+      status_views: {
+        Row: {
+          status_id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          status_id: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          status_id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_views_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statuses: {
         Row: {
           caption: string | null
@@ -741,6 +767,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_status_viewers: {
+        Args: { _status_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+          viewed_at: string
+        }[]
       }
       move_to_dlq: {
         Args: {
