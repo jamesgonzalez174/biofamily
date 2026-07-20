@@ -62,8 +62,10 @@ function SignupPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
-    if (!phone.trim()) return toast.error("Phone number is required.");
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 7) return toast.error("A valid phone number is required.");
     setLoading(true);
+
     const emailRedirect = nextSafe
       ? `${window.location.origin}${nextSafe}`
       : getAuthEmailRedirectUrl();
