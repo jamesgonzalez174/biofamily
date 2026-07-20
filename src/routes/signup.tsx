@@ -62,8 +62,10 @@ function SignupPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
-    if (!phone.trim()) return toast.error("Phone number is required.");
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 7) return toast.error("A valid phone number is required.");
     setLoading(true);
+
     const emailRedirect = nextSafe
       ? `${window.location.origin}${nextSafe}`
       : getAuthEmailRedirectUrl();
@@ -98,7 +100,7 @@ function SignupPage() {
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
-          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required />
+          <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required pattern="[\d\s()+\-]{7,}" title="Enter at least 7 digits" placeholder="e.g. +1 809 555 0100" />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
           {pharmacies.length > 0 && (() => {
             const q = pharmacySearch.trim().toLowerCase();
@@ -144,7 +146,7 @@ function SignupPage() {
   );
 }
 
-function Field({ label, type = "text", value, onChange, required }: { label: string; type?: string; value: string; onChange: (v: string) => void; required?: boolean }) {
+function Field({ label, type = "text", value, onChange, required, pattern, title, placeholder }: { label: string; type?: string; value: string; onChange: (v: string) => void; required?: boolean; pattern?: string; title?: string; placeholder?: string }) {
   const [show, setShow] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword && show ? "text" : type;
@@ -152,7 +154,7 @@ function Field({ label, type = "text", value, onChange, required }: { label: str
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium">{label}</span>
       <div className="relative">
-        <input type={inputType} value={value} onChange={(e) => onChange(e.target.value)} required={required}
+        <input type={inputType} value={value} onChange={(e) => onChange(e.target.value)} required={required} pattern={pattern} title={title} placeholder={placeholder}
           className={`w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2 ${isPassword ? "pr-10" : ""}`} />
         {isPassword && (
           <button type="button" onClick={() => setShow((s) => !s)}
@@ -165,3 +167,4 @@ function Field({ label, type = "text", value, onChange, required }: { label: str
     </label>
   );
 }
+
