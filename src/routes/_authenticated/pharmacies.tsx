@@ -78,9 +78,6 @@ function MyPharmaciesPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <div className="truncate font-semibold">{p.name}</div>
-                  {primaryId === p.id && (
-                    <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">Primary</span>
-                  )}
                 </div>
                 {p.address && <div className="text-xs text-muted-foreground line-clamp-2">{p.address}</div>}
               </div>
