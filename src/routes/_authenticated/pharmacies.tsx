@@ -128,10 +128,11 @@ function MyPharmaciesPage() {
                 <InvoiceDetailsDrawer
                   pharmacyId={p.id}
                   pharmacyName={p.name}
-                  referenceCount={p.invoice_references.length}
+                  references={p.invoice_references}
                 />
               </div>
             )}
+
 
           </div>
         ))}
