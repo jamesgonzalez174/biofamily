@@ -302,8 +302,9 @@ function StatusManager() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
+                    <StatusSeenBy statusId={s.id} />
                     {s.caption && (
-                      <div className="absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-black/80 to-transparent p-2 text-[11px] text-white">
+                      <div className="absolute inset-x-14 bottom-8 line-clamp-2 bg-gradient-to-t from-black/80 to-transparent p-2 text-[11px] text-white">
                         {s.caption}
                       </div>
                     )}
@@ -311,6 +312,88 @@ function StatusManager() {
                 );
               })}
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusSeenBy({ statusId }: { statusId: string }) {
+  const [open, setOpen] = useState(false);
+  const { data: count } = useQuery({
+    queryKey: ["status-view-count", statusId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("status_views")
+        .select("*", { count: "exact", head: true })
+        .eq("status_id", statusId);
+      return count ?? 0;
+    },
+    refetchInterval: 30_000,
+  });
+
+  return (
+    <>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/90"
+        aria-label="See who viewed"
+      >
+        <Eye className="h-3 w-3" />
+        {count ?? 0}
+      </button>
+      {open && <SeenByModal statusId={statusId} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function SeenByModal({ statusId, onClose }: { statusId: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["status-viewers", statusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_status_viewers", { _status_id: statusId });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-glow"
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Eye className="h-4 w-4 text-primary" />
+            Seen by {data?.length ?? 0}
+          </h3>
+          <button onClick={onClose} className="rounded-full p-1 hover:bg-muted" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto">
+          {isLoading ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : (data ?? []).length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No one has viewed this yet.</div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {data!.map((v: any) => (
+                <li key={v.user_id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{v.full_name ?? v.email ?? v.user_id.slice(0, 8)}</div>
+                    {v.email && v.full_name && (
+                      <div className="truncate text-xs text-muted-foreground">{v.email}</div>
+                    )}
+                  </div>
+                  <div className="whitespace-nowrap text-xs text-muted-foreground">
+                    {new Date(v.viewed_at).toLocaleString()}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
