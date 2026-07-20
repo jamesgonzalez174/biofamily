@@ -24,28 +24,26 @@ function MyPharmaciesPage() {
     queryKey: ["my-pharmacies", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const [accessRes, profileRes] = await Promise.all([
-        supabase.from("user_pharmacy_access").select("pharmacy_id").eq("user_id", user!.id),
-        supabase.from("profiles").select("pharmacy_id").eq("id", user!.id).maybeSingle(),
-      ]);
-      if (accessRes.error) throw accessRes.error;
-      const ids = new Set<string>((accessRes.data ?? []).map((r: any) => r.pharmacy_id));
-      const primary = (profileRes.data as any)?.pharmacy_id;
-      if (primary) ids.add(primary);
-      if (ids.size === 0) return { pharmacies: [] as any[], primaryId: (primary ?? null) as string | null };
+      // Users are not owners — access is granted only via user_pharmacy_access.
+      const { data: accessRows, error: accessErr } = await supabase
+        .from("user_pharmacy_access")
+        .select("pharmacy_id")
+        .eq("user_id", user!.id);
+      if (accessErr) throw accessErr;
+      const ids = [...new Set((accessRows ?? []).map((r: any) => r.pharmacy_id))];
+      if (ids.length === 0) return { pharmacies: [] as any[] };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
         .select("id, name, address, loyalty_points, history_points, is_active, invoice_references")
-        .in("id", [...ids])
+        .in("id", ids)
         .order("name");
       if (pErr) throw pErr;
-      return { pharmacies: pharms ?? [], primaryId: primary as string | null };
+      return { pharmacies: pharms ?? [] };
     },
     staleTime: 30_000,
   });
 
   const pharmacies = (data as any)?.pharmacies as any[] | undefined;
-  const primaryId = (data as any)?.primaryId as string | null | undefined;
 
   return (
     <AppShell>
@@ -80,9 +78,6 @@ function MyPharmaciesPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <div className="truncate font-semibold">{p.name}</div>
-                  {primaryId === p.id && (
-                    <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">Primary</span>
-                  )}
                 </div>
                 {p.address && <div className="text-xs text-muted-foreground line-clamp-2">{p.address}</div>}
               </div>
