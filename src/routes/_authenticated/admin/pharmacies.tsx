@@ -325,9 +325,30 @@ function PharmaciesPage() {
                 </div>
               </div>
               {Array.isArray((p as any).invoice_references) && (p as any).invoice_references.length > 0 && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Invoice references ({(p as any).invoice_references.length})
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {((p as any).invoice_references as string[]).slice(0, 12).map((ref) => (
+                        <span
+                          key={ref}
+                          className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-foreground/80"
+                        >
+                          {ref}
+                        </span>
+                      ))}
+                      {(p as any).invoice_references.length > 12 && (
+                        <span className="rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                          +{(p as any).invoice_references.length - 12} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <InvoiceDetailsDrawer
                     pharmacyId={p.id}
+                    pharmacyName={p.name}
                     references={(p as any).invoice_references as string[]}
                   />
                 </div>
