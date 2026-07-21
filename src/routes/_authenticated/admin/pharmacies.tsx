@@ -137,6 +137,7 @@ function PharmaciesPage() {
         loyalty_points: (r.loyalty_points || r.member_loyalty || 0) as number,
         history_points: (r.history_points || r.member_history || 0) as number,
         member_count: (r.member_count ?? 0) as number,
+        invoice_references: (r.invoice_references ?? []) as string[],
       }));
       const total = Number(data?.[0]?.total_count ?? 0);
       return { rows, total };
