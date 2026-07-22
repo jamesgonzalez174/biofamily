@@ -399,8 +399,59 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       return null;
     };
 
+    // Helpers to read custom fields off an invoice payload
+    const readInvCFBool = (inv: any, ...names: string[]): boolean | null => {
+      const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+      const cfs: any[] = Array.isArray(inv?.custom_fields) ? inv.custom_fields : [];
+      for (const cf of cfs) {
+        const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+          .toLowerCase().replace(/[\s_-]/g, "");
+        if (lower.includes(label)) {
+          const raw = cf?.value ?? cf?.value_formatted ?? "";
+          const s = String(raw).trim().toLowerCase();
+          if (s === "") return null;
+          if (["true","yes","1","y"].includes(s)) return true;
+          if (["false","no","0","n"].includes(s)) return false;
+        }
+      }
+      for (const n of names) {
+        const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+        const v = inv?.[key];
+        if (v === true || v === false) return v;
+        if (typeof v === "string") {
+          const s = v.trim().toLowerCase();
+          if (["true","yes","1","y"].includes(s)) return true;
+          if (["false","no","0","n"].includes(s)) return false;
+        }
+      }
+      return null;
+    };
+    const readInvCFNum = (inv: any, ...names: string[]): number | null => {
+      const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
+      const cfs: any[] = Array.isArray(inv?.custom_fields) ? inv.custom_fields : [];
+      for (const cf of cfs) {
+        const label = String(cf?.label ?? cf?.api_name ?? cf?.placeholder ?? "")
+          .toLowerCase().replace(/[\s_-]/g, "");
+        if (lower.includes(label)) {
+          const raw = cf?.value ?? cf?.value_formatted ?? "";
+          const v = Number(String(raw).replace(/,/g, "").trim());
+          if (!Number.isNaN(v)) return v;
+        }
+      }
+      for (const n of names) {
+        const key = `cf_${n.toLowerCase().replace(/\s+/g, "_")}`;
+        const v = inv?.[key];
+        if (v !== undefined && v !== null && v !== "") {
+          const num = Number(v);
+          if (!Number.isNaN(num)) return num;
+        }
+      }
+      return null;
+    };
+
     let invPage = 1;
     let invoicesUpserted = 0;
+    let invoicesDistributed = 0;
     while (true) {
       const cur = await fetchInvoicePage(invPage);
       if (!cur) break;
@@ -409,6 +460,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const nowIso = new Date().toISOString();
         const rows = cur.invoices.map((inv: any) => {
           const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
+          const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
+          const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
           return {
             zoho_invoice_id: String(inv.invoice_id),
             invoice_number: inv.invoice_number ?? null,
@@ -420,6 +473,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
             currency_code: inv.currency_code ?? null,
             status: inv.status ?? null,
+            points_given: pointsGiven,
+            total_points: totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : null,
             raw: inv,
             last_synced_at: nowIso,
           };
@@ -429,6 +484,66 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           .upsert(rows, { onConflict: "zoho_invoice_id" });
         if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
         else invoicesUpserted += rows.length;
+
+        // Distribute points only for invoices flagged points_given=true that
+        // haven't yet been distributed. Idempotent via points_distributed_at.
+        const eligibleZoho = rows
+          .filter((r) => r.points_given && (r.total_points ?? 0) > 0 && r.pharmacy_id)
+          .map((r) => r.zoho_invoice_id);
+        if (eligibleZoho.length > 0) {
+          const { data: pending } = await supabaseAdmin
+            .from("invoices")
+            .select("id, zoho_invoice_id, invoice_number, pharmacy_id, total_points")
+            .in("zoho_invoice_id", eligibleZoho)
+            .is("points_distributed_at", null);
+          for (const inv of (pending ?? []) as any[]) {
+            const pts = Number(inv.total_points ?? 0);
+            const pharmacyId = inv.pharmacy_id as string | null;
+            if (!pharmacyId || pts <= 0) continue;
+
+            const { data: phRow } = await supabaseAdmin
+              .from("pharmacies")
+              .select("history_points, loyalty_points")
+              .eq("id", pharmacyId)
+              .single();
+            const newHistory = Number((phRow as any)?.history_points ?? 0) + pts;
+            const newLoyalty = Number((phRow as any)?.loyalty_points ?? 0) + pts;
+            await supabaseAdmin
+              .from("pharmacies")
+              .update({ history_points: newHistory, loyalty_points: newLoyalty })
+              .eq("id", pharmacyId);
+
+            const { data: members } = await supabaseAdmin
+              .from("profiles")
+              .select("id, points_balance, lifetime_points")
+              .eq("pharmacy_id", pharmacyId);
+            const memberCount = members?.length ?? 0;
+            const share = memberCount > 0 ? Math.floor(pts / memberCount) : 0;
+            if (share > 0) {
+              for (const m of members as any[]) {
+                const newBal = Math.max(0, Number(m.points_balance ?? 0) + share);
+                const newLife = Number(m.lifetime_points ?? 0) + share;
+                await supabaseAdmin
+                  .from("profiles")
+                  .update({ points_balance: newBal, lifetime_points: newLife })
+                  .eq("id", m.id);
+                await supabaseAdmin.from("points_ledger").insert({
+                  user_id: m.id,
+                  delta: share,
+                  reason: `Invoice ${inv.invoice_number ?? inv.zoho_invoice_id} — ${pts} pts split across ${memberCount}`,
+                  source: "zoho_invoice",
+                  reference: inv.zoho_invoice_id,
+                });
+              }
+              notifiedCount += memberCount;
+            }
+            await supabaseAdmin
+              .from("invoices")
+              .update({ points_distributed_at: new Date().toISOString() })
+              .eq("id", inv.id);
+            invoicesDistributed += 1;
+          }
+        }
       }
       if (!cur.hasMore) break;
       invPage += 1;
@@ -439,6 +554,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       }
     }
     upserted += invoicesUpserted;
+    void invoicesDistributed;
 
     const result: SyncResult = { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
 
