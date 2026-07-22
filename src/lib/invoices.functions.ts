@@ -120,7 +120,9 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     const usedKeys = new Set<string>();
     for (const ref of refs) {
       const key = ref.toUpperCase();
-      invoices.push(toDetail(ref, byNumber.get(key)));
+      const row = byNumber.get(key);
+      if (onlyPointsGiven && !(row && row.points_given)) continue;
+      invoices.push(toDetail(ref, row));
       usedKeys.add(key);
     }
     for (const row of linked ?? []) {
@@ -128,6 +130,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       if (!num) continue;
       const key = num.toUpperCase();
       if (usedKeys.has(key)) continue;
+      if (onlyPointsGiven && !(row as any).points_given) continue;
       usedKeys.add(key);
       invoices.push(toDetail(num, row));
     }
