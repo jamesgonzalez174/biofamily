@@ -496,7 +496,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             invoicesDistributed += 1;
           }
         }
+        }
       }
+
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
