@@ -39,12 +39,12 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)
       : [];
-    const pharmacyLoyalty = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
+    void pharm;
 
     // Pull all invoices linked to this pharmacy, plus any matching by number.
     const { data: linked } = await supabaseAdmin
       .from("invoices")
-      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
       .eq("pharmacy_id", data.pharmacyId);
 
     const byNumber = new Map<string, any>();
@@ -58,7 +58,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       if (missing.length > 0) {
         const { data: byNums } = await supabaseAdmin
           .from("invoices")
-          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
           .in("invoice_number", missing);
         for (const row of byNums ?? []) {
           const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
@@ -91,7 +91,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
         balance: row.balance !== null && row.balance !== undefined ? Number(row.balance) : null,
         currencyCode: row.currency_code ?? null,
         status: row.status ?? null,
-        points: 0,
+        points: row.points_given && row.total_points ? Math.max(0, Math.floor(Number(row.total_points))) : 0,
       };
     };
 
@@ -111,34 +111,6 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       if (usedKeys.has(key)) continue;
       usedKeys.add(key);
       invoices.push(toDetail(num, row));
-    }
-
-    // Attribute the pharmacy's loyalty points across invoices, proportional
-    // to invoice total (largest-remainder for whole-point shares).
-    if (pharmacyLoyalty > 0 && invoices.length > 0) {
-      const totals = invoices.map((i) => (typeof i.total === "number" && i.total > 0 ? i.total : 0));
-      const sumTotals = totals.reduce((a, b) => a + b, 0);
-      let shares: number[];
-      if (sumTotals > 0) {
-        const raw = totals.map((t) => (t / sumTotals) * pharmacyLoyalty);
-        const floors = raw.map((v) => Math.floor(v));
-        let remainder = pharmacyLoyalty - floors.reduce((a, b) => a + b, 0);
-        const order = raw
-          .map((v, idx) => ({ idx, frac: v - Math.floor(v) }))
-          .sort((a, b) => b.frac - a.frac);
-        for (const o of order) {
-          if (remainder <= 0) break;
-          floors[o.idx] += 1;
-          remainder -= 1;
-        }
-        shares = floors;
-      } else {
-        const base = Math.floor(pharmacyLoyalty / invoices.length);
-        shares = invoices.map(() => base);
-        let remainder = pharmacyLoyalty - base * invoices.length;
-        for (let i = 0; i < invoices.length && remainder > 0; i++, remainder--) shares[i] += 1;
-      }
-      for (let i = 0; i < invoices.length; i++) invoices[i].points = shares[i];
     }
 
     return { ok: true, invoices };
