@@ -39,12 +39,12 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)
       : [];
-    const pharmacyLoyalty = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
+    void pharm;
 
     // Pull all invoices linked to this pharmacy, plus any matching by number.
     const { data: linked } = await supabaseAdmin
       .from("invoices")
-      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
       .eq("pharmacy_id", data.pharmacyId);
 
     const byNumber = new Map<string, any>();
@@ -58,7 +58,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       if (missing.length > 0) {
         const { data: byNums } = await supabaseAdmin
           .from("invoices")
-          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
           .in("invoice_number", missing);
         for (const row of byNums ?? []) {
           const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
