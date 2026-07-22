@@ -185,6 +185,11 @@ export function InvoiceDetailsDrawer({
                       <div className="text-xs tabular-nums sm:text-right sm:text-sm">
                         <span className="sm:hidden text-muted-foreground">Points: </span>
                         <span className="font-semibold text-primary">{inv.points.toLocaleString()}</span>
+                        {inv.memberCount > 0 && inv.points > 0 && (
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {inv.pointsPerMember.toLocaleString()} × {inv.memberCount}
+                          </div>
+                        )}
                       </div>
                       <div className="sm:text-right">
                         <span
