@@ -69,6 +69,13 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       }
     }
 
+    // Count members assigned to this pharmacy so we can show per-user share.
+    const { count: memberCountRaw } = await supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("pharmacy_id", data.pharmacyId);
+    const memberCount = Number(memberCountRaw ?? 0);
+
     const toDetail = (num: string, row: any | undefined): InvoiceDetail => {
       if (!row) {
         return {
@@ -81,9 +88,12 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
           currencyCode: null,
           status: null,
           points: 0,
+          pointsPerMember: 0,
+          memberCount,
           error: "not synced yet",
         };
       }
+      const points = row.points_given && row.total_points ? Math.max(0, Math.floor(Number(row.total_points))) : 0;
       return {
         number: String(row.invoice_number ?? num),
         invoiceId: row.zoho_invoice_id ? String(row.zoho_invoice_id) : null,
@@ -93,7 +103,9 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
         balance: row.balance !== null && row.balance !== undefined ? Number(row.balance) : null,
         currencyCode: row.currency_code ?? null,
         status: row.status ?? null,
-        points: row.points_given && row.total_points ? Math.max(0, Math.floor(Number(row.total_points))) : 0,
+        points,
+        pointsPerMember: memberCount > 0 ? Math.floor(points / memberCount) : 0,
+        memberCount,
       };
     };
 
