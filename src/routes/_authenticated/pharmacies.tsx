@@ -24,13 +24,21 @@ function MyPharmaciesPage() {
     queryKey: ["my-pharmacies", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      // Users are not owners — access is granted only via user_pharmacy_access.
-      const { data: accessRows, error: accessErr } = await supabase
-        .from("user_pharmacy_access")
-        .select("pharmacy_id")
-        .eq("user_id", user!.id);
-      if (accessErr) throw accessErr;
-      const ids = [...new Set((accessRows ?? []).map((r: any) => r.pharmacy_id))];
+      // Include both explicit admin-granted access and the user's own selected pharmacy.
+      const [accessRes, profileRes] = await Promise.all([
+        supabase.from("user_pharmacy_access").select("pharmacy_id").eq("user_id", user!.id),
+        supabase.from("profiles").select("pharmacy_id").eq("id", user!.id).maybeSingle(),
+      ]);
+      if (accessRes.error) throw accessRes.error;
+      if (profileRes.error) throw profileRes.error;
+      const ids = [
+        ...new Set(
+          [
+            ...((accessRes.data ?? []).map((r: any) => r.pharmacy_id)),
+            (profileRes.data as any)?.pharmacy_id,
+          ].filter(Boolean),
+        ),
+      ];
       if (ids.length === 0) return { pharmacies: [] as any[] };
       const { data: pharms, error: pErr } = await supabase
         .from("pharmacies")
