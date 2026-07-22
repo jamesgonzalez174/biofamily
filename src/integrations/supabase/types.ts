@@ -137,6 +137,68 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          balance: number | null
+          created_at: string
+          currency_code: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          last_synced_at: string
+          pharmacy_id: string | null
+          raw: Json | null
+          status: string | null
+          total: number | null
+          updated_at: string
+          zoho_contact_id: string | null
+          zoho_invoice_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          last_synced_at?: string
+          pharmacy_id?: string | null
+          raw?: Json | null
+          status?: string | null
+          total?: number | null
+          updated_at?: string
+          zoho_contact_id?: string | null
+          zoho_invoice_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          last_synced_at?: string
+          pharmacy_id?: string | null
+          raw?: Json | null
+          status?: string | null
+          total?: number | null
+          updated_at?: string
+          zoho_contact_id?: string | null
+          zoho_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pharmacies: {
         Row: {
           address: string | null

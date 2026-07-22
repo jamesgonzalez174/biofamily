@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getZohoAccessToken } from "./zoho-api.server";
 
 export type InvoiceDetail = {
   number: string;
@@ -17,10 +16,9 @@ export type InvoiceDetail = {
 };
 
 /**
- * Fetch invoice details (date/total/status) from Zoho Books for every
- * `invoice_references` value stored on a pharmacy.
- *
- * Access: admin, OR the requester's own pharmacy.
+ * Return invoice details for a pharmacy from the cached `invoices` table.
+ * Combines invoices linked by pharmacy_id and invoices referenced by
+ * invoice_number in the pharmacy's invoice_references field.
  */
 export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -30,8 +28,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     }
     return input;
   })
-  .handler(async ({ context, data }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
-    // Any authenticated user can view invoice details for any pharmacy.
+  .handler(async ({ data }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
     const { data: pharm } = await supabaseAdmin
       .from("pharmacies")
       .select("id, invoice_references, loyalty_points")
@@ -39,72 +36,85 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!pharm) throw new Error("Pharmacy not found");
 
-
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)
       : [];
     const pharmacyLoyalty = Math.max(0, Number((pharm as any).loyalty_points ?? 0));
-    if (refs.length === 0) return { ok: true, invoices: [] };
 
-    let accessToken: string, apiDomain: string, orgId: string;
-    try {
-      const t = await getZohoAccessToken();
-      accessToken = t.accessToken;
-      apiDomain = t.apiDomain;
-      orgId = t.orgId;
-    } catch (e: any) {
-      return { ok: false, invoices: [], error: e?.message ?? "Zoho not connected" };
+    // Pull all invoices linked to this pharmacy, plus any matching by number.
+    const { data: linked } = await supabaseAdmin
+      .from("invoices")
+      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+      .eq("pharmacy_id", data.pharmacyId);
+
+    const byNumber = new Map<string, any>();
+    for (const row of linked ?? []) {
+      const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
+      if (num) byNumber.set(num.toUpperCase(), row);
     }
 
-    const fetchOne = async (ref: string): Promise<InvoiceDetail> => {
-      const base: InvoiceDetail = {
-        number: ref,
-        invoiceId: null,
-        date: null,
-        dueDate: null,
-        total: null,
-        balance: null,
-        currencyCode: null,
-        status: null,
+    if (refs.length > 0) {
+      const missing = refs.filter((r) => !byNumber.has(r.toUpperCase()));
+      if (missing.length > 0) {
+        const { data: byNums } = await supabaseAdmin
+          .from("invoices")
+          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status")
+          .in("invoice_number", missing);
+        for (const row of byNums ?? []) {
+          const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
+          if (num) byNumber.set(num.toUpperCase(), row);
+        }
+      }
+    }
+
+    const toDetail = (num: string, row: any | undefined): InvoiceDetail => {
+      if (!row) {
+        return {
+          number: num,
+          invoiceId: null,
+          date: null,
+          dueDate: null,
+          total: null,
+          balance: null,
+          currencyCode: null,
+          status: null,
+          points: 0,
+          error: "not synced yet",
+        };
+      }
+      return {
+        number: String(row.invoice_number ?? num),
+        invoiceId: row.zoho_invoice_id ? String(row.zoho_invoice_id) : null,
+        date: row.invoice_date ?? null,
+        dueDate: row.due_date ?? null,
+        total: row.total !== null && row.total !== undefined ? Number(row.total) : null,
+        balance: row.balance !== null && row.balance !== undefined ? Number(row.balance) : null,
+        currencyCode: row.currency_code ?? null,
+        status: row.status ?? null,
         points: 0,
       };
-      try {
-        const url = `${apiDomain}/books/v3/invoices?organization_id=${orgId}&invoice_number=${encodeURIComponent(ref)}`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
-        });
-        const json: any = await res.json().catch(() => null);
-        if (!res.ok) return { ...base, error: json?.message ?? `HTTP ${res.status}` };
-        const list: any[] = Array.isArray(json?.invoices) ? json.invoices : [];
-        const inv = list.find((i) => String(i?.invoice_number) === ref) ?? list[0];
-        if (!inv) return { ...base, error: "not found in Zoho" };
-        return {
-          number: String(inv.invoice_number ?? ref),
-          invoiceId: inv.invoice_id ? String(inv.invoice_id) : null,
-          date: inv.date ?? null,
-          dueDate: inv.due_date ?? null,
-          total: typeof inv.total === "number" ? inv.total : Number(inv.total ?? 0) || null,
-          balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
-          currencyCode: inv.currency_code ?? null,
-          status: inv.status ?? null,
-          points: 0,
-        };
-      } catch (e: any) {
-        return { ...base, error: e?.message ?? "fetch failed" };
-      }
     };
 
-    // Cap concurrency to avoid hammering Zoho: process in batches of 5.
+    // Prefer the pharmacy's declared references order; then append any
+    // linked-by-pharmacy invoices not already covered.
     const invoices: InvoiceDetail[] = [];
-    for (let i = 0; i < refs.length; i += 5) {
-      const batch = await Promise.all(refs.slice(i, i + 5).map(fetchOne));
-      invoices.push(...batch);
+    const usedKeys = new Set<string>();
+    for (const ref of refs) {
+      const key = ref.toUpperCase();
+      invoices.push(toDetail(ref, byNumber.get(key)));
+      usedKeys.add(key);
+    }
+    for (const row of linked ?? []) {
+      const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
+      if (!num) continue;
+      const key = num.toUpperCase();
+      if (usedKeys.has(key)) continue;
+      usedKeys.add(key);
+      invoices.push(toDetail(num, row));
     }
 
-    // Attribute the pharmacy's current loyalty points across invoices,
-    // proportional to invoice total. Falls back to equal split if totals
-    // are missing/zero. Uses largest-remainder so shares sum exactly to
-    // pharmacyLoyalty (whole points).
+    // Attribute the pharmacy's loyalty points across invoices, proportional
+    // to invoice total (largest-remainder for whole-point shares).
     if (pharmacyLoyalty > 0 && invoices.length > 0) {
       const totals = invoices.map((i) => (typeof i.total === "number" && i.total > 0 ? i.total : 0));
       const sumTotals = totals.reduce((a, b) => a + b, 0);
@@ -133,3 +143,4 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
 
     return { ok: true, invoices };
   });
+
