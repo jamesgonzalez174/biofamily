@@ -357,6 +357,89 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       }
     }
 
+    // ---- Invoices sync (cache all Zoho invoices) ----
+    const { data: allPharms } = await supabaseAdmin
+      .from("pharmacies")
+      .select("id, zoho_contact_id");
+    const pharmIdByZoho = new Map<string, string>();
+    for (const p of allPharms ?? []) {
+      const z = (p as any).zoho_contact_id;
+      if (z) pharmIdByZoho.set(String(z), (p as any).id);
+    }
+
+    const fetchInvoicePage = async (
+      pg: number,
+    ): Promise<{ invoices: any[]; hasMore: boolean; stop?: string } | null> => {
+      if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
+        const refreshed = await getZohoAccessToken();
+        accessToken = refreshed.accessToken;
+        tokenIssuedAt = Date.now();
+      }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+        });
+        const raw = await res.text();
+        if (res.status === 401 && attempt === 0) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+          continue;
+        }
+        let json: any = null;
+        try { json = raw ? JSON.parse(raw) : null; } catch {
+          return { invoices: [], hasMore: false, stop: `invoices page ${pg}: non-JSON (${res.status})` };
+        }
+        if (!res.ok) {
+          return { invoices: [], hasMore: false, stop: `invoices page ${pg}: ${json?.message || res.statusText}` };
+        }
+        return { invoices: json.invoices ?? [], hasMore: Boolean(json.page_context?.has_more_page) };
+      }
+      return null;
+    };
+
+    let invPage = 1;
+    let invoicesUpserted = 0;
+    while (true) {
+      const cur = await fetchInvoicePage(invPage);
+      if (!cur) break;
+      if (cur.stop) { errors.push(cur.stop); break; }
+      if (cur.invoices.length > 0) {
+        const nowIso = new Date().toISOString();
+        const rows = cur.invoices.map((inv: any) => {
+          const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
+          return {
+            zoho_invoice_id: String(inv.invoice_id),
+            invoice_number: inv.invoice_number ?? null,
+            zoho_contact_id: zohoContactId,
+            pharmacy_id: zohoContactId ? pharmIdByZoho.get(zohoContactId) ?? null : null,
+            invoice_date: inv.date || null,
+            due_date: inv.due_date || null,
+            total: typeof inv.total === "number" ? inv.total : Number(inv.total ?? 0) || null,
+            balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
+            currency_code: inv.currency_code ?? null,
+            status: inv.status ?? null,
+            raw: inv,
+            last_synced_at: nowIso,
+          };
+        });
+        const { error: invErr } = await supabaseAdmin
+          .from("invoices")
+          .upsert(rows, { onConflict: "zoho_invoice_id" });
+        if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
+        else invoicesUpserted += rows.length;
+      }
+      if (!cur.hasMore) break;
+      invPage += 1;
+      if (invPage > 200) {
+        truncated = true;
+        errors.push(`hit invoice page cap (200) — sync truncated at ${invoicesUpserted} invoices`);
+        break;
+      }
+    }
+    upserted += invoicesUpserted;
+
     const result: SyncResult = { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
 
     await finalize(result);
