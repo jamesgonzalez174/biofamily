@@ -148,9 +148,12 @@ export type Database = {
           invoice_number: string | null
           last_synced_at: string
           pharmacy_id: string | null
+          points_distributed_at: string | null
+          points_given: boolean
           raw: Json | null
           status: string | null
           total: number | null
+          total_points: number | null
           updated_at: string
           zoho_contact_id: string | null
           zoho_invoice_id: string
@@ -165,9 +168,12 @@ export type Database = {
           invoice_number?: string | null
           last_synced_at?: string
           pharmacy_id?: string | null
+          points_distributed_at?: string | null
+          points_given?: boolean
           raw?: Json | null
           status?: string | null
           total?: number | null
+          total_points?: number | null
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id: string
@@ -182,9 +188,12 @@ export type Database = {
           invoice_number?: string | null
           last_synced_at?: string
           pharmacy_id?: string | null
+          points_distributed_at?: string | null
+          points_given?: boolean
           raw?: Json | null
           status?: string | null
           total?: number | null
+          total_points?: number | null
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id?: string
