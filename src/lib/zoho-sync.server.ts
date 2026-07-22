@@ -232,28 +232,16 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           uniqueRefs.push(ref);
         }
         const existing = existingByZoho.get(r.zoho_contact_id);
-        const oldLoyalty = Number(existing?.loyalty_points ?? 0);
-        const oldHistory = Number(existing?.history_points ?? 0);
-        // Delta = change in Zoho's Loyalty Points field since last sync.
-        const delta = r.loyalty_points !== null
-          ? Math.max(0, r.loyalty_points - oldLoyalty)
-          : 0;
-        const nextLoyalty = r.loyalty_points !== null ? r.loyalty_points : oldLoyalty;
-        const nextHistory = oldHistory + delta;
+        // Points are now driven by per-invoice distribution (Points Given = true),
+        // not by Zoho contact loyalty_points. Preserve existing values on the row.
         return {
           zoho_contact_id: r.zoho_contact_id,
           name: r.name,
           address: r.address,
           invoice_references: uniqueRefs,
           is_active: existing?.is_active ?? true,
-          loyalty_points: nextLoyalty,
-          history_points: nextHistory,
-          _delta: delta,
-          _existingId: existing?.id ?? null,
         };
       });
-
-
 
       // Strip any of the incoming refs from OTHER pharmacies in the DB so the
       // same invoice number can't appear on two pharmacy rows at once.
@@ -282,58 +270,15 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
-      const upsertRows = pharmacyRows.map(({ _delta, _existingId, ...rest }) => {
-        void _delta; void _existingId;
-        return rest;
-      });
       const [cRes, pRes] = await Promise.all([
         supabaseAdmin.from("zoho_customers").upsert(customerRows, { onConflict: "zoho_contact_id" }),
-        upsertRows.length > 0
-          ? supabaseAdmin.from("pharmacies").upsert(upsertRows, { onConflict: "zoho_contact_id" })
+        pharmacyRows.length > 0
+          ? supabaseAdmin.from("pharmacies").upsert(pharmacyRows, { onConflict: "zoho_contact_id" })
           : Promise.resolve({ error: null as any }),
       ]);
       if (cRes.error) errors.push(`page ${page} upsert: ${cRes.error.message}`);
       else upserted += customerRows.length;
       if (pRes.error) errors.push(`page ${page} pharmacies upsert: ${pRes.error.message}`);
-
-      // Split each pharmacy's loyalty delta equally across its members.
-      const pharmDeltas = pharmacyRows.filter((r) => r._delta > 0);
-      if (pharmDeltas.length > 0) {
-        const zohoIds = pharmDeltas.map((r) => r.zoho_contact_id);
-        const { data: phRows } = await supabaseAdmin
-          .from("pharmacies")
-          .select("id, zoho_contact_id")
-          .in("zoho_contact_id", zohoIds);
-        const idByZoho = new Map<string, string>();
-        for (const p of phRows ?? []) idByZoho.set(String((p as any).zoho_contact_id), (p as any).id);
-
-        for (const r of pharmDeltas) {
-          const pharmacyId = idByZoho.get(r.zoho_contact_id);
-          if (!pharmacyId) continue;
-          const { data: members } = await supabaseAdmin
-            .from("profiles")
-            .select("id, points_balance, lifetime_points")
-            .eq("pharmacy_id", pharmacyId);
-          if (!members || members.length === 0) continue;
-          const share = Math.floor(r._delta / members.length);
-          if (share <= 0) continue;
-          for (const m of members as any[]) {
-            const newBal = Math.max(0, Number(m.points_balance ?? 0) + share);
-            const newHist = Number(m.lifetime_points ?? 0) + share;
-            await supabaseAdmin
-              .from("profiles")
-              .update({ points_balance: newBal, lifetime_points: newHist })
-              .eq("id", m.id);
-            await supabaseAdmin.from("points_ledger").insert({
-              user_id: m.id,
-              delta: share,
-              reason: members.length > 1 ? `Zoho sync — split across ${members.length} pharmacy members` : "Zoho sync",
-              source: "zoho_sync",
-              reference: pharmacyId,
-            });
-          }
-        }
-      }
     };
 
 
