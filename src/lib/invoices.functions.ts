@@ -12,6 +12,8 @@ export type InvoiceDetail = {
   currencyCode: string | null;
   status: string | null;
   points: number;
+  pointsPerMember: number;
+  memberCount: number;
   error?: string;
 };
 
