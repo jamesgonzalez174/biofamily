@@ -403,32 +403,39 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
         const nowIso = new Date().toISOString();
-        const rows = cur.invoices.map((inv: any) => {
-          const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
-          const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
-          const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
-          return {
-            zoho_invoice_id: String(inv.invoice_id),
-            invoice_number: inv.invoice_number ?? null,
-            zoho_contact_id: zohoContactId,
-            pharmacy_id: zohoContactId ? pharmIdByZoho.get(zohoContactId) ?? null : null,
-            invoice_date: inv.date || null,
-            due_date: inv.due_date || null,
-            total: typeof inv.total === "number" ? inv.total : Number(inv.total ?? 0) || null,
-            balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
-            currency_code: inv.currency_code ?? null,
-            status: inv.status ?? null,
-            points_given: pointsGiven,
-            total_points: totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : null,
-            raw: inv,
-            last_synced_at: nowIso,
-          };
-        });
+        const rows = cur.invoices
+          .map((inv: any) => {
+            const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
+            const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
+            if (!pointsGiven) return null;
+            const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
+            return {
+              zoho_invoice_id: String(inv.invoice_id),
+              invoice_number: inv.invoice_number ?? null,
+              zoho_contact_id: zohoContactId,
+              pharmacy_id: zohoContactId ? pharmIdByZoho.get(zohoContactId) ?? null : null,
+              invoice_date: inv.date || null,
+              due_date: inv.due_date || null,
+              total: typeof inv.total === "number" ? inv.total : Number(inv.total ?? 0) || null,
+              balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
+              currency_code: inv.currency_code ?? null,
+              status: inv.status ?? null,
+              points_given: true,
+              total_points: totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : null,
+              raw: inv,
+              last_synced_at: nowIso,
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null);
+        if (rows.length === 0) {
+          // nothing to upsert on this page
+        } else {
         const { error: invErr } = await supabaseAdmin
           .from("invoices")
           .upsert(rows, { onConflict: "zoho_invoice_id" });
         if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
         else invoicesUpserted += rows.length;
+
 
         // Distribute points only for invoices flagged points_given=true that
         // haven't yet been distributed. Idempotent via points_distributed_at.
@@ -489,7 +496,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             invoicesDistributed += 1;
           }
         }
+        }
       }
+
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
