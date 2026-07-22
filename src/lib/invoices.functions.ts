@@ -30,7 +30,12 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     }
     return input;
   })
-  .handler(async ({ data }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
+  .handler(async ({ data, context }): Promise<{ ok: boolean; invoices: InvoiceDetail[]; error?: string }> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    const onlyPointsGiven = !isAdmin;
     const { data: pharm } = await supabaseAdmin
       .from("pharmacies")
       .select("id, invoice_references, loyalty_points")
