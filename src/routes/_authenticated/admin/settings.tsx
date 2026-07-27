@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
 import { sendTestExpiryReminder, logAdminAction } from "@/lib/admin.functions";
+import { backfillInvoicePoints } from "@/lib/backfill.functions";
 
 
 
