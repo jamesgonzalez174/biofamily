@@ -160,6 +160,29 @@ function Catalog() {
                   : "Points are deducted immediately when you redeem. If your order is cancelled, points are refunded automatically."}
 
               </div>
+              {balance >= selected.point_cost && selected.stock > 0 && (
+                <div className="mt-5 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Shipping address</label>
+                    <textarea
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      rows={3}
+                      placeholder="Street, city, state, ZIP"
+                      className="w-full rounded-lg border border-border bg-background p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Contact phone</label>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Phone number for delivery"
+                      className="w-full rounded-lg border border-border bg-background p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="mt-6 flex gap-2">
                 <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Close</button>
                 <button onClick={confirm} disabled={busy || balance < selected.point_cost || selected.stock <= 0} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
