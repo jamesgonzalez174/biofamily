@@ -473,6 +473,24 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const pharmacyId = inv.pharmacy_id as string | null;
             if (!pharmacyId || pts <= 0) continue;
 
+            // Defensive dedupe: if a ledger entry already exists for this
+            // invoice (source=zoho_invoice, reference=zoho_invoice_id), skip
+            // distribution and just mark the invoice distributed. Prevents
+            // double-credit if points_distributed_at was ever cleared.
+            const { data: existingLedger } = await supabaseAdmin
+              .from("points_ledger")
+              .select("id")
+              .eq("source", "zoho_invoice")
+              .eq("reference", inv.zoho_invoice_id)
+              .limit(1);
+            if (existingLedger && existingLedger.length > 0) {
+              await supabaseAdmin
+                .from("invoices")
+                .update({ points_distributed_at: new Date().toISOString() })
+                .eq("id", inv.id);
+              continue;
+            }
+
             const { data: phRow } = await supabaseAdmin
               .from("pharmacies")
               .select("history_points, loyalty_points")
