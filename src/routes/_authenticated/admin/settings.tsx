@@ -146,8 +146,9 @@ function SettingsPage() {
           <SyncHistory />
         </section>
 
-
-
+        <section className="lg:col-span-2">
+          <InvoiceBackfill />
+        </section>
 
         <section className="lg:col-span-2">
           <StatusManager />
