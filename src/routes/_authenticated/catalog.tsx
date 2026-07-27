@@ -96,7 +96,7 @@ function Catalog() {
             const afford = balance >= p.point_cost && p.stock > 0;
             return (
               <button
-                key={p.id} onClick={() => setSelected(p)}
+                key={p.id} onClick={() => openPrize(p)}
                 className="group relative overflow-hidden rounded-2xl border border-border bg-gradient-card text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-glow cursor-pointer"
               >
                 <div className="relative aspect-[5/3] w-full bg-muted">
