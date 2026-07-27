@@ -19,6 +19,8 @@ function Catalog() {
   const redeem = useServerFn(redeemPrize);
   const [selected, setSelected] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
 
   const { data: prizes, isLoading } = useQuery({
     queryKey: ["prizes"],
@@ -32,18 +34,32 @@ function Catalog() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("points_balance").eq("id", user!.id).single();
+      const { data } = await supabase.from("profiles").select("points_balance, phone").eq("id", user!.id).single();
       return data;
     },
   });
 
   const balance = profile?.points_balance ?? 0;
 
+  const openPrize = (p: any) => {
+    setSelected(p);
+    setAddress("");
+    setPhone(profile?.phone ?? "");
+  };
+
   const confirm = async () => {
     if (!selected) return;
+    if (!address.trim() || address.trim().length < 5) {
+      toast.error("Please enter a shipping address");
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 5) {
+      toast.error("Please enter a contact phone");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await redeem({ data: { prizeId: selected.id } });
+      await redeem({ data: { prizeId: selected.id, shippingAddress: address.trim(), contactPhone: phone.trim() } });
       toast.success(`Redeemed ${selected.name}! ${selected.point_cost.toLocaleString()} points deducted.`);
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["prizes"] });
@@ -80,7 +96,7 @@ function Catalog() {
             const afford = balance >= p.point_cost && p.stock > 0;
             return (
               <button
-                key={p.id} onClick={() => setSelected(p)}
+                key={p.id} onClick={() => openPrize(p)}
                 className="group relative overflow-hidden rounded-2xl border border-border bg-gradient-card text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-glow cursor-pointer"
               >
                 <div className="relative aspect-[5/3] w-full bg-muted">
@@ -144,6 +160,29 @@ function Catalog() {
                   : "Points are deducted immediately when you redeem. If your order is cancelled, points are refunded automatically."}
 
               </div>
+              {balance >= selected.point_cost && selected.stock > 0 && (
+                <div className="mt-5 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Shipping address</label>
+                    <textarea
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      rows={3}
+                      placeholder="Street, city, state, ZIP"
+                      className="w-full rounded-lg border border-border bg-background p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Contact phone</label>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Phone number for delivery"
+                      className="w-full rounded-lg border border-border bg-background p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="mt-6 flex gap-2">
                 <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Close</button>
                 <button onClick={confirm} disabled={busy || balance < selected.point_cost || selected.stock <= 0} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">

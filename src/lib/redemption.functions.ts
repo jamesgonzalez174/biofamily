@@ -5,7 +5,11 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const redeemPrize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ prizeId: z.string().uuid() }).parse(d))
+  .inputValidator((d) => z.object({
+    prizeId: z.string().uuid(),
+    shippingAddress: z.string().trim().min(5).max(500).optional(),
+    contactPhone: z.string().trim().min(5).max(50).optional(),
+  }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
 
@@ -14,6 +18,8 @@ export const redeemPrize = createServerFn({ method: "POST" })
     const { data: red, error } = await supabaseAdmin.rpc("create_redemption", {
       _user_id: userId,
       _prize_id: data.prizeId,
+      _shipping_address: data.shippingAddress ?? null,
+      _contact_phone: data.contactPhone ?? null,
     });
     if (error || !red) throw new Error(error?.message || "Failed to create redemption");
 

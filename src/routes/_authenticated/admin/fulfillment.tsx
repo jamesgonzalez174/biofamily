@@ -137,6 +137,16 @@ function Fulfillment() {
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            {(r.shipping_address || r.contact_phone) && (
+              <div className="mt-3 rounded-lg bg-muted/50 p-3 text-xs">
+                {r.shipping_address && (
+                  <div><span className="font-medium text-muted-foreground">Ship to:</span> <span className="whitespace-pre-wrap">{r.shipping_address}</span></div>
+                )}
+                {r.contact_phone && (
+                  <div className="mt-1"><span className="font-medium text-muted-foreground">Phone:</span> {r.contact_phone}</div>
+                )}
+              </div>
+            )}
             <div className="mt-3 flex gap-2">
               <input
                 key={r.tracking_info ?? ""}

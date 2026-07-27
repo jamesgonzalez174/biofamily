@@ -365,36 +365,42 @@ export type Database = {
       }
       redemptions: {
         Row: {
+          contact_phone: string | null
           created_at: string
           id: string
           notes: string | null
           points_spent: number
           prize_id: string
           prize_name: string
+          shipping_address: string | null
           status: Database["public"]["Enums"]["redemption_status"]
           tracking_info: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          contact_phone?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           points_spent: number
           prize_id: string
           prize_name: string
+          shipping_address?: string | null
           status?: Database["public"]["Enums"]["redemption_status"]
           tracking_info?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          contact_phone?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           points_spent?: number
           prize_id?: string
           prize_name?: string
+          shipping_address?: string | null
           status?: Database["public"]["Enums"]["redemption_status"]
           tracking_info?: string | null
           updated_at?: string
@@ -784,12 +790,14 @@ export type Database = {
       cancel_redemption: {
         Args: { _red_id: string }
         Returns: {
+          contact_phone: string | null
           created_at: string
           id: string
           notes: string | null
           points_spent: number
           prize_id: string
           prize_name: string
+          shipping_address: string | null
           status: Database["public"]["Enums"]["redemption_status"]
           tracking_info: string | null
           updated_at: string
@@ -802,27 +810,58 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_redemption: {
-        Args: { _prize_id: string; _user_id: string }
-        Returns: {
-          created_at: string
-          id: string
-          notes: string | null
-          points_spent: number
-          prize_id: string
-          prize_name: string
-          status: Database["public"]["Enums"]["redemption_status"]
-          tracking_info: string | null
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "redemptions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      create_redemption:
+        | {
+            Args: { _prize_id: string; _user_id: string }
+            Returns: {
+              contact_phone: string | null
+              created_at: string
+              id: string
+              notes: string | null
+              points_spent: number
+              prize_id: string
+              prize_name: string
+              shipping_address: string | null
+              status: Database["public"]["Enums"]["redemption_status"]
+              tracking_info: string | null
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "redemptions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _contact_phone?: string
+              _prize_id: string
+              _shipping_address?: string
+              _user_id: string
+            }
+            Returns: {
+              contact_phone: string | null
+              created_at: string
+              id: string
+              notes: string | null
+              points_spent: number
+              prize_id: string
+              prize_name: string
+              shipping_address: string | null
+              status: Database["public"]["Enums"]["redemption_status"]
+              tracking_info: string | null
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "redemptions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
