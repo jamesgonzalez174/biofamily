@@ -158,6 +158,100 @@ function SettingsPage() {
   );
 }
 
+function InvoiceBackfill() {
+  const run = useServerFn(backfillInvoicePoints);
+  const [invoice, setInvoice] = useState("");
+  const [busy, setBusy] = useState<"pending" | "reprocess" | null>(null);
+  const [lastResult, setLastResult] = useState<string>("");
+
+  const runPending = async () => {
+    setBusy("pending");
+    setLastResult("");
+    try {
+      const res: any = await run({ data: { mode: "pending" } });
+      setLastResult(
+        `Examined ${res.examined} pending invoice(s) — distributed ${res.distributed}, skipped ${res.skipped}.`,
+      );
+      toast.success(`Distributed ${res.distributed} pending invoice(s)`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Backfill failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runReprocess = async () => {
+    const trimmed = invoice.trim();
+    if (!trimmed) {
+      toast.error("Enter an invoice number");
+      return;
+    }
+    setBusy("reprocess");
+    setLastResult("");
+    try {
+      const res: any = await run({ data: { mode: "reprocess", invoiceNumber: trimmed } });
+      const distTxt = res.distributed
+        ? `distributed ${res.totalPoints} pts × ${res.distributed.memberCount} member(s) (share ${res.distributed.share})`
+        : "no distribution (not eligible)";
+      const revTxt = res.reversed?.reversedTotal
+        ? `reversed ${res.reversed.reversedTotal} pts across ${res.reversed.reversedEntries} entries; `
+        : "";
+      setLastResult(`${res.invoice}: ${revTxt}${distTxt}.`);
+      toast.success(`Reprocessed ${res.invoice}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Reprocess failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <h2 className="font-semibold">Invoice points backfill</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Reprocess invoices after correcting <code className="rounded bg-muted px-1">Total Points</code> or
+        <code className="ml-1 rounded bg-muted px-1">Points Given</code> in Zoho. "Pending" distributes any
+        cached invoices flagged Points Given = true with a positive Total Points that haven't yet been distributed.
+        "Reprocess" re-fetches a specific invoice from Zoho, reverses any prior distribution, and redistributes.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={runPending}
+          disabled={busy !== null}
+          className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95 disabled:opacity-50"
+        >
+          {busy === "pending" ? "Running…" : "Distribute pending invoices"}
+        </button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-2">
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium">Invoice number</span>
+          <input
+            type="text"
+            placeholder="e.g. FAC01-004456"
+            value={invoice}
+            onChange={(e) => setInvoice(e.target.value)}
+            className="w-64 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <button
+          onClick={runReprocess}
+          disabled={busy !== null}
+          className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+        >
+          {busy === "reprocess" ? "Reprocessing…" : "Reprocess invoice"}
+        </button>
+      </div>
+
+      {lastResult && (
+        <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-xs">{lastResult}</div>
+      )}
+    </div>
+  );
+}
+
 function StatusManager() {
   const { user } = useAuth();
   const qc = useQueryClient();
