@@ -19,6 +19,8 @@ function Catalog() {
   const redeem = useServerFn(redeemPrize);
   const [selected, setSelected] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
 
   const { data: prizes, isLoading } = useQuery({
     queryKey: ["prizes"],
@@ -32,18 +34,32 @@ function Catalog() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("points_balance").eq("id", user!.id).single();
+      const { data } = await supabase.from("profiles").select("points_balance, phone").eq("id", user!.id).single();
       return data;
     },
   });
 
   const balance = profile?.points_balance ?? 0;
 
+  const openPrize = (p: any) => {
+    setSelected(p);
+    setAddress("");
+    setPhone(profile?.phone ?? "");
+  };
+
   const confirm = async () => {
     if (!selected) return;
+    if (!address.trim() || address.trim().length < 5) {
+      toast.error("Please enter a shipping address");
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 5) {
+      toast.error("Please enter a contact phone");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await redeem({ data: { prizeId: selected.id } });
+      await redeem({ data: { prizeId: selected.id, shippingAddress: address.trim(), contactPhone: phone.trim() } });
       toast.success(`Redeemed ${selected.name}! ${selected.point_cost.toLocaleString()} points deducted.`);
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["prizes"] });
