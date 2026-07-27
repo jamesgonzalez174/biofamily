@@ -409,6 +409,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
             if (!pointsGiven) return null;
             const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
+            const totalPoints = totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : 0;
+            // Skip invoices with 0/blank Total Points — nothing to distribute.
+            if (totalPoints <= 0) return null;
             return {
               zoho_invoice_id: String(inv.invoice_id),
               invoice_number: inv.invoice_number ?? null,
@@ -421,7 +424,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
               currency_code: inv.currency_code ?? null,
               status: inv.status ?? null,
               points_given: true,
-              total_points: totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : null,
+              total_points: totalPoints,
               raw: inv,
               last_synced_at: nowIso,
             };
@@ -430,11 +433,28 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         if (rows.length === 0) {
           // nothing to upsert on this page
         } else {
-        const { error: invErr } = await supabaseAdmin
+        // Lock already-distributed invoices — do not overwrite their cached
+        // total_points on subsequent syncs, so points remain fixed to the
+        // invoice and cannot be re-distributed.
+        const zohoIds = rows.map((r) => r.zoho_invoice_id);
+        const { data: existingRows } = await supabaseAdmin
           .from("invoices")
-          .upsert(rows, { onConflict: "zoho_invoice_id" });
-        if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
-        else invoicesUpserted += rows.length;
+          .select("zoho_invoice_id, points_distributed_at")
+          .in("zoho_invoice_id", zohoIds);
+        const lockedIds = new Set(
+          (existingRows ?? [])
+            .filter((e: any) => e.points_distributed_at)
+            .map((e: any) => String(e.zoho_invoice_id)),
+        );
+        const upsertRows = rows.filter((r) => !lockedIds.has(r.zoho_invoice_id));
+        if (upsertRows.length > 0) {
+          const { error: invErr } = await supabaseAdmin
+            .from("invoices")
+            .upsert(upsertRows, { onConflict: "zoho_invoice_id" });
+          if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
+          else invoicesUpserted += upsertRows.length;
+        }
+
 
 
         // Distribute points only for invoices flagged points_given=true that
