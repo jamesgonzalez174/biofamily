@@ -321,7 +321,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         tokenIssuedAt = Date.now();
       }
       for (let attempt = 0; attempt < 2; attempt++) {
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200`;
+        // Server-side filter: only invoices flagged Points Given = true.
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&cf_points_given=true`;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
@@ -340,6 +341,35 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           return { invoices: [], hasMore: false, stop: `invoices page ${pg}: ${json?.message || res.statusText}` };
         }
         return { invoices: json.invoices ?? [], hasMore: Boolean(json.page_context?.has_more_page) };
+      }
+      return null;
+    };
+
+    // Zoho's invoice list endpoint doesn't include custom_fields on list rows —
+    // fetch each invoice's detail so we can read Points Given / Total Points.
+    const fetchInvoiceDetail = async (invoiceId: string): Promise<any | null> => {
+      if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
+        const refreshed = await getZohoAccessToken();
+        accessToken = refreshed.accessToken;
+        tokenIssuedAt = Date.now();
+      }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const url = `${apiBase}/invoices/${invoiceId}?organization_id=${orgId}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+        });
+        const raw = await res.text();
+        if (res.status === 401 && attempt === 0) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+          continue;
+        }
+        if (!res.ok) return null;
+        try {
+          const json = raw ? JSON.parse(raw) : null;
+          return json?.invoice ?? null;
+        } catch { return null; }
       }
       return null;
     };
