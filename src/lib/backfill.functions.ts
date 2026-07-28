@@ -268,7 +268,7 @@ export const backfillInvoicePoints = createServerFn({ method: "POST" })
     if (!inv) throw new Error("Zoho invoice payload missing");
 
     const pointsGiven = (await readInvCFBool(inv, "cf_points_given", "Points Given", "points_given")) === true;
-    const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
+    const totalPointsRaw = readInvCFNum(inv, "cf_points", "cf_total_points", "Points", "Total Points", "points", "total_points");
     const totalPoints = totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : null;
 
     await supabaseAdmin
