@@ -454,7 +454,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
             if (!pointsGiven) return null;
-            const totalPointsRaw = readInvCFNum(inv, "cf_total_points", "Total Points", "total_points");
+            const totalPointsRaw = readInvCFNum(inv, "cf_points", "cf_total_points", "Points", "Total Points", "points", "total_points");
             const totalPoints = totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : 0;
             // Skip invoices with 0/blank Total Points — nothing to distribute.
             if (totalPoints <= 0) return null;
