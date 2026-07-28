@@ -866,6 +866,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      distribute_invoice_points_once: {
+        Args: { _invoice_id: string }
+        Returns: Json
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }

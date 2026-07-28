@@ -477,26 +477,59 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         if (rows.length === 0) {
           // nothing to upsert on this page
         } else {
-        // Lock already-distributed invoices — do not overwrite their cached
-        // total_points on subsequent syncs, so points remain fixed to the
-        // invoice and cannot be re-distributed.
+        // Lock already-distributed invoices and also merge by invoice number,
+        // so a repeated sync can only update the existing cached invoice row.
         const zohoIds = rows.map((r) => r.zoho_invoice_id);
-        const { data: existingRows } = await supabaseAdmin
+        const invoiceNumbers = rows
+          .map((r) => r.invoice_number ? String(r.invoice_number).trim() : "")
+          .filter(Boolean);
+        const existingByZoho = new Map<string, any>();
+        const existingByNumber = new Map<string, any>();
+        const { data: existingByZohoRows } = await supabaseAdmin
           .from("invoices")
-          .select("zoho_invoice_id, points_distributed_at")
+          .select("id, zoho_invoice_id, invoice_number, points_distributed_at")
           .in("zoho_invoice_id", zohoIds);
-        const lockedIds = new Set(
-          (existingRows ?? [])
-            .filter((e: any) => e.points_distributed_at)
-            .map((e: any) => String(e.zoho_invoice_id)),
-        );
-        const upsertRows = rows.filter((r) => !lockedIds.has(r.zoho_invoice_id));
-        if (upsertRows.length > 0) {
+        for (const existing of existingByZohoRows ?? []) {
+          existingByZoho.set(String((existing as any).zoho_invoice_id), existing);
+          const num = (existing as any).invoice_number ? String((existing as any).invoice_number).trim().toUpperCase() : "";
+          if (num) existingByNumber.set(num, existing);
+        }
+        if (invoiceNumbers.length > 0) {
+          const { data: existingByNumberRows } = await supabaseAdmin
+            .from("invoices")
+            .select("id, zoho_invoice_id, invoice_number, points_distributed_at")
+            .in("invoice_number", Array.from(new Set(invoiceNumbers)));
+          for (const existing of existingByNumberRows ?? []) {
+            existingByZoho.set(String((existing as any).zoho_invoice_id), existing);
+            const num = (existing as any).invoice_number ? String((existing as any).invoice_number).trim().toUpperCase() : "";
+            if (num) existingByNumber.set(num, existing);
+          }
+        }
+
+        const insertRows: typeof rows = [];
+        const updateRows: Array<{ id: string; row: (typeof rows)[number] }> = [];
+        for (const row of rows) {
+          const numKey = row.invoice_number ? String(row.invoice_number).trim().toUpperCase() : "";
+          const existing = existingByZoho.get(row.zoho_invoice_id) ?? (numKey ? existingByNumber.get(numKey) : null);
+          if (existing?.points_distributed_at) continue;
+          if (existing?.id) updateRows.push({ id: String(existing.id), row });
+          else insertRows.push(row);
+        }
+
+        if (insertRows.length > 0) {
           const { error: invErr } = await supabaseAdmin
             .from("invoices")
-            .upsert(upsertRows, { onConflict: "zoho_invoice_id" });
-          if (invErr) errors.push(`invoices page ${invPage} upsert: ${invErr.message}`);
-          else invoicesUpserted += upsertRows.length;
+            .upsert(insertRows, { onConflict: "zoho_invoice_id" });
+          if (invErr) errors.push(`invoices page ${invPage} insert/update: ${invErr.message}`);
+          else invoicesUpserted += insertRows.length;
+        }
+        for (const { id, row } of updateRows) {
+          const { error: updErr } = await supabaseAdmin
+            .from("invoices")
+            .update(row)
+            .eq("id", id);
+          if (updErr) errors.push(`invoices page ${invPage} update ${row.invoice_number ?? row.zoho_invoice_id}: ${updErr.message}`);
+          else invoicesUpserted += 1;
         }
 
 
@@ -513,69 +546,16 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             .in("zoho_invoice_id", eligibleZoho)
             .is("points_distributed_at", null);
           for (const inv of (pending ?? []) as any[]) {
-            const pts = Number(inv.total_points ?? 0);
-            const pharmacyId = inv.pharmacy_id as string | null;
-            if (!pharmacyId || pts <= 0) continue;
-
-            // Defensive dedupe: if a ledger entry already exists for this
-            // invoice (source=zoho_invoice, reference=zoho_invoice_id), skip
-            // distribution and just mark the invoice distributed. Prevents
-            // double-credit if points_distributed_at was ever cleared.
-            const { data: existingLedger } = await supabaseAdmin
-              .from("points_ledger")
-              .select("id")
-              .eq("source", "zoho_invoice")
-              .eq("reference", inv.zoho_invoice_id)
-              .limit(1);
-            if (existingLedger && existingLedger.length > 0) {
-              await supabaseAdmin
-                .from("invoices")
-                .update({ points_distributed_at: new Date().toISOString() })
-                .eq("id", inv.id);
+            const { data: dist, error: distErr } = await (supabaseAdmin as any)
+              .rpc("distribute_invoice_points_once", { _invoice_id: inv.id });
+            if (distErr) {
+              errors.push(`invoice ${inv.invoice_number ?? inv.zoho_invoice_id} distribution: ${distErr.message}`);
               continue;
             }
-
-            const { data: phRow } = await supabaseAdmin
-              .from("pharmacies")
-              .select("history_points, loyalty_points")
-              .eq("id", pharmacyId)
-              .single();
-            const newHistory = Number((phRow as any)?.history_points ?? 0) + pts;
-            const newLoyalty = Number((phRow as any)?.loyalty_points ?? 0) + pts;
-            await supabaseAdmin
-              .from("pharmacies")
-              .update({ history_points: newHistory, loyalty_points: newLoyalty })
-              .eq("id", pharmacyId);
-
-            const { data: members } = await supabaseAdmin
-              .from("profiles")
-              .select("id, points_balance, lifetime_points")
-              .eq("pharmacy_id", pharmacyId);
-            const memberCount = members?.length ?? 0;
-            const share = memberCount > 0 ? Math.floor(pts / memberCount) : 0;
-            if (share > 0) {
-              for (const m of members as any[]) {
-                const newBal = Math.max(0, Number(m.points_balance ?? 0) + share);
-                const newLife = Number(m.lifetime_points ?? 0) + share;
-                await supabaseAdmin
-                  .from("profiles")
-                  .update({ points_balance: newBal, lifetime_points: newLife })
-                  .eq("id", m.id);
-                await supabaseAdmin.from("points_ledger").insert({
-                  user_id: m.id,
-                  delta: share,
-                  reason: `Invoice ${inv.invoice_number ?? inv.zoho_invoice_id} — ${pts} pts split across ${memberCount}`,
-                  source: "zoho_invoice",
-                  reference: inv.zoho_invoice_id,
-                });
-              }
-              notifiedCount += memberCount;
+            if (dist?.distributed) {
+              notifiedCount += Number(dist.credited ?? 0);
+              invoicesDistributed += 1;
             }
-            await supabaseAdmin
-              .from("invoices")
-              .update({ points_distributed_at: new Date().toISOString() })
-              .eq("id", inv.id);
-            invoicesDistributed += 1;
           }
         }
         }
