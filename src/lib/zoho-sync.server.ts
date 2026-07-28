@@ -151,6 +151,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   void opts.notify;
   const source = opts.source ?? "manual";
   const triggeredBy = opts.triggeredBy ?? null;
+
+  // Sweep any previous runs that never finished, and alert admins.
+  await reapStuckRuns();
+
   const startedAt = new Date().toISOString();
   const { data: runRow } = await supabaseAdmin
     .from("zoho_sync_runs")
@@ -160,21 +164,34 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   const runId = (runRow as any)?.id as string | undefined;
 
   const finalize = async (result: SyncResult) => {
-    if (!runId) return;
-    await supabaseAdmin
-      .from("zoho_sync_runs")
-      .update({
-        finished_at: new Date().toISOString(),
-        ok: result.ok,
-        fetched: result.fetched,
-        upserted: result.upserted,
-        pages: result.pages,
-        truncated: result.truncated,
-        notified_count: result.notifiedCount,
-        errors: result.errors as any,
-      })
-      .eq("id", runId);
+    const finishedAt = new Date().toISOString();
+    if (runId) {
+      await supabaseAdmin
+        .from("zoho_sync_runs")
+        .update({
+          finished_at: finishedAt,
+          ok: result.ok,
+          fetched: result.fetched,
+          upserted: result.upserted,
+          pages: result.pages,
+          truncated: result.truncated,
+          notified_count: result.notifiedCount,
+          errors: result.errors as any,
+        })
+        .eq("id", runId);
+    }
+    if (!result.ok) {
+      await notifyAdminsOfSyncIssue({
+        status: 'failed',
+        source,
+        runId,
+        startedAt,
+        finishedAt,
+        errors: result.errors.length > 0 ? result.errors : ['Zoho sync failed'],
+      });
+    }
   };
+
 
   try {
     let { accessToken, apiDomain, orgId } = await getZohoAccessToken();
