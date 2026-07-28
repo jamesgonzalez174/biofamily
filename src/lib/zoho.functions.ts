@@ -82,7 +82,7 @@ export const syncZohoCustomers = createServerFn({ method: "POST" })
     return await runZohoSync({ notify: true, source: "manual", triggeredBy: context.userId });
   });
 
-/** List recent Zoho sync runs (admin only). */
+/** List the most recent Zoho sync run (admin only). */
 export const listZohoSyncRuns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -91,7 +91,7 @@ export const listZohoSyncRuns = createServerFn({ method: "GET" })
       .from("zoho_sync_runs")
       .select("id, started_at, finished_at, ok, source, fetched, upserted, pages, truncated, notified_count, errors, triggered_by")
       .order("started_at", { ascending: false })
-      .limit(50);
+      .limit(1);
     if (error) throw new Error(error.message);
     return { runs: data ?? [] };
   });
