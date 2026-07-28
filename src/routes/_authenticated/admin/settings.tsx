@@ -568,7 +568,7 @@ function SyncHistory() {
         <div>
           <h2 className="font-semibold">Sync history</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Recent Zoho customer syncs (manual and scheduled). Auto-refreshes.
+            Latest Zoho customer sync (manual or scheduled). Auto-refreshes.
           </p>
         </div>
         <button
