@@ -321,7 +321,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         tokenIssuedAt = Date.now();
       }
       for (let attempt = 0; attempt < 2; attempt++) {
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200`;
+        // Server-side filter: only invoices flagged Points Given = true.
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&cf_points_given=true`;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
@@ -340,6 +341,35 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           return { invoices: [], hasMore: false, stop: `invoices page ${pg}: ${json?.message || res.statusText}` };
         }
         return { invoices: json.invoices ?? [], hasMore: Boolean(json.page_context?.has_more_page) };
+      }
+      return null;
+    };
+
+    // Zoho's invoice list endpoint doesn't include custom_fields on list rows —
+    // fetch each invoice's detail so we can read Points Given / Total Points.
+    const fetchInvoiceDetail = async (invoiceId: string): Promise<any | null> => {
+      if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
+        const refreshed = await getZohoAccessToken();
+        accessToken = refreshed.accessToken;
+        tokenIssuedAt = Date.now();
+      }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const url = `${apiBase}/invoices/${invoiceId}?organization_id=${orgId}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+        });
+        const raw = await res.text();
+        if (res.status === 401 && attempt === 0) {
+          const refreshed = await getZohoAccessToken();
+          accessToken = refreshed.accessToken;
+          tokenIssuedAt = Date.now();
+          continue;
+        }
+        if (!res.ok) return null;
+        try {
+          const json = raw ? JSON.parse(raw) : null;
+          return json?.invoice ?? null;
+        } catch { return null; }
       }
       return null;
     };
@@ -402,8 +432,22 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
+        // List rows don't include custom_fields; fetch each invoice detail
+        // (small concurrency) so we can read Points Given / Total Points.
+        const hydrated: any[] = [];
+        const CONCURRENCY = 5;
+        for (let i = 0; i < cur.invoices.length; i += CONCURRENCY) {
+          const chunk = cur.invoices.slice(i, i + CONCURRENCY);
+          const details = await Promise.all(
+            chunk.map(async (inv: any) => {
+              const detail = await fetchInvoiceDetail(String(inv.invoice_id));
+              return detail ? { ...inv, ...detail } : inv;
+            }),
+          );
+          hydrated.push(...details);
+        }
         const nowIso = new Date().toISOString();
-        const rows = cur.invoices
+        const rows = hydrated
           .map((inv: any) => {
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
