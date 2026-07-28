@@ -432,8 +432,22 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
+        // List rows don't include custom_fields; fetch each invoice detail
+        // (small concurrency) so we can read Points Given / Total Points.
+        const hydrated: any[] = [];
+        const CONCURRENCY = 5;
+        for (let i = 0; i < cur.invoices.length; i += CONCURRENCY) {
+          const chunk = cur.invoices.slice(i, i + CONCURRENCY);
+          const details = await Promise.all(
+            chunk.map(async (inv: any) => {
+              const detail = await fetchInvoiceDetail(String(inv.invoice_id));
+              return detail ? { ...inv, ...detail } : inv;
+            }),
+          );
+          hydrated.push(...details);
+        }
         const nowIso = new Date().toISOString();
-        const rows = cur.invoices
+        const rows = hydrated
           .map((inv: any) => {
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
