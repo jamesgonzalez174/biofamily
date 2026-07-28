@@ -324,7 +324,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         // No server-side custom-field filter — Zoho's cf_* filter names vary
         // per org and often return empty results. We fetch all invoices and
         // check Points Given via each invoice's detail payload below.
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200`;
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&sort_column=last_modified_time&sort_order=D`;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
@@ -426,20 +426,50 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       return null;
     };
 
+    // Pre-load the set of already-distributed (locked) invoices so we can
+    // skip Zoho detail calls for them entirely. Locked invoices are terminal
+    // — their points, custom fields, and totals will not change here.
+    const lockedZohoIds = new Set<string>();
+    {
+      const { data: lockedRows } = await supabaseAdmin
+        .from("invoices")
+        .select("zoho_invoice_id")
+        .not("points_distributed_at", "is", null);
+      for (const r of lockedRows ?? []) {
+        const z = (r as any).zoho_invoice_id;
+        if (z) lockedZohoIds.add(String(z));
+      }
+    }
+
     let invPage = 1;
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
+    let consecutiveFullyLockedPages = 0;
     while (true) {
       const cur = await fetchInvoicePage(invPage);
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
+        // Skip invoices we've already locked/distributed — no need to call Zoho
+        // detail for them. Since we sort newest-first, stop paginating once we
+        // hit two consecutive pages where every invoice is already locked.
+        const freshList = cur.invoices.filter((inv: any) => !lockedZohoIds.has(String(inv.invoice_id)));
+        const pageFullyLocked = freshList.length === 0;
+        if (pageFullyLocked) {
+          consecutiveFullyLockedPages += 1;
+          if (consecutiveFullyLockedPages >= 2) break;
+          if (!cur.hasMore) break;
+          invPage += 1;
+          continue;
+        }
+        consecutiveFullyLockedPages = 0;
+
         // List rows don't include custom_fields; fetch each invoice detail
         // (small concurrency) so we can read Points Given / Total Points.
         const hydrated: any[] = [];
-        const CONCURRENCY = 5;
-        for (let i = 0; i < cur.invoices.length; i += CONCURRENCY) {
-          const chunk = cur.invoices.slice(i, i + CONCURRENCY);
+        const CONCURRENCY = 10;
+        for (let i = 0; i < freshList.length; i += CONCURRENCY) {
+          const chunk = freshList.slice(i, i + CONCURRENCY);
           const details = await Promise.all(
             chunk.map(async (inv: any) => {
               const detail = await fetchInvoiceDetail(String(inv.invoice_id));
