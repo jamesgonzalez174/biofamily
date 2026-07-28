@@ -321,8 +321,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         tokenIssuedAt = Date.now();
       }
       for (let attempt = 0; attempt < 2; attempt++) {
-        // Server-side filter: only invoices flagged Points Given = true.
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&cf_points_given=true`;
+        // No server-side custom-field filter — Zoho's cf_* filter names vary
+        // per org and often return empty results. We fetch all invoices and
+        // check Points Given via each invoice's detail payload below.
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200`;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
