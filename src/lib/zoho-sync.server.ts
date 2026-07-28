@@ -1,5 +1,74 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getZohoAccessToken } from "./zoho-api.server";
+import { sendTransactionalEmailServer } from "./email/send.server";
+
+const STUCK_RUN_THRESHOLD_MINUTES = 15;
+
+async function notifyAdminsOfSyncIssue(params: {
+  status: 'failed' | 'stuck';
+  source: string;
+  runId?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  errors: string[];
+}): Promise<void> {
+  try {
+    const { data: adminRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'admin');
+    const ids = (adminRoles ?? []).map((r: any) => r.user_id).filter(Boolean);
+    if (ids.length === 0) return;
+    const { data: profs } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .in('id', ids);
+    const emails = Array.from(
+      new Set((profs ?? []).map((p: any) => p.email).filter(Boolean)),
+    ) as string[];
+    for (const email of emails) {
+      await sendTransactionalEmailServer({
+        templateName: 'zoho-sync-alert',
+        recipientEmail: email,
+        idempotencyKey: `zoho-sync-${params.status}-${params.runId ?? params.startedAt ?? Date.now()}-${email}`,
+        templateData: params,
+      });
+    }
+  } catch (e) {
+    console.error('notifyAdminsOfSyncIssue failed', e);
+  }
+}
+
+/** Finalize any runs that have been open too long and alert admins. */
+async function reapStuckRuns(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - STUCK_RUN_THRESHOLD_MINUTES * 60_000).toISOString();
+    const { data: stuck } = await supabaseAdmin
+      .from('zoho_sync_runs')
+      .select('id, started_at, source')
+      .is('finished_at', null)
+      .lt('started_at', cutoff);
+    for (const row of (stuck ?? []) as any[]) {
+      const nowIso = new Date().toISOString();
+      const errMsg = `run stuck: no completion within ${STUCK_RUN_THRESHOLD_MINUTES} minutes`;
+      await supabaseAdmin
+        .from('zoho_sync_runs')
+        .update({ finished_at: nowIso, ok: false, errors: [errMsg] as any })
+        .eq('id', row.id);
+      await notifyAdminsOfSyncIssue({
+        status: 'stuck',
+        source: row.source ?? 'unknown',
+        runId: row.id,
+        startedAt: row.started_at,
+        finishedAt: nowIso,
+        errors: [errMsg],
+      });
+    }
+  } catch (e) {
+    console.error('reapStuckRuns failed', e);
+  }
+}
+
 
 function readContactCF(contact: any, ...names: string[]): number | null {
   const lower = names.map((n) => n.toLowerCase().replace(/[\s_-]/g, ""));
@@ -82,6 +151,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   void opts.notify;
   const source = opts.source ?? "manual";
   const triggeredBy = opts.triggeredBy ?? null;
+
+  // Sweep any previous runs that never finished, and alert admins.
+  await reapStuckRuns();
+
   const startedAt = new Date().toISOString();
   const { data: runRow } = await supabaseAdmin
     .from("zoho_sync_runs")
@@ -91,21 +164,34 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   const runId = (runRow as any)?.id as string | undefined;
 
   const finalize = async (result: SyncResult) => {
-    if (!runId) return;
-    await supabaseAdmin
-      .from("zoho_sync_runs")
-      .update({
-        finished_at: new Date().toISOString(),
-        ok: result.ok,
-        fetched: result.fetched,
-        upserted: result.upserted,
-        pages: result.pages,
-        truncated: result.truncated,
-        notified_count: result.notifiedCount,
-        errors: result.errors as any,
-      })
-      .eq("id", runId);
+    const finishedAt = new Date().toISOString();
+    if (runId) {
+      await supabaseAdmin
+        .from("zoho_sync_runs")
+        .update({
+          finished_at: finishedAt,
+          ok: result.ok,
+          fetched: result.fetched,
+          upserted: result.upserted,
+          pages: result.pages,
+          truncated: result.truncated,
+          notified_count: result.notifiedCount,
+          errors: result.errors as any,
+        })
+        .eq("id", runId);
+    }
+    if (!result.ok) {
+      await notifyAdminsOfSyncIssue({
+        status: 'failed',
+        source,
+        runId,
+        startedAt,
+        finishedAt,
+        errors: result.errors.length > 0 ? result.errors : ['Zoho sync failed'],
+      });
+    }
   };
+
 
   try {
     let { accessToken, apiDomain, orgId } = await getZohoAccessToken();

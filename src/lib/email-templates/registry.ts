@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as pointsEarned } from './points-earned'
 import { template as pointsExpiring } from './points-expiring'
+import { template as zohoSyncAlert } from './zoho-sync-alert'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'points-earned': pointsEarned,
   'points-expiring': pointsExpiring,
+  'zoho-sync-alert': zohoSyncAlert,
 }
