@@ -125,16 +125,13 @@ function MyPharmaciesPage() {
                 </div>
               </div>
             )}
-            {Array.isArray(p.invoice_references) && p.invoice_references.length > 0 && (
-
-              <div className="mt-3">
-                <InvoiceDetailsDrawer
-                  pharmacyId={p.id}
-                  pharmacyName={p.name}
-                  references={p.invoice_references}
-                />
-              </div>
-            )}
+            <div className="mt-3">
+              <InvoiceDetailsDrawer
+                pharmacyId={p.id}
+                pharmacyName={p.name}
+                references={Array.isArray(p.invoice_references) ? p.invoice_references : []}
+              />
+            </div>
 
 
           </div>

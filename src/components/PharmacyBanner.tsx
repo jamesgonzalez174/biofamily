@@ -131,7 +131,7 @@ export function PharmacyBanner() {
           <Lock className="h-3 w-3" /> Locked — contact an admin to change
         </span>
       </div>
-      {invoiceRefs.length > 0 && profile.pharmacy_id && (
+      {profile.pharmacy_id && (
         <InvoiceDetailsDrawer
           pharmacyId={profile.pharmacy_id}
           pharmacyName={current?.name ?? undefined}
