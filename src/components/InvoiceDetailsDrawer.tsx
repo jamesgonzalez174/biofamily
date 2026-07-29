@@ -40,30 +40,28 @@ function statusPill(status: string | null): { label: string; className: string }
 export function InvoiceDetailsDrawer({
   pharmacyId,
   pharmacyName,
-  references,
+  references = [],
   defaultOpen = false,
   className = "",
 }: {
   pharmacyId: string;
   pharmacyName?: string;
-  references: string[];
+  references?: string[];
   defaultOpen?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const fetchDetails = useServerFn(getPharmacyInvoiceDetails);
-  const count = references.length;
 
   const { data, isFetching, refetch, error } = useQuery({
-    queryKey: ["invoice-details", pharmacyId, count],
-    enabled: open && count > 0,
+    queryKey: ["invoice-details", pharmacyId],
+    enabled: open,
     staleTime: 60_000,
     queryFn: () => fetchDetails({ data: { pharmacyId } }),
   });
 
-  if (count === 0) return null;
-
   const invoices: InvoiceDetail[] = data?.invoices ?? [];
+  const count = invoices.length || references.length;
   // Sort newest first when we have dates
   const sorted = [...invoices].sort((a, b) => {
     if (!a.date && !b.date) return 0;
