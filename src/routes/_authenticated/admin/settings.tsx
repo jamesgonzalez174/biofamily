@@ -513,7 +513,7 @@ function SyncCustomers() {
       } else if (res.errors.length) {
         toast.warning(`Synced ${res.upserted} (with ${res.errors.length} errors)`);
       } else {
-        toast.success(`Synced ${res.upserted} customers from Zoho`);
+        toast.success(`Synced ${res.upserted} invoices with points from Zoho`);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
