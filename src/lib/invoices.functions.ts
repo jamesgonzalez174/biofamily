@@ -73,7 +73,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
           .in("invoice_number", missing);
         for (const row of byNums ?? []) {
           const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
-          if (num) byNumber.set(num.toUpperCase(), row);
+          if (num) byNumber.set(norm(num), row);
         }
       }
     }
