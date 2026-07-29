@@ -526,9 +526,9 @@ function SyncCustomers() {
     <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Sync Points Earn </h2>
+          <h2 className="font-semibold">Sync Points Earn</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Pulls contacts from Zoho Books using your stored refresh token and stores them in the customers table.
+            Pulls Zoho Books invoices marked <strong>Points Given</strong> and distributes their points to pharmacies and members.
           </p>
         </div>
         <button
@@ -537,7 +537,7 @@ function SyncCustomers() {
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-          {busy ? "Syncing…" : "Sync customers"}
+          {busy ? "Syncing…" : "Sync invoices with points"}
         </button>
       </div>
     </div>
