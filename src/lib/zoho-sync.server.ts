@@ -581,11 +581,17 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           const chunk = freshList.slice(i, i + CONCURRENCY);
           const details = await Promise.all(
             chunk.map(async (inv: any) => {
-              const detail = await fetchInvoiceDetail(String(inv.invoice_id));
-              return detail ? { ...inv, ...detail } : inv;
+              const result = await fetchInvoiceDetail(String(inv.invoice_id));
+              if (!result.ok) {
+                errors.push(
+                  `invoice detail fetch failed ${inv.invoice_number ?? inv.invoice_id}: ${result.error}`,
+                );
+                return null;
+              }
+              return { ...inv, ...result.invoice };
             }),
           );
-          hydrated.push(...details);
+          for (const d of details) if (d) hydrated.push(d);
         }
         const nowIso = new Date().toISOString();
         const rows = hydrated
