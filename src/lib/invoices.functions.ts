@@ -54,14 +54,18 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
       .eq("pharmacy_id", data.pharmacyId);
 
+    // Normalize aggressively so "FAC01 -004607", "fac01-004607" and
+    // "FAC01004607" all collapse to a single invoice entry.
+    const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
     const byNumber = new Map<string, any>();
     for (const row of linked ?? []) {
       const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
-      if (num) byNumber.set(num.toUpperCase(), row);
+      if (num) byNumber.set(norm(num), row);
     }
 
     if (refs.length > 0) {
-      const missing = refs.filter((r) => !byNumber.has(r.toUpperCase()));
+      const missing = refs.filter((r) => !byNumber.has(norm(r)));
       if (missing.length > 0) {
         const { data: byNums } = await supabaseAdmin
           .from("invoices")
@@ -69,7 +73,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
           .in("invoice_number", missing);
         for (const row of byNums ?? []) {
           const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
-          if (num) byNumber.set(num.toUpperCase(), row);
+          if (num) byNumber.set(norm(num), row);
         }
       }
     }
@@ -115,24 +119,30 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     };
 
     // Prefer the pharmacy's declared references order; then append any
-    // linked-by-pharmacy invoices not already covered.
+    // linked-by-pharmacy invoices not already covered. Dedupe on normalized
+    // invoice number AND Zoho invoice id so the same invoice never repeats.
     const invoices: InvoiceDetail[] = [];
     const usedKeys = new Set<string>();
-    for (const ref of refs) {
-      const key = ref.toUpperCase();
-      const row = byNumber.get(key);
-      if (onlyPointsGiven && !(row && row.points_given)) continue;
-      invoices.push(toDetail(ref, row));
+    const usedZohoIds = new Set<string>();
+    const push = (num: string, row: any | undefined) => {
+      const key = norm(row?.invoice_number ? String(row.invoice_number) : num);
+      const zid = row?.zoho_invoice_id ? String(row.zoho_invoice_id) : null;
+      if (usedKeys.has(key)) return;
+      if (zid && usedZohoIds.has(zid)) return;
       usedKeys.add(key);
+      if (zid) usedZohoIds.add(zid);
+      invoices.push(toDetail(num, row));
+    };
+    for (const ref of refs) {
+      const row = byNumber.get(norm(ref));
+      if (onlyPointsGiven && !(row && row.points_given)) continue;
+      push(ref, row);
     }
     for (const row of linked ?? []) {
       const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
       if (!num) continue;
-      const key = num.toUpperCase();
-      if (usedKeys.has(key)) continue;
       if (onlyPointsGiven && !(row as any).points_given) continue;
-      usedKeys.add(key);
-      invoices.push(toDetail(num, row));
+      push(num, row);
     }
 
     return { ok: true, invoices };
