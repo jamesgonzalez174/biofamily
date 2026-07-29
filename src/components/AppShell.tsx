@@ -52,7 +52,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
           <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
         <span className="font-semibold tracking-tight leading-tight whitespace-pre-line">
-          {admin ? "Biomed Family \n\nAdmin" : "Biomed Family"}
+          {admin ? "BIOMED FAMILY\u00a0 \n\nAdmin" : "BIOMED FAMILY\u00a0"}
         </span>
       </Link>
 
