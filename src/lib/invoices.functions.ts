@@ -54,14 +54,18 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
       .eq("pharmacy_id", data.pharmacyId);
 
+    // Normalize aggressively so "FAC01 -004607", "fac01-004607" and
+    // "FAC01004607" all collapse to a single invoice entry.
+    const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
     const byNumber = new Map<string, any>();
     for (const row of linked ?? []) {
       const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
-      if (num) byNumber.set(num.toUpperCase(), row);
+      if (num) byNumber.set(norm(num), row);
     }
 
     if (refs.length > 0) {
-      const missing = refs.filter((r) => !byNumber.has(r.toUpperCase()));
+      const missing = refs.filter((r) => !byNumber.has(norm(r)));
       if (missing.length > 0) {
         const { data: byNums } = await supabaseAdmin
           .from("invoices")
