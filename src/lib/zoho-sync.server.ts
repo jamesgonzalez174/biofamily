@@ -435,17 +435,27 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
 
     // Zoho's invoice list endpoint doesn't include custom_fields on list rows —
     // fetch each invoice's detail so we can read Points Given / Total Points.
-    const fetchInvoiceDetail = async (invoiceId: string): Promise<any | null> => {
+    const fetchInvoiceDetail = async (
+      invoiceId: string,
+    ): Promise<{ ok: true; invoice: any } | { ok: false; error: string }> => {
       if (Date.now() - tokenIssuedAt > TOKEN_TTL_MS) {
         const refreshed = await getZohoAccessToken();
         accessToken = refreshed.accessToken;
         tokenIssuedAt = Date.now();
       }
-      for (let attempt = 0; attempt < 2; attempt++) {
+      let lastError = "unknown error";
+      for (let attempt = 0; attempt < 4; attempt++) {
         const url = `${apiBase}/invoices/${invoiceId}?organization_id=${orgId}`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
-        });
+        let res: Response;
+        try {
+          res = await fetch(url, {
+            headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+          });
+        } catch (e: any) {
+          lastError = `network error: ${e?.message ?? String(e)}`;
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          continue;
+        }
         const raw = await res.text();
         if (res.status === 401 && attempt === 0) {
           const refreshed = await getZohoAccessToken();
@@ -453,13 +463,26 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           tokenIssuedAt = Date.now();
           continue;
         }
-        if (!res.ok) return null;
+        if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+          lastError = `HTTP ${res.status}`;
+          const retryAfter = Number(res.headers.get("retry-after")) || 0;
+          const delay = retryAfter > 0 ? retryAfter * 1000 : 500 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (!res.ok) {
+          return { ok: false, error: `HTTP ${res.status}: ${raw.slice(0, 200)}` };
+        }
         try {
           const json = raw ? JSON.parse(raw) : null;
-          return json?.invoice ?? null;
-        } catch { return null; }
+          const invoice = json?.invoice ?? null;
+          if (!invoice) return { ok: false, error: "empty invoice payload" };
+          return { ok: true, invoice };
+        } catch (e: any) {
+          return { ok: false, error: `parse error: ${e?.message ?? String(e)}` };
+        }
       }
-      return null;
+      return { ok: false, error: lastError };
     };
 
     // Helpers to read custom fields off an invoice payload
@@ -558,11 +581,17 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           const chunk = freshList.slice(i, i + CONCURRENCY);
           const details = await Promise.all(
             chunk.map(async (inv: any) => {
-              const detail = await fetchInvoiceDetail(String(inv.invoice_id));
-              return detail ? { ...inv, ...detail } : inv;
+              const result = await fetchInvoiceDetail(String(inv.invoice_id));
+              if (!result.ok) {
+                errors.push(
+                  `invoice detail fetch failed ${inv.invoice_number ?? inv.invoice_id}: ${result.error}`,
+                );
+                return null;
+              }
+              return { ...inv, ...result.invoice };
             }),
           );
-          hydrated.push(...details);
+          for (const d of details) if (d) hydrated.push(d);
         }
         const nowIso = new Date().toISOString();
         const rows = hydrated
