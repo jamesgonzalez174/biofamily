@@ -422,8 +422,10 @@ export type Database = {
           id: number
           points_expire_at: string | null
           points_per_dollar: number
+          sync_all_invoices: boolean
           sync_hour: number
           sync_minute: number
+          sync_points_invoices: boolean
           sync_timezone: string
           updated_at: string
         }
@@ -432,8 +434,10 @@ export type Database = {
           id?: number
           points_expire_at?: string | null
           points_per_dollar?: number
+          sync_all_invoices?: boolean
           sync_hour?: number
           sync_minute?: number
+          sync_points_invoices?: boolean
           sync_timezone?: string
           updated_at?: string
         }
@@ -442,8 +446,10 @@ export type Database = {
           id?: number
           points_expire_at?: string | null
           points_per_dollar?: number
+          sync_all_invoices?: boolean
           sync_hour?: number
           sync_minute?: number
+          sync_points_invoices?: boolean
           sync_timezone?: string
           updated_at?: string
         }
