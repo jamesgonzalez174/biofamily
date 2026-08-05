@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Sparkles, TrendingUp, Gift, ArrowRight } from "lucide-react";
+import { Sparkles, TrendingUp, Gift, ArrowRight, Ticket } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBar } from "@/components/StatusBar";
 import { PharmacyBanner } from "@/components/PharmacyBanner";
@@ -62,6 +62,24 @@ function Dashboard() {
 
 
 
+
+        <div className="overflow-hidden rounded-2xl bg-gradient-hero p-6 text-primary-foreground shadow-glow">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
+              <Ticket className="h-3.5 w-3.5" /> Tickets
+            </div>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold">
+              Coming soon
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <div className="text-5xl font-bold tabular-nums opacity-60">—</div>
+            <div className="text-sm opacity-80">tickets</div>
+          </div>
+          <p className="mt-4 text-xs opacity-90">
+            Raffle tickets are on the way. Soon you'll be able to turn points into entries for bigger prize draws.
+          </p>
+        </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2 overflow-hidden rounded-2xl bg-gradient-hero p-6 text-primary-foreground shadow-glow">
