@@ -55,18 +55,43 @@ function SettingsPage() {
   const [rate, setRate] = useState<number>(1);
   const [fallback, setFallback] = useState<boolean>(true);
   const [expireAt, setExpireAt] = useState<string>("");
+  const [syncPoints, setSyncPoints] = useState<boolean>(true);
+  const [syncAll, setSyncAll] = useState<boolean>(false);
 
   useEffect(() => {
     if (settings) {
       setRate(Number(settings.points_per_dollar));
       setFallback(settings.enable_invoice_total_fallback);
       setExpireAt((settings as any).points_expire_at ? new Date((settings as any).points_expire_at).toISOString().slice(0, 10) : "");
+      setSyncPoints((settings as any).sync_points_invoices !== false);
+      setSyncAll((settings as any).sync_all_invoices === true);
     }
   }, [settings]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  const saveSyncScope = async (next: { syncPoints?: boolean; syncAll?: boolean }) => {
+    const nextPoints = next.syncPoints ?? syncPoints;
+    const nextAll = next.syncAll ?? syncAll;
+    setSyncPoints(nextPoints);
+    setSyncAll(nextAll);
+    const { error } = await supabase.from("settings").update({
+      sync_points_invoices: nextPoints,
+      sync_all_invoices: nextAll,
+    } as any).eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success("Sync scope updated");
+    try {
+      await log({ data: {
+        action: "settings_update",
+        targetType: "settings",
+        details: { sync_points_invoices: nextPoints, sync_all_invoices: nextAll },
+      } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
 
   const save = async () => {
     const nextExpire = expireAt ? new Date(expireAt).toISOString() : null;
@@ -86,6 +111,7 @@ function SettingsPage() {
     } catch {}
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
+
 
   const webhookPath = "/api/public/zoho-webhook";
   const webhookUrl = origin ? `${origin}${webhookPath}` : webhookPath;
