@@ -564,7 +564,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let invoicesDistributed = 0;
     let consecutiveFullyLockedPages = 0;
 
-    while (true) {
+    while (syncPointsInvoices || syncAllInvoices) {
       const cur = await fetchInvoicePage(invPage);
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
