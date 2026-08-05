@@ -608,11 +608,16 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           .map((inv: any) => {
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
-            if (!pointsGiven) return null;
             const totalPointsRaw = readInvCFNum(inv, "cf_points", "cf_total_points", "Points", "Total Points", "points", "total_points");
             const totalPoints = totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : 0;
-            // Skip invoices with 0/blank Total Points — nothing to distribute.
-            if (totalPoints <= 0) return null;
+            const hasPoints = pointsGiven && totalPoints > 0;
+            // Points invoices honor the "sync invoices with points" toggle.
+            // Everything else only syncs when "all invoices (totals only)" is on.
+            if (hasPoints) {
+              if (!syncPointsInvoices) return null;
+            } else if (!syncAllInvoices) {
+              return null;
+            }
             return {
               zoho_invoice_id: String(inv.invoice_id),
               invoice_number: inv.invoice_number ?? null,
@@ -624,12 +629,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
               balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
               currency_code: inv.currency_code ?? null,
               status: inv.status ?? null,
-              points_given: true,
-              total_points: totalPoints,
+              points_given: hasPoints,
+              total_points: hasPoints ? totalPoints : 0,
               raw: inv,
               last_synced_at: nowIso,
             };
           })
+
           .filter((r): r is NonNullable<typeof r> => r !== null);
         if (rows.length === 0) {
           // nothing to upsert on this page
