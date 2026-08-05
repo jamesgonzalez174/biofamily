@@ -55,18 +55,43 @@ function SettingsPage() {
   const [rate, setRate] = useState<number>(1);
   const [fallback, setFallback] = useState<boolean>(true);
   const [expireAt, setExpireAt] = useState<string>("");
+  const [syncPoints, setSyncPoints] = useState<boolean>(true);
+  const [syncAll, setSyncAll] = useState<boolean>(false);
 
   useEffect(() => {
     if (settings) {
       setRate(Number(settings.points_per_dollar));
       setFallback(settings.enable_invoice_total_fallback);
       setExpireAt((settings as any).points_expire_at ? new Date((settings as any).points_expire_at).toISOString().slice(0, 10) : "");
+      setSyncPoints((settings as any).sync_points_invoices !== false);
+      setSyncAll((settings as any).sync_all_invoices === true);
     }
   }, [settings]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  const saveSyncScope = async (next: { syncPoints?: boolean; syncAll?: boolean }) => {
+    const nextPoints = next.syncPoints ?? syncPoints;
+    const nextAll = next.syncAll ?? syncAll;
+    setSyncPoints(nextPoints);
+    setSyncAll(nextAll);
+    const { error } = await supabase.from("settings").update({
+      sync_points_invoices: nextPoints,
+      sync_all_invoices: nextAll,
+    } as any).eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success("Sync scope updated");
+    try {
+      await log({ data: {
+        action: "settings_update",
+        targetType: "settings",
+        details: { sync_points_invoices: nextPoints, sync_all_invoices: nextAll },
+      } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
 
   const save = async () => {
     const nextExpire = expireAt ? new Date(expireAt).toISOString() : null;
@@ -86,6 +111,7 @@ function SettingsPage() {
     } catch {}
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
+
 
   const webhookPath = "/api/public/zoho-webhook";
   const webhookUrl = origin ? `${origin}${webhookPath}` : webhookPath;
@@ -130,6 +156,42 @@ function SettingsPage() {
           <p className="mt-3 text-xs text-muted-foreground">
             Optional: add <code className="rounded bg-muted px-1">ZOHO_WEBHOOK_SECRET</code> in backend secrets, then send it in header <code className="rounded bg-muted px-1">x-zoho-webhook-secret</code>. If unset, the endpoint accepts all calls (use only for testing).
           </p>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+          <h2 className="font-semibold">Invoice sync scope</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Control which Zoho invoices are pulled in when a sync runs.</p>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-border p-4">
+              <div>
+                <p className="text-sm font-medium">Sync invoices with points</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Invoices flagged “Points Given” with Total Points &gt; 0. Points are distributed to pharmacy members.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => saveSyncScope({ syncPoints: !syncPoints })}
+                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ${syncPoints ? "bg-gradient-primary text-primary-foreground" : "border border-border hover:bg-muted"}`}
+              >
+                {syncPoints ? "Enabled" : "Disabled"}
+              </button>
+            </div>
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-border p-4">
+              <div>
+                <p className="text-sm font-medium">Sync all invoices (totals only)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Also cache invoices without points — number, date, total and status only. No points are awarded.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => saveSyncScope({ syncAll: !syncAll })}
+                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ${syncAll ? "bg-gradient-primary text-primary-foreground" : "border border-border hover:bg-muted"}`}
+              >
+                {syncAll ? "Enabled" : "Disabled"}
+              </button>
+            </div>
+            {!syncPoints && !syncAll && (
+              <p className="text-xs text-destructive">Both options are off — syncs will skip invoices entirely.</p>
+            )}
+          </div>
         </section>
 
 
