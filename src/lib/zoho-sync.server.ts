@@ -550,10 +550,20 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       }
     }
 
+    // Admin toggles: which invoices to sync.
+    const { data: syncSettings } = await supabaseAdmin
+      .from("settings")
+      .select("sync_points_invoices, sync_all_invoices")
+      .eq("id", 1)
+      .maybeSingle();
+    const syncPointsInvoices = (syncSettings as any)?.sync_points_invoices !== false;
+    const syncAllInvoices = (syncSettings as any)?.sync_all_invoices === true;
+
     let invPage = 1;
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
     let consecutiveFullyLockedPages = 0;
+
     while (true) {
       const cur = await fetchInvoicePage(invPage);
       if (!cur) break;
