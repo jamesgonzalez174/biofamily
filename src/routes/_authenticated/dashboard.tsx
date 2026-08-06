@@ -54,6 +54,7 @@ function Dashboard() {
 
   const balance = profile?.points_balance ?? 0;
   const lifetime = profile?.lifetime_points ?? 0;
+  const tickets = (profile as { tickets?: number } | undefined)?.tickets ?? 0;
   const tier = tierFor(lifetime);
   const affordable = (featured ?? []).filter((p) => balance >= p.point_cost).length;
 
