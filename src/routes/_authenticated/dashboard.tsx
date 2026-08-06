@@ -139,12 +139,28 @@ function Dashboard() {
               hint="Featured prizes you can afford"
               to="/catalog"
             />
-            <StatCard
-              icon={Ticket}
-              label="Tickets"
-              value={tickets.toLocaleString()}
-              hint="1% of each invoice total, split across your pharmacy"
-            />
+            {ticketsEnabled ? (
+              <StatCard
+                icon={Ticket}
+                label="Tickets"
+                value={tickets.toLocaleString()}
+                hint="1% of each invoice total, split across your pharmacy"
+              />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    <Ticket className="h-3.5 w-3.5" /> Tickets
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Coming soon
+                  </span>
+                </div>
+                <div className="mt-2 text-3xl font-bold tabular-nums text-muted-foreground">—</div>
+                <p className="mt-1 text-xs text-muted-foreground">Earn entries for bigger prize draws.</p>
+              </div>
+            )}
+
 
           </div>
         </section>
