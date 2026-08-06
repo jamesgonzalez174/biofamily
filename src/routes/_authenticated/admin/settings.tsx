@@ -66,6 +66,7 @@ function SettingsPage() {
       setExpireAt((settings as any).points_expire_at ? new Date((settings as any).points_expire_at).toISOString().slice(0, 10) : "");
       setSyncPoints((settings as any).sync_points_invoices !== false);
       setSyncAll((settings as any).sync_all_invoices === true);
+      setTicketsOn((settings as any).tickets_enabled === true);
     }
   }, [settings]);
 
