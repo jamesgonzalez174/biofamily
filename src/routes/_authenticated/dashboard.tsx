@@ -51,10 +51,15 @@ function Dashboard() {
       return data ?? [];
     },
   });
+  const { data: settings } = useQuery({
+    queryKey: ["settings", "tickets"],
+    queryFn: async () => (await supabase.from("settings").select("*").eq("id", 1).maybeSingle()).data,
+  });
 
   const balance = profile?.points_balance ?? 0;
   const lifetime = profile?.lifetime_points ?? 0;
   const tickets = (profile as { tickets?: number } | undefined)?.tickets ?? 0;
+  const ticketsEnabled = (settings as { tickets_enabled?: boolean } | null | undefined)?.tickets_enabled === true;
   const tier = tierFor(lifetime);
   const affordable = (featured ?? []).filter((p) => balance >= p.point_cost).length;
 
