@@ -57,6 +57,7 @@ function SettingsPage() {
   const [expireAt, setExpireAt] = useState<string>("");
   const [syncPoints, setSyncPoints] = useState<boolean>(true);
   const [syncAll, setSyncAll] = useState<boolean>(false);
+  const [ticketsOn, setTicketsOn] = useState<boolean>(false);
 
   useEffect(() => {
     if (settings) {
