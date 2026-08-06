@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.distribute_invoice_points_once(uuid) FROM anon, authenticated;

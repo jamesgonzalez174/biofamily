@@ -154,6 +154,7 @@ export type Database = {
           status: string | null
           total: number | null
           total_points: number | null
+          total_tickets: number
           updated_at: string
           zoho_contact_id: string | null
           zoho_invoice_id: string
@@ -174,6 +175,7 @@ export type Database = {
           status?: string | null
           total?: number | null
           total_points?: number | null
+          total_tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id: string
@@ -194,6 +196,7 @@ export type Database = {
           status?: string | null
           total?: number | null
           total_points?: number | null
+          total_tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id?: string
@@ -218,6 +221,7 @@ export type Database = {
           is_active: boolean
           loyalty_points: number
           name: string
+          tickets: number
           updated_at: string
           zoho_contact_id: string | null
         }
@@ -230,6 +234,7 @@ export type Database = {
           is_active?: boolean
           loyalty_points?: number
           name: string
+          tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
         }
@@ -242,6 +247,7 @@ export type Database = {
           is_active?: boolean
           loyalty_points?: number
           name?: string
+          tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
         }
@@ -324,6 +330,7 @@ export type Database = {
           pharmacy_id: string | null
           phone: string | null
           points_balance: number
+          tickets: number
           tier: string
           updated_at: string
         }
@@ -337,6 +344,7 @@ export type Database = {
           pharmacy_id?: string | null
           phone?: string | null
           points_balance?: number
+          tickets?: number
           tier?: string
           updated_at?: string
         }
@@ -350,6 +358,7 @@ export type Database = {
           pharmacy_id?: string | null
           phone?: string | null
           points_balance?: number
+          tickets?: number
           tier?: string
           updated_at?: string
         }
