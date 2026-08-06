@@ -95,6 +95,20 @@ function SettingsPage() {
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
 
+  const saveTickets = async (next: boolean) => {
+    setTicketsOn(next);
+    const { error } = await supabase.from("settings").update({ tickets_enabled: next } as any).eq("id", 1);
+    if (error) {
+      setTicketsOn(!next);
+      return toast.error(error.message);
+    }
+    toast.success(next ? "Tickets enabled" : "Tickets disabled");
+    try {
+      await log({ data: { action: "settings_update", targetType: "settings", details: { tickets_enabled: next } } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
+
   const save = async () => {
     const nextExpire = expireAt ? new Date(expireAt).toISOString() : null;
     const { error } = await supabase.from("settings").update({
