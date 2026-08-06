@@ -436,6 +436,7 @@ export type Database = {
           sync_minute: number
           sync_points_invoices: boolean
           sync_timezone: string
+          tickets_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -448,6 +449,7 @@ export type Database = {
           sync_minute?: number
           sync_points_invoices?: boolean
           sync_timezone?: string
+          tickets_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -460,6 +462,7 @@ export type Database = {
           sync_minute?: number
           sync_points_invoices?: boolean
           sync_timezone?: string
+          tickets_enabled?: boolean
           updated_at?: string
         }
         Relationships: []

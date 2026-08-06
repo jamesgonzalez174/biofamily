@@ -57,6 +57,7 @@ function SettingsPage() {
   const [expireAt, setExpireAt] = useState<string>("");
   const [syncPoints, setSyncPoints] = useState<boolean>(true);
   const [syncAll, setSyncAll] = useState<boolean>(false);
+  const [ticketsOn, setTicketsOn] = useState<boolean>(false);
 
   useEffect(() => {
     if (settings) {
@@ -65,6 +66,7 @@ function SettingsPage() {
       setExpireAt((settings as any).points_expire_at ? new Date((settings as any).points_expire_at).toISOString().slice(0, 10) : "");
       setSyncPoints((settings as any).sync_points_invoices !== false);
       setSyncAll((settings as any).sync_all_invoices === true);
+      setTicketsOn((settings as any).tickets_enabled === true);
     }
   }, [settings]);
 
@@ -89,6 +91,20 @@ function SettingsPage() {
         targetType: "settings",
         details: { sync_points_invoices: nextPoints, sync_all_invoices: nextAll },
       } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
+
+  const saveTickets = async (next: boolean) => {
+    setTicketsOn(next);
+    const { error } = await supabase.from("settings").update({ tickets_enabled: next } as any).eq("id", 1);
+    if (error) {
+      setTicketsOn(!next);
+      return toast.error(error.message);
+    }
+    toast.success(next ? "Tickets enabled" : "Tickets disabled");
+    try {
+      await log({ data: { action: "settings_update", targetType: "settings", details: { tickets_enabled: next } } });
     } catch {}
     qc.invalidateQueries({ queryKey: ["settings"] });
   };
@@ -193,6 +209,28 @@ function SettingsPage() {
             )}
           </div>
         </section>
+
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+          <h2 className="font-semibold">Tickets</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When enabled, each synced invoice generates tickets worth 1% of the invoice total (rounded to the nearest ticket), split evenly across the members of that pharmacy. Members see their ticket balance on their dashboard.
+          </p>
+          <div className="mt-4 flex items-start justify-between gap-4 rounded-xl border border-border p-4">
+            <div>
+              <p className="text-sm font-medium">Enable tickets</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">While disabled, no tickets are generated or shown to members.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => saveTickets(!ticketsOn)}
+              className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ${ticketsOn ? "bg-gradient-primary text-primary-foreground" : "border border-border hover:bg-muted"}`}
+            >
+              {ticketsOn ? "Enabled" : "Disabled"}
+            </button>
+          </div>
+        </section>
+
+
 
 
         <section className="lg:col-span-2">
