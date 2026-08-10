@@ -7,6 +7,8 @@ import { Upload, Trash2, Image as ImageIcon, RefreshCw, Eye, X } from "lucide-re
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { signStatusUrls, statusObjectPath } from "@/lib/status-images";
+
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
 import { sendTestExpiryReminder, logAdminAction } from "@/lib/admin.functions";
 import { backfillInvoicePoints } from "@/lib/backfill.functions";
