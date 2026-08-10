@@ -368,9 +368,15 @@ function StatusManager() {
         .from("statuses")
         .select("*")
         .order("created_at", { ascending: false });
-      return data ?? [];
+      const rows = data ?? [];
+      const signed = await signStatusUrls(rows.map((r: any) => r.image_url));
+      return rows.map((r: any) => ({
+        ...r,
+        image_url: signed.get(statusObjectPath(r.image_url)) ?? r.image_url,
+      }));
     },
   });
+
 
   const onFile = (f: File | null) => {
     setPendingFile(f);
