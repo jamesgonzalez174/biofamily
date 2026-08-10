@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { signStatusUrls, statusObjectPath } from "@/lib/status-images";
 
 type Status = {
   id: string;
@@ -21,10 +22,16 @@ export function StatusBar() {
         .select("id, image_url, caption, created_at")
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: true });
-      return (data ?? []) as Status[];
+      const rows = (data ?? []) as Status[];
+      const signed = await signStatusUrls(rows.map((r) => r.image_url));
+      return rows.map((r) => ({
+        ...r,
+        image_url: signed.get(statusObjectPath(r.image_url)) ?? r.image_url,
+      }));
     },
     refetchInterval: 60_000,
   });
+
 
   if (!statuses || statuses.length === 0) return null;
 
