@@ -209,13 +209,6 @@ export type Database = {
             referencedRelation: "pharmacies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_pharmacy_id_fkey"
-            columns: ["pharmacy_id"]
-            isOneToOne: false
-            referencedRelation: "pharmacy_directory"
-            referencedColumns: ["id"]
-          },
         ]
       }
       pharmacies: {
@@ -259,6 +252,35 @@ export type Database = {
           zoho_contact_id?: string | null
         }
         Relationships: []
+      }
+      pharmacy_directory: {
+        Row: {
+          address: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_directory_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       points_ledger: {
         Row: {
@@ -375,13 +397,6 @@ export type Database = {
             columns: ["pharmacy_id"]
             isOneToOne: false
             referencedRelation: "pharmacies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_pharmacy_id_fkey"
-            columns: ["pharmacy_id"]
-            isOneToOne: false
-            referencedRelation: "pharmacy_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -615,13 +630,6 @@ export type Database = {
             referencedRelation: "pharmacies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_pharmacy_access_pharmacy_id_fkey"
-            columns: ["pharmacy_id"]
-            isOneToOne: false
-            referencedRelation: "pharmacy_directory"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_roles: {
@@ -806,24 +814,7 @@ export type Database = {
       }
     }
     Views: {
-      pharmacy_directory: {
-        Row: {
-          address: string | null
-          id: string | null
-          name: string | null
-        }
-        Insert: {
-          address?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Update: {
-          address?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_list_pharmacies: {
