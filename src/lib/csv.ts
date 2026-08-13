@@ -3,9 +3,12 @@ export function toCSV(rows: Record<string, any>[], columns?: string[]): string {
   const cols = columns ?? Object.keys(rows[0]);
   const esc = (v: any) => {
     if (v === null || v === undefined) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    let s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    // Neutralize spreadsheet formula/DDE injection from user-supplied text.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
+
   return [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
 }
 

@@ -35,6 +35,22 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       _user_id: context.userId,
       _role: "admin",
     });
+
+    // Authorization: non-admins must belong to, or have explicit access to, this pharmacy.
+    if (!isAdmin) {
+      const [{ data: prof }, { data: access }] = await Promise.all([
+        supabaseAdmin.from("profiles").select("pharmacy_id").eq("id", context.userId).maybeSingle(),
+        supabaseAdmin
+          .from("user_pharmacy_access")
+          .select("pharmacy_id")
+          .eq("user_id", context.userId)
+          .eq("pharmacy_id", data.pharmacyId)
+          .maybeSingle(),
+      ]);
+      const allowed = (prof as any)?.pharmacy_id === data.pharmacyId || !!access;
+      if (!allowed) throw new Error("Not authorized for this pharmacy");
+    }
+
     const onlyPointsGiven = !isAdmin;
     const { data: pharm } = await supabaseAdmin
       .from("pharmacies")
@@ -42,6 +58,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       .eq("id", data.pharmacyId)
       .maybeSingle();
     if (!pharm) throw new Error("Pharmacy not found");
+
 
     const refs: string[] = Array.isArray((pharm as any).invoice_references)
       ? ((pharm as any).invoice_references as string[]).filter((r) => typeof r === "string" && r.trim().length > 0)

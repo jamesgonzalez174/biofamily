@@ -56,7 +56,7 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.from("pharmacies").select("id, name, address").eq("is_active", true).order("name")
+    supabase.from("pharmacy_directory").select("id, name, address").order("name")
       .then(({ data }) => setPharmacies((data ?? []) as Pharmacy[]));
   }, []);
 

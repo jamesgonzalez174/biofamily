@@ -253,6 +253,35 @@ export type Database = {
         }
         Relationships: []
       }
+      pharmacy_directory: {
+        Row: {
+          address: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_directory_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       points_ledger: {
         Row: {
           created_at: string
