@@ -209,6 +209,13 @@ export type Database = {
             referencedRelation: "pharmacies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pharmacies: {
@@ -368,6 +375,13 @@ export type Database = {
             columns: ["pharmacy_id"]
             isOneToOne: false
             referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -601,6 +615,13 @@ export type Database = {
             referencedRelation: "pharmacies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_pharmacy_access_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -785,7 +806,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pharmacy_directory: {
+        Row: {
+          address: string | null
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          address?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          address?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_list_pharmacies: {
