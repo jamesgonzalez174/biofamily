@@ -26,13 +26,28 @@ export function PharmacyBanner() {
   const { data: pharmacies } = useQuery({
     queryKey: ["pharmacies-active"],
     queryFn: async () => {
-      const { data } = await supabase.from("pharmacies").select("id, name, address, invoice_references").eq("is_active", true).order("name");
+      const { data } = await supabase.from("pharmacy_directory").select("id, name, address").order("name");
       return data ?? [];
     },
   });
 
-  const current = pharmacies?.find((p) => p.id === profile?.pharmacy_id);
-  const invoiceRefs: string[] = Array.isArray((current as any)?.invoice_references) ? ((current as any).invoice_references as string[]) : [];
+  // Financial details (invoice references) are only readable for the user's own pharmacy.
+  const { data: own } = useQuery({
+    queryKey: ["pharmacy-own", profile?.pharmacy_id],
+    enabled: !!profile?.pharmacy_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pharmacies")
+        .select("id, name, address, invoice_references")
+        .eq("id", profile!.pharmacy_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const current = own ?? pharmacies?.find((p) => p.id === profile?.pharmacy_id);
+  const invoiceRefs: string[] = Array.isArray((own as any)?.invoice_references) ? ((own as any).invoice_references as string[]) : [];
+
 
   const save = async () => {
     if (!user || !selected) return;
