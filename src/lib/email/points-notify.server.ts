@@ -26,7 +26,7 @@ export async function notifyInvoicePointsCredited(params: {
       .from('profiles')
       .select('id, email, full_name, points_balance')
       .in('id', rows.map((r: any) => r.user_id))
-    const byId = new Map((profs ?? []).map((p: any) => [p.id, p]))
+    const byId = new Map<string, any>((profs ?? []).map((p: any) => [p.id as string, p]))
 
     for (const r of rows as any[]) {
       const p = byId.get(r.user_id)
