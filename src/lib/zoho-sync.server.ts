@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getZohoAccessToken } from "./zoho-api.server";
 import { sendTransactionalEmailServer } from "./email/send.server";
+import { notifyInvoicePointsCredited } from "./email/points-notify.server";
+
 
 const STUCK_RUN_THRESHOLD_MINUTES = 15;
 
@@ -718,7 +720,12 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             if (dist?.distributed) {
               notifiedCount += Number(dist.credited ?? 0);
               invoicesDistributed += 1;
+              await notifyInvoicePointsCredited({
+                zohoInvoiceId: inv.zoho_invoice_id,
+                invoiceNumber: inv.invoice_number,
+              });
             }
+
           }
         }
         }

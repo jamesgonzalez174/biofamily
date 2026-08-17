@@ -112,7 +112,15 @@ async function distributeInvoice(row: {
     .from("invoices")
     .update({ points_distributed_at: new Date().toISOString() })
     .eq("id", row.id);
+  if (share > 0) {
+    const { notifyInvoicePointsCredited } = await import("@/lib/email/points-notify.server");
+    await notifyInvoicePointsCredited({
+      zohoInvoiceId: row.zoho_invoice_id,
+      invoiceNumber: row.invoice_number,
+    });
+  }
   return { memberCount, share };
+
 }
 
 /**
