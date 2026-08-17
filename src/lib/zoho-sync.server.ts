@@ -718,7 +718,12 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             if (dist?.distributed) {
               notifiedCount += Number(dist.credited ?? 0);
               invoicesDistributed += 1;
+              await notifyInvoicePointsCredited({
+                zohoInvoiceId: inv.zoho_invoice_id,
+                invoiceNumber: inv.invoice_number,
+              });
             }
+
           }
         }
         }
