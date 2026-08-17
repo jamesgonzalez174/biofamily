@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getZohoAccessToken } from "./zoho-api.server";
 import { sendTransactionalEmailServer } from "./email/send.server";
+import { notifyInvoicePointsCredited } from "./email/points-notify.server";
+
 
 const STUCK_RUN_THRESHOLD_MINUTES = 15;
 
