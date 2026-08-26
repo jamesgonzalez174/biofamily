@@ -36,7 +36,9 @@ function SkusPage() {
   const [q, setQ] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const { data: items } = useQuery({
     queryKey: ["admin-skus"],
