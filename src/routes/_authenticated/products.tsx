@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Search, Sparkles, ChevronRight, Package } from "lucide-react";
+import { Search, Sparkles, ChevronRight, Package, FileDown } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadProductsPdf } from "@/lib/products-pdf";
 
 export const Route = createFileRoute("/_authenticated/products")({
   component: ProductsPage,
 });
+
 
 function ProductsPage() {
   const [q, setQ] = useState("");
