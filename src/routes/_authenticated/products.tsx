@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Search, Sparkles, ChevronRight, Package } from "lucide-react";
+import { Search, Sparkles, ChevronRight, Package, FileDown } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadProductsPdf } from "@/lib/products-pdf";
 
 export const Route = createFileRoute("/_authenticated/products")({
   component: ProductsPage,
 });
+
 
 function ProductsPage() {
   const [q, setQ] = useState("");
@@ -36,13 +39,36 @@ function ProductsPage() {
     );
   }, [data, q]);
 
+  const [exporting, setExporting] = useState(false);
+  const exportPdf = async () => {
+    if (!filtered.length) return toast.error("Nothing to export");
+    setExporting(true);
+    try {
+      await downloadProductsPdf(filtered);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <AppShell>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Products with points</h1>
-        <p className="text-sm text-muted-foreground">
-          Every purchase of these products earns you loyalty points.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Products with points</h1>
+          <p className="text-sm text-muted-foreground">
+            Every purchase of these products earns you loyalty points.
+          </p>
+        </div>
+        <button
+          onClick={exportPdf}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 rounded-xl border border-input bg-card px-4 py-2.5 text-sm font-semibold shadow-soft hover:bg-muted disabled:opacity-60"
+        >
+          <FileDown className="h-4 w-4" />
+          {exporting ? "Preparing…" : "Download PDF"}
+        </button>
       </div>
 
       <div className="relative mt-6 max-w-md">
@@ -54,6 +80,7 @@ function ProductsPage() {
           className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:ring-2 ring-ring"
         />
       </div>
+
 
       {isLoading ? (
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground shadow-soft">
