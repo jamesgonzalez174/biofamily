@@ -3,10 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Search, Sparkles, ImagePlus, X } from "lucide-react";
+import { Plus, Trash2, Search, Sparkles, ImagePlus, X, FileDown } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { logAdminAction } from "@/lib/admin.functions";
+import { downloadProductsPdf } from "@/lib/products-pdf";
+
 
 export const Route = createFileRoute("/_authenticated/admin/skus")({
   component: SkusPage,
