@@ -32,6 +32,7 @@ import { Route as Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImpo
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicZohoWebhookRouteImport } from './routes/api/public/zoho-webhook'
 import { Route as AuthenticatedProductsSkuRouteImport } from './routes/_authenticated/products.$sku'
 import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
@@ -170,6 +171,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicZohoWebhookRoute = ApiPublicZohoWebhookRouteImport.update({
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
@@ -427,6 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/_authenticated/products/$sku': typeof AuthenticatedProductsSkuRoute
   '/api/public/zoho-webhook': typeof ApiPublicZohoWebhookRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/hooks/daily-zoho-sync': typeof ApiPublicHooksDailyZohoSyncRoute
@@ -475,6 +484,7 @@ export interface FileRouteTypes {
     | '/admin/zoho-connect'
     | '/products/$sku'
     | '/api/public/zoho-webhook'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/admin/'
     | '/api/public/hooks/daily-zoho-sync'
@@ -520,6 +530,7 @@ export interface FileRouteTypes {
     | '/admin/zoho-connect'
     | '/products/$sku'
     | '/api/public/zoho-webhook'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/admin'
     | '/api/public/hooks/daily-zoho-sync'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/zoho-connect'
     | '/_authenticated/products/$sku'
     | '/api/public/zoho-webhook'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/api/public/hooks/daily-zoho-sync'
@@ -597,6 +609,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicZohoWebhookRoute: typeof ApiPublicZohoWebhookRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyZohoSyncRoute: typeof ApiPublicHooksDailyZohoSyncRoute
   ApiPublicHooksPointsExpiryRemindersRoute: typeof ApiPublicHooksPointsExpiryRemindersRoute
@@ -768,6 +781,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/zoho-webhook': {
@@ -1016,6 +1036,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicZohoWebhookRoute: ApiPublicZohoWebhookRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyZohoSyncRoute: ApiPublicHooksDailyZohoSyncRoute,
   ApiPublicHooksPointsExpiryRemindersRoute:
