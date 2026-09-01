@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText, MapPin } from "lucide-react";
+import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText, MapPin, Ticket } from "lucide-react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listUsers, adjustPoints, setUserRole, deleteUser, getUserPharmacyAccess, setUserPharmacyAccess } from "@/lib/admin.functions";
@@ -35,6 +35,7 @@ function UsersPage() {
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessSaving, setAccessSaving] = useState(false);
   const [accessSearch, setAccessSearch] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
