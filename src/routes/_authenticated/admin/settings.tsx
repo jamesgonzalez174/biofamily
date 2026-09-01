@@ -60,6 +60,7 @@ function SettingsPage() {
   const [syncPoints, setSyncPoints] = useState<boolean>(true);
   const [syncAll, setSyncAll] = useState<boolean>(false);
   const [ticketsOn, setTicketsOn] = useState<boolean>(false);
+  const [startDate, setStartDate] = useState<string>("2026-09-01");
 
   useEffect(() => {
     if (settings) {
