@@ -209,6 +209,25 @@ function SettingsPage() {
             {!syncPoints && !syncAll && (
               <p className="text-xs text-destructive">Both options are off — syncs will skip invoices entirely.</p>
             )}
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-sm font-medium">Sync invoices dated from</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Invoices dated before this day are ignored by every sync (tickets era starts in September).</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={saveStartDate}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Save start date
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -229,6 +248,11 @@ function SettingsPage() {
             >
               {ticketsOn ? "Enabled" : "Disabled"}
             </button>
+          </div>
+          <div className="mt-3 rounded-xl border border-border p-4">
+            <p className="text-sm font-medium">Tickets ready notice</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Emails one person that their tickets are live and the Christmas raffle draw is December 18.</p>
+            <TicketsReadyNoticeButton />
           </div>
         </section>
 
