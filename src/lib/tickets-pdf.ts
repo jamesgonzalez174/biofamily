@@ -10,10 +10,11 @@ export type TicketHolder = {
 };
 
 const BRAND = "BIOMED FAMILY";
-const PURPLE: [number, number, number] = [109, 40, 217];
-const DEEP: [number, number, number] = [76, 29, 149];
-const GOLD: [number, number, number] = [217, 168, 32];
-const INK: [number, number, number] = [17, 24, 39];
+// Christmas palette: pine green, holly red, warm gold
+const PURPLE: [number, number, number] = [178, 34, 34];
+const DEEP: [number, number, number] = [20, 83, 45];
+const GOLD: [number, number, number] = [201, 162, 39];
+const INK: [number, number, number] = [20, 30, 24];
 const MUTED: [number, number, number] = [107, 114, 128];
 
 function splitName(full?: string | null) {
