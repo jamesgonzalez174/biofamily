@@ -133,6 +133,32 @@ function UsersPage() {
     downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rows));
   };
 
+  const exportTicketsPDF = async () => {
+    const pmap = new Map((pharmacies ?? []).map((p) => [p.id, p.name]));
+    const holders = (users ?? []).map((u: any) => ({
+      id: u.id as string,
+      full_name: u.full_name,
+      email: u.email,
+      tickets: u.tickets,
+      pharmacy_name: u.pharmacy_id ? pmap.get(u.pharmacy_id) ?? null : null,
+    }));
+    const total = holders.reduce((s, h) => s + Math.max(0, Math.floor(Number(h.tickets ?? 0))), 0);
+    if (total === 0) return toast.error("No tickets to export yet");
+    setPdfBusy(true);
+    try {
+      const { downloadTicketsPdf } = await import("@/lib/tickets-pdf");
+      await downloadTicketsPdf(holders, {
+        raffleDate: "December 18",
+        filename: `raffle-tickets-${new Date().toISOString().slice(0, 10)}.pdf`,
+      });
+      toast.success(`Exported ${total} ticket${total === 1 ? "" : "s"}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not build PDF");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <AppShell admin>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -140,9 +166,18 @@ function UsersPage() {
           <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground">Adjust loyalty balances and manage admin access.</p>
         </div>
-        <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
-          <Download className="h-4 w-4" /> Download CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
+            <Download className="h-4 w-4" /> Download CSV
+          </button>
+          <button
+            onClick={exportTicketsPDF}
+            disabled={pdfBusy}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
+          >
+            <Ticket className="h-4 w-4" /> {pdfBusy ? "Building…" : "Export tickets PDF"}
+          </button>
+        </div>
       </div>
 
 
