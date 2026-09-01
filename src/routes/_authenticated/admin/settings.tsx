@@ -70,8 +70,25 @@ function SettingsPage() {
       setSyncPoints((settings as any).sync_points_invoices !== false);
       setSyncAll((settings as any).sync_all_invoices === true);
       setTicketsOn((settings as any).tickets_enabled === true);
+      if ((settings as any).invoice_sync_start_date) {
+        setStartDate(String((settings as any).invoice_sync_start_date).slice(0, 10));
+      }
     }
   }, [settings]);
+
+  const saveStartDate = async () => {
+    if (!startDate) return toast.error("Pick a start date");
+    const { error } = await supabase
+      .from("settings")
+      .update({ invoice_sync_start_date: startDate } as any)
+      .eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success(`Syncing invoices dated from ${startDate}`);
+    try {
+      await log({ data: { action: "settings_update", targetType: "settings", details: { invoice_sync_start_date: startDate } } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
 
   useEffect(() => {
     setOrigin(window.location.origin);
