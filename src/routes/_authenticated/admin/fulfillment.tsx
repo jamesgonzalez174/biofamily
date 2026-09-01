@@ -40,6 +40,16 @@ function Fulfillment() {
     },
   });
 
+  const userIds = Array.from(new Set((items ?? []).map((r) => r.user_id)));
+  const { data: profileMap } = useQuery({
+    queryKey: ["admin-fulfillment-profiles", userIds],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, email, phone").in("id", userIds);
+      return new Map((data ?? []).map((p) => [p.id, p]));
+    },
+  });
+
   const update = async (id: string, patch: { status?: string; tracking_info?: string }) => {
     try {
       const current = items?.find((r) => r.id === id);
