@@ -192,7 +192,7 @@ function UsersPage() {
       <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Role</th><th className="p-3 text-right">Actions</th></tr>
+            <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Tickets</th><th className="p-3">Role</th><th className="p-3 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {(users ?? []).map((u: any) => {
@@ -219,6 +219,15 @@ function UsersPage() {
                   <td className="p-3">{u.tier}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
+                  <td className="p-3 tabular-nums">
+                    {Number(u.tickets ?? 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                        <Ticket className="h-3 w-3" /> {Number(u.tickets).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">0</span>
+                    )}
+                  </td>
                   <td className="p-3">{isAdmin ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Admin</span> : <span className="text-xs text-muted-foreground">User</span>}</td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
@@ -250,9 +259,9 @@ function UsersPage() {
                 </tr>
               );
             })}
-            {isLoading && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">Loading users…</td></tr>}
-            {isError && <tr><td colSpan={7} className="p-6 text-center text-sm text-destructive">Failed to load: {(error as Error)?.message}</td></tr>}
-            {!isLoading && !isError && (users ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
+            {isLoading && <tr><td colSpan={8} className="p-6 text-center text-sm text-muted-foreground">Loading users…</td></tr>}
+            {isError && <tr><td colSpan={8} className="p-6 text-center text-sm text-destructive">Failed to load: {(error as Error)?.message}</td></tr>}
+            {!isLoading && !isError && (users ?? []).length === 0 && <tr><td colSpan={8} className="p-6 text-center text-sm text-muted-foreground">No users.</td></tr>}
           </tbody>
         </table>
       </div>
