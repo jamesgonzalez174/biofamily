@@ -20,6 +20,41 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: SettingsPage,
 });
 
+function TicketsReadyNoticeButton() {
+  const send = useServerFn(sendTicketsReadyNotice);
+  const [email, setEmail] = useState("jamesgonzalez174@gmail.com");
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await send({ data: { email, raffleDate: "December 18" } });
+      toast.success(`Notice sent to ${res.sentTo}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="recipient@example.com"
+        className="min-w-[240px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
+      />
+      <button
+        onClick={run}
+        disabled={busy}
+        className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+      >
+        {busy ? "Sending…" : "Send notice"}
+      </button>
+    </div>
+  );
+}
+
 function TestExpiryReminderButton() {
   const send = useServerFn(sendTestExpiryReminder);
   const [busy, setBusy] = useState(false);
