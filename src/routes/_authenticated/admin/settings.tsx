@@ -8,6 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { signStatusUrls, statusObjectPath } from "@/lib/status-images";
+import ticketsAnnouncement from "@/assets/tickets-announcement.jpg";
 
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
 import { sendTestExpiryReminder, logAdminAction, sendTicketsReadyNotice } from "@/lib/admin.functions";
@@ -494,6 +495,36 @@ function StatusManager() {
     }
   };
 
+  const postTicketsAnnouncement = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const res = await fetch(ticketsAnnouncement);
+      const blob = await res.blob();
+      const path = `${user.id}/${Date.now()}-tickets-announcement.jpg`;
+      const up = await supabase.storage.from("statuses").upload(path, blob, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      const { data: pub } = supabase.storage.from("statuses").getPublicUrl(path);
+      const { error } = await supabase.from("statuses").insert({
+        image_url: pub.publicUrl,
+        caption:
+          "Raffle tickets are live! Every invoice earns tickets, shared across your pharmacy. Christmas raffle draw: December 18.",
+        created_by: user.id,
+      });
+      if (error) throw error;
+      toast.success("Tickets announcement posted to News & Updates");
+      qc.invalidateQueries({ queryKey: ["admin-statuses"] });
+      qc.invalidateQueries({ queryKey: ["statuses-active"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not post announcement");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("statuses").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -554,6 +585,17 @@ function StatusManager() {
           >
             {busy ? "Posting…" : "Post status"}
           </button>
+
+          <button
+            onClick={postTicketsAnnouncement}
+            disabled={busy}
+            className="mt-2 w-full rounded-xl border border-border bg-background py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+          >
+            Post tickets announcement
+          </button>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            One tap: posts the raffle-tickets story with view tracking, live for 24 hours.
+          </p>
         </div>
 
         {/* list */}
