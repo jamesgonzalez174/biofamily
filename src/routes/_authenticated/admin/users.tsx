@@ -219,6 +219,15 @@ function UsersPage() {
                   <td className="p-3">{u.tier}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
+                  <td className="p-3 tabular-nums">
+                    {Number(u.tickets ?? 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                        <Ticket className="h-3 w-3" /> {Number(u.tickets).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">0</span>
+                    )}
+                  </td>
                   <td className="p-3">{isAdmin ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Admin</span> : <span className="text-xs text-muted-foreground">User</span>}</td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
