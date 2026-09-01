@@ -80,6 +80,20 @@ function LoginPage() {
     goNext();
   };
 
+  const signInWithApple = async () => {
+    setLoading(true);
+    const redirect_uri = nextSafe
+      ? `${window.location.origin}/login?next=${encodeURIComponent(nextSafe)}`
+      : window.location.origin;
+    const result = await lovable.auth.signInWithOAuth("apple", { redirect_uri });
+    if (result.error) {
+      setLoading(false);
+      return toast.error(result.error.message);
+    }
+    if (result.redirected) return;
+    goNext();
+  };
+
   return (
     <AuthScene>
       <Link to="/" className="auth-pop mb-8 flex items-center justify-center gap-2">
@@ -119,6 +133,18 @@ function LoginPage() {
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38Z"/>
           </svg>
           Continue with Google
+        </button>
+
+        <button
+          type="button"
+          onClick={signInWithApple}
+          disabled={loading}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-input bg-background py-2.5 text-sm font-medium transition hover:bg-accent disabled:opacity-60"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path d="M17.05 20.28c-.98 1.67-2.16 3.23-3.87 3.25-1.04.02-1.37-.62-2.56-.62-1.18 0-1.55.6-2.53.63-1.92.07-3.38-1.95-4.36-3.62-2.37-3.83-2.09-9.37.94-12.04 1.46-1.27 3.24-1.92 4.97-1.92 1.07 0 2.35.7 3.09.7.74 0 2.1-.86 3.54-.73.6.03 2.3.24 3.39 1.84-.09.06-2 1.17-1.99 3.48.02 2.78 2.43 3.71 2.45 3.72-.02.1-.38 1.31-1.12 2.6zm-5.13-15.3c.74-.9 1.24-2.14 1.1-3.38-1.07.04-2.36.72-3.13 1.62-.68.78-1.28 2.04-1.12 3.32 1.19.09 2.41-.6 3.15-1.56z"/>
+          </svg>
+          Continue with Apple
         </button>
 
         <p className="mt-4 text-center text-sm">
