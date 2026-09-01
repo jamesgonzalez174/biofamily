@@ -458,6 +458,7 @@ export type Database = {
         Row: {
           enable_invoice_total_fallback: boolean
           id: number
+          invoice_sync_start_date: string
           points_expire_at: string | null
           points_per_dollar: number
           sync_all_invoices: boolean
@@ -471,6 +472,7 @@ export type Database = {
         Insert: {
           enable_invoice_total_fallback?: boolean
           id?: number
+          invoice_sync_start_date?: string
           points_expire_at?: string | null
           points_per_dollar?: number
           sync_all_invoices?: boolean
@@ -484,6 +486,7 @@ export type Database = {
         Update: {
           enable_invoice_total_fallback?: boolean
           id?: number
+          invoice_sync_start_date?: string
           points_expire_at?: string | null
           points_per_dollar?: number
           sync_all_invoices?: boolean
