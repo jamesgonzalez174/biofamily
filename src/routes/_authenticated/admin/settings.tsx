@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { signStatusUrls, statusObjectPath } from "@/lib/status-images";
 
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
-import { sendTestExpiryReminder, logAdminAction } from "@/lib/admin.functions";
+import { sendTestExpiryReminder, logAdminAction, sendTicketsReadyNotice } from "@/lib/admin.functions";
 import { backfillInvoicePoints } from "@/lib/backfill.functions";
 
 
