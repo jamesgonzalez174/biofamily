@@ -611,6 +611,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const nowIso = new Date().toISOString();
         const rows = hydrated
           .map((inv: any) => {
+            // Skip anything dated before the configured invoice sync start date.
+            const invDate = inv.date ? String(inv.date).slice(0, 10) : null;
+            if (invoiceStartDate && (!invDate || invDate < invoiceStartDate)) return null;
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
             const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
             const totalPointsRaw = readInvCFNum(inv, "cf_points", "cf_total_points", "Points", "Total Points", "points", "total_points");
