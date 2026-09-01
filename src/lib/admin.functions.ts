@@ -246,7 +246,7 @@ export const listUsers = createServerFn({ method: "GET" })
     const [profilesRes, rolesRes, pharmaciesRes, accessRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, created_at")
+        .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("pharmacies").select("id, name").order("name"),
