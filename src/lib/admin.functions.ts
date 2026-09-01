@@ -615,3 +615,46 @@ export const getAdminAnalytics = createServerFn({ method: "GET" })
       statusCounts,
     };
   });
+
+// ---------- Tickets ready notice ----------
+
+/**
+ * Sends the "tickets are ready" notice (with the Christmas raffle date) to one
+ * recipient. Admin only; the recipient defaults to the signed-in admin.
+ */
+export const sendTicketsReadyNotice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    email: z.string().email().optional(),
+    raffleDate: z.string().max(60).optional(),
+  }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    const { data: self } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const recipient = (data.email ?? (self as any)?.email ?? "").toLowerCase().trim();
+    if (!recipient) throw new Error("No recipient email available");
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, tickets")
+      .eq("email", recipient)
+      .maybeSingle();
+
+    const res = await sendTransactionalEmailServer({
+      templateName: "tickets-ready",
+      recipientEmail: recipient,
+      idempotencyKey: `tickets-ready-${recipient}`,
+      templateData: {
+        name: (profile as any)?.full_name ?? undefined,
+        tickets: typeof (profile as any)?.tickets === "number" ? (profile as any).tickets : undefined,
+        raffleDate: data.raffleDate ?? "December 18",
+      },
+    });
+    if (!res.ok) throw new Error(res.reason ?? "Failed to send notice");
+    return { ok: true, sentTo: recipient };
+  });

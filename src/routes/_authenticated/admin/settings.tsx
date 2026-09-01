@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { signStatusUrls, statusObjectPath } from "@/lib/status-images";
 
 import { syncZohoCustomers, listZohoSyncRuns, updateZohoSchedule } from "@/lib/zoho.functions";
-import { sendTestExpiryReminder, logAdminAction } from "@/lib/admin.functions";
+import { sendTestExpiryReminder, logAdminAction, sendTicketsReadyNotice } from "@/lib/admin.functions";
 import { backfillInvoicePoints } from "@/lib/backfill.functions";
 
 
@@ -19,6 +19,41 @@ import { backfillInvoicePoints } from "@/lib/backfill.functions";
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: SettingsPage,
 });
+
+function TicketsReadyNoticeButton() {
+  const send = useServerFn(sendTicketsReadyNotice);
+  const [email, setEmail] = useState("jamesgonzalez174@gmail.com");
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await send({ data: { email, raffleDate: "December 18" } });
+      toast.success(`Notice sent to ${res.sentTo}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="recipient@example.com"
+        className="min-w-[240px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
+      />
+      <button
+        onClick={run}
+        disabled={busy}
+        className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+      >
+        {busy ? "Sending…" : "Send notice"}
+      </button>
+    </div>
+  );
+}
 
 function TestExpiryReminderButton() {
   const send = useServerFn(sendTestExpiryReminder);
@@ -60,6 +95,7 @@ function SettingsPage() {
   const [syncPoints, setSyncPoints] = useState<boolean>(true);
   const [syncAll, setSyncAll] = useState<boolean>(false);
   const [ticketsOn, setTicketsOn] = useState<boolean>(false);
+  const [startDate, setStartDate] = useState<string>("2026-09-01");
 
   useEffect(() => {
     if (settings) {
@@ -69,8 +105,25 @@ function SettingsPage() {
       setSyncPoints((settings as any).sync_points_invoices !== false);
       setSyncAll((settings as any).sync_all_invoices === true);
       setTicketsOn((settings as any).tickets_enabled === true);
+      if ((settings as any).invoice_sync_start_date) {
+        setStartDate(String((settings as any).invoice_sync_start_date).slice(0, 10));
+      }
     }
   }, [settings]);
+
+  const saveStartDate = async () => {
+    if (!startDate) return toast.error("Pick a start date");
+    const { error } = await supabase
+      .from("settings")
+      .update({ invoice_sync_start_date: startDate } as any)
+      .eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success(`Syncing invoices dated from ${startDate}`);
+    try {
+      await log({ data: { action: "settings_update", targetType: "settings", details: { invoice_sync_start_date: startDate } } });
+    } catch {}
+    qc.invalidateQueries({ queryKey: ["settings"] });
+  };
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -209,6 +262,25 @@ function SettingsPage() {
             {!syncPoints && !syncAll && (
               <p className="text-xs text-destructive">Both options are off — syncs will skip invoices entirely.</p>
             )}
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-sm font-medium">Sync invoices dated from</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Invoices dated before this day are ignored by every sync (tickets era starts in September).</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={saveStartDate}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Save start date
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -229,6 +301,11 @@ function SettingsPage() {
             >
               {ticketsOn ? "Enabled" : "Disabled"}
             </button>
+          </div>
+          <div className="mt-3 rounded-xl border border-border p-4">
+            <p className="text-sm font-medium">Tickets ready notice</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Emails one person that their tickets are live and the Christmas raffle draw is December 18.</p>
+            <TicketsReadyNoticeButton />
           </div>
         </section>
 
