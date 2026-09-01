@@ -40,6 +40,16 @@ function Fulfillment() {
     },
   });
 
+  const userIds = Array.from(new Set((items ?? []).map((r) => r.user_id)));
+  const { data: profileMap } = useQuery({
+    queryKey: ["admin-fulfillment-profiles", userIds],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, email, phone").in("id", userIds);
+      return new Map((data ?? []).map((p) => [p.id, p]));
+    },
+  });
+
   const update = async (id: string, patch: { status?: string; tracking_info?: string }) => {
     try {
       const current = items?.find((r) => r.id === id);
@@ -131,7 +141,14 @@ function Fulfillment() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="font-semibold">{r.prize_name}</div>
-                <div className="text-xs text-muted-foreground">User: {r.user_id.slice(0, 8)}… · {r.points_spent} pts · {new Date(r.created_at).toLocaleString()}</div>
+                <div className="mt-0.5 text-sm font-medium">
+                  {profileMap?.get(r.user_id)?.full_name || "Unknown user"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {profileMap?.get(r.user_id)?.email ?? `ID ${r.user_id.slice(0, 8)}…`}
+                  {profileMap?.get(r.user_id)?.phone ? ` · ${profileMap.get(r.user_id)?.phone}` : ""}
+                  {" · "}{r.points_spent} pts · {new Date(r.created_at).toLocaleString()}
+                </div>
               </div>
               <select value={r.status} onChange={(e) => update(r.id, { status: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm">
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
