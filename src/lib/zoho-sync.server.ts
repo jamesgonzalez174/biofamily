@@ -555,11 +555,14 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     // Admin toggles: which invoices to sync.
     const { data: syncSettings } = await supabaseAdmin
       .from("settings")
-      .select("sync_points_invoices, sync_all_invoices")
+      .select("sync_points_invoices, sync_all_invoices, invoice_sync_start_date")
       .eq("id", 1)
       .maybeSingle();
     const syncPointsInvoices = (syncSettings as any)?.sync_points_invoices !== false;
     const syncAllInvoices = (syncSettings as any)?.sync_all_invoices === true;
+    // Only sync invoices dated on/after this date (tickets era starts September).
+    const startDateRaw = (syncSettings as any)?.invoice_sync_start_date as string | null;
+    const invoiceStartDate = startDateRaw ? String(startDateRaw).slice(0, 10) : null;
 
     let invPage = 1;
     let invoicesUpserted = 0;
