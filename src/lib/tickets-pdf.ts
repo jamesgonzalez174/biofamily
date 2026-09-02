@@ -54,7 +54,7 @@ function drawTicket(
 
   // card
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(...PURPLE);
+  doc.setDrawColor(...PRIMARY);
   doc.setLineWidth(1);
   doc.roundedRect(x, y, w, h, 8, 8, "FD");
 
