@@ -10,12 +10,12 @@ export type TicketHolder = {
 };
 
 const BRAND = "BIOMED FAMILY";
-// Christmas palette: pine green, holly red, warm gold
-const PURPLE: [number, number, number] = [178, 34, 34];
-const DEEP: [number, number, number] = [20, 83, 45];
-const GOLD: [number, number, number] = [201, 162, 39];
-const INK: [number, number, number] = [20, 30, 24];
-const MUTED: [number, number, number] = [107, 114, 128];
+// Professional blue palette matching the app UI
+const PRIMARY: [number, number, number] = [30, 64, 175];
+const DEEP: [number, number, number] = [23, 37, 84];
+const ACCENT: [number, number, number] = [96, 165, 250];
+const INK: [number, number, number] = [15, 23, 42];
+const MUTED: [number, number, number] = [100, 116, 139];
 
 function splitName(full?: string | null) {
   const parts = String(full ?? "").trim().split(/\s+/).filter(Boolean);
@@ -54,7 +54,7 @@ function drawTicket(
 
   // card
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(...PURPLE);
+  doc.setDrawColor(...PRIMARY);
   doc.setLineWidth(1);
   doc.roundedRect(x, y, w, h, 8, 8, "FD");
 
@@ -83,7 +83,7 @@ function drawTicket(
 
   // body
   const bx = x + stubW + 16;
-  doc.setTextColor(...PURPLE);
+  doc.setTextColor(...PRIMARY);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text(`${BRAND}  ·  CHRISTMAS RAFFLE`, bx, y + 20);
@@ -104,7 +104,7 @@ function drawTicket(
 
   // right rail
   const rx = x + w - 16;
-  doc.setTextColor(...GOLD);
+  doc.setTextColor(...ACCENT);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text("DRAW DATE", rx, y + 20, { align: "right" });
@@ -154,7 +154,7 @@ export async function downloadTicketsPdf(
   doc.text(`Generated ${generated}`, margin, 96);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...GOLD);
+  doc.setTextColor(...ACCENT);
   doc.text(`${totalTickets} tickets · ${rows.length} holders`, pageW - margin, 96, { align: "right" });
 
   autoTable(doc, {
@@ -167,8 +167,8 @@ export async function downloadTicketsPdf(
       String(r.count),
     ]),
     styles: { fontSize: 9, cellPadding: 5, textColor: INK },
-    headStyles: { fillColor: PURPLE, textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [245, 243, 255] },
+    headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [239, 246, 255] },
     columnStyles: { 3: { halign: "right", cellWidth: 60 } },
     margin: { left: margin, right: margin },
   });
