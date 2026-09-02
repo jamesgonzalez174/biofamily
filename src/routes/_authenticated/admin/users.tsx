@@ -199,10 +199,12 @@ function UsersPage() {
               const isAdmin = u.roles.includes("admin");
               return (
                 <tr key={u.id} className="border-t border-border">
-                  <td className="p-3">
-                    <div className="font-medium">{u.full_name || "—"}</div>
-                    <div className="text-xs text-muted-foreground break-all">{u.email}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums">{u.phone || "— no phone —"}</div>
+                  <td className="p-3 align-top">
+                    <div className="min-w-[180px] max-w-[260px]">
+                      <div className="font-medium truncate" title={u.full_name || undefined}>{u.full_name || "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate" title={u.email}>{u.email}</div>
+                      <div className="text-xs text-muted-foreground tabular-nums truncate">{u.phone || "— no phone —"}</div>
+                    </div>
                   </td>
                   <td className="p-3">
                     <select
