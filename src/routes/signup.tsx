@@ -57,8 +57,9 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.from("pharmacy_directory").select("id, name, address").order("name")
-      .then(({ data }) => setPharmacies((data ?? []) as Pharmacy[]));
+    listPharmacyOptions()
+      .then((res) => setPharmacies((res?.pharmacies ?? []) as Pharmacy[]))
+      .catch(() => setPharmacies([]));
   }, []);
 
   const submit = async (e: React.FormEvent) => {
