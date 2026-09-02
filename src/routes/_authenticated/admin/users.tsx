@@ -206,11 +206,11 @@ function UsersPage() {
                       <div className="text-xs text-muted-foreground tabular-nums truncate">{u.phone || "— no phone —"}</div>
                     </div>
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 align-top">
                     <select
                       value={u.pharmacy_id ?? ""}
                       onChange={(e) => changePharmacy(u.id, e.target.value)}
-                      className="rounded-lg border border-input bg-background px-2 py-1 text-xs max-w-[140px]"
+                      className="w-full min-w-[160px] max-w-[220px] truncate rounded-lg border border-input bg-background px-2 py-1 text-xs"
                     >
                       <option value="">— None —</option>
                       {(pharmacies ?? []).map((p) => (
