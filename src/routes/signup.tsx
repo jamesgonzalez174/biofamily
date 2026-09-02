@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthScene } from "@/components/AuthScene";
 import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
+import { listPharmacyOptions } from "@/lib/pharmacy-directory.functions";
 
 
 function safeNext(n: unknown): string | null {
