@@ -83,7 +83,7 @@ function drawTicket(
 
   // body
   const bx = x + stubW + 16;
-  doc.setTextColor(...PURPLE);
+  doc.setTextColor(...PRIMARY);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text(`${BRAND}  ·  CHRISTMAS RAFFLE`, bx, y + 20);
@@ -104,7 +104,7 @@ function drawTicket(
 
   // right rail
   const rx = x + w - 16;
-  doc.setTextColor(...GOLD);
+  doc.setTextColor(...ACCENT);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text("DRAW DATE", rx, y + 20, { align: "right" });
@@ -154,7 +154,7 @@ export async function downloadTicketsPdf(
   doc.text(`Generated ${generated}`, margin, 96);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...GOLD);
+  doc.setTextColor(...ACCENT);
   doc.text(`${totalTickets} tickets · ${rows.length} holders`, pageW - margin, 96, { align: "right" });
 
   autoTable(doc, {
@@ -167,8 +167,8 @@ export async function downloadTicketsPdf(
       String(r.count),
     ]),
     styles: { fontSize: 9, cellPadding: 5, textColor: INK },
-    headStyles: { fillColor: PURPLE, textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [245, 243, 255] },
+    headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [239, 246, 255] },
     columnStyles: { 3: { halign: "right", cellWidth: 60 } },
     margin: { left: margin, right: margin },
   });
