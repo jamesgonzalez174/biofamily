@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthScene } from "@/components/AuthScene";
 import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
+import { listPharmacyOptions } from "@/lib/pharmacy-directory.functions";
 
 
 function safeNext(n: unknown): string | null {
@@ -57,8 +58,9 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.from("pharmacy_directory").select("id, name, address").order("name")
-      .then(({ data }) => setPharmacies((data ?? []) as Pharmacy[]));
+    listPharmacyOptions()
+      .then((res) => setPharmacies((res?.pharmacies ?? []) as Pharmacy[]))
+      .catch(() => setPharmacies([]));
   }, []);
 
   const submit = async (e: React.FormEvent) => {
