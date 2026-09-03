@@ -240,8 +240,8 @@ function PrivacyPolicyPage() {
                   <strong>Biomed Family</strong>
                 </li>
                 <li>
-                  Email:\u00a0
-                  <a href="mailto:privacy@myprizepoint.com" className="text-primary hover:underline">
+                  Email:{"\u00a0"}
+                  <a href="mailto:jamesgonzalez174@gmail.com" className="text-primary hover:underline">
                     jamesgonzalez174@gmail.com
                   </a>
                 </li>

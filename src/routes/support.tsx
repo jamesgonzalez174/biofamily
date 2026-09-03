@@ -209,9 +209,9 @@ function SupportPage() {
                   Privacy Policy
                 </Link>
                 . If you believe your account has been compromised or you notice suspicious
-                 activity, contact us immediately at\u00a0
-                 <a href="mailto:jamesgonzalez174@gmail.com" className="text-primary hover:underline">
-                   jamesgonzalez174@gmail.com
+                activity, contact us immediately at{"\u00a0"}
+                <a href="mailto:jamesgonzalez174@gmail.com" className="text-primary hover:underline">
+                  jamesgonzalez174@gmail.com
                 </a>
                 .
               </p>
