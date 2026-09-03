@@ -157,6 +157,35 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   // Sweep any previous runs that never finished, and alert admins.
   await reapStuckRuns();
 
+  // Overlap guard: never let two syncs hammer Zoho at once. Reaping above has
+  // already closed anything older than the stuck threshold, so a row still
+  // open here is a genuinely in-flight run.
+  const { data: inFlight } = await supabaseAdmin
+    .from("zoho_sync_runs")
+    .select("id, started_at")
+    .is("finished_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (inFlight) {
+    return {
+      ok: false,
+      fetched: 0,
+      upserted: 0,
+      pages: 0,
+      truncated: false,
+      errors: [`a sync started ${(inFlight as any).started_at} is still running — skipped`],
+      notifiedCount: 0,
+    };
+  }
+
+  // Wall-clock budget. The serverless worker kills long invocations, which used
+  // to leave the run row open forever ("stuck"). Stop cleanly before that.
+  const startedMs = Date.now();
+  const TIME_BUDGET_MS = 8 * 60_000;
+  const outOfTime = () => Date.now() - startedMs > TIME_BUDGET_MS;
+
+
   const startedAt = new Date().toISOString();
   const { data: runRow } = await supabaseAdmin
     .from("zoho_sync_runs")
@@ -383,6 +412,11 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       await upsertPage(page, current.contacts);
       if (!hasMore) break;
       page = nextPageNum;
+      if (outOfTime()) {
+        truncated = true;
+        break;
+      }
+
       if (page > 100) {
         truncated = true;
         errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
@@ -570,7 +604,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let consecutiveFullyLockedPages = 0;
 
     while (syncPointsInvoices || syncAllInvoices) {
+      if (outOfTime()) { truncated = true; break; }
       const cur = await fetchInvoicePage(invPage);
+
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
@@ -593,7 +629,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
+          if (outOfTime()) { truncated = true; break; }
           const chunk = freshList.slice(i, i + CONCURRENCY);
+
           const details = await Promise.all(
             chunk.map(async (inv: any) => {
               const result = await fetchInvoiceDetail(String(inv.invoice_id));
