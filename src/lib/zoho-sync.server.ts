@@ -717,13 +717,22 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
 
         const insertRows: typeof rows = [];
         const updateRows: Array<{ id: string; row: (typeof rows)[number] }> = [];
+        // In-batch dedupe: Zoho can return the same invoice twice (same id, or
+        // the same invoice number under a different id). Keep only the first.
+        const seenZoho = new Set<string>();
+        const seenNums = new Set<string>();
         for (const row of rows) {
           const numKey = row.invoice_number ? String(row.invoice_number).trim().toUpperCase() : "";
+          if (seenZoho.has(row.zoho_invoice_id)) continue;
+          if (numKey && seenNums.has(numKey)) continue;
+          seenZoho.add(row.zoho_invoice_id);
+          if (numKey) seenNums.add(numKey);
           const existing = existingByZoho.get(row.zoho_invoice_id) ?? (numKey ? existingByNumber.get(numKey) : null);
           if (existing?.points_distributed_at) continue;
           if (existing?.id) updateRows.push({ id: String(existing.id), row });
           else insertRows.push(row);
         }
+
 
         if (insertRows.length > 0) {
           const { error: invErr } = await supabaseAdmin
