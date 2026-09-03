@@ -157,6 +157,35 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   // Sweep any previous runs that never finished, and alert admins.
   await reapStuckRuns();
 
+  // Overlap guard: never let two syncs hammer Zoho at once. Reaping above has
+  // already closed anything older than the stuck threshold, so a row still
+  // open here is a genuinely in-flight run.
+  const { data: inFlight } = await supabaseAdmin
+    .from("zoho_sync_runs")
+    .select("id, started_at")
+    .is("finished_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (inFlight) {
+    return {
+      ok: false,
+      fetched: 0,
+      upserted: 0,
+      pages: 0,
+      truncated: false,
+      errors: [`a sync started ${(inFlight as any).started_at} is still running — skipped`],
+      notifiedCount: 0,
+    };
+  }
+
+  // Wall-clock budget. The serverless worker kills long invocations, which used
+  // to leave the run row open forever ("stuck"). Stop cleanly before that.
+  const startedMs = Date.now();
+  const TIME_BUDGET_MS = 8 * 60_000;
+  const outOfTime = () => Date.now() - startedMs > TIME_BUDGET_MS;
+
+
   const startedAt = new Date().toISOString();
   const { data: runRow } = await supabaseAdmin
     .from("zoho_sync_runs")
