@@ -629,7 +629,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
+          if (outOfTime()) { truncated = true; break; }
           const chunk = freshList.slice(i, i + CONCURRENCY);
+
           const details = await Promise.all(
             chunk.map(async (inv: any) => {
               const result = await fetchInvoiceDetail(String(inv.invoice_id));
