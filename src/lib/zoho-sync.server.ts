@@ -412,6 +412,11 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       await upsertPage(page, current.contacts);
       if (!hasMore) break;
       page = nextPageNum;
+      if (outOfTime()) {
+        truncated = true;
+        break;
+      }
+
       if (page > 100) {
         truncated = true;
         errors.push(`hit page cap (100) — sync truncated at ${fetched} contacts`);
