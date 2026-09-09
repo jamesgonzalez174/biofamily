@@ -414,6 +414,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       page = nextPageNum;
       if (outOfTime()) {
         truncated = true;
+        errors.push(
+          `time budget (8 min) reached during contact sync — stopped after ${fetched} contacts; run again to continue`,
+        );
         break;
       }
 
