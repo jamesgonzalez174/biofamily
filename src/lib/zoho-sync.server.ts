@@ -804,6 +804,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
+      // Out of time: stop paginating (the budget message is already recorded).
+      if (outOfTime()) { truncated = true; break; }
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
