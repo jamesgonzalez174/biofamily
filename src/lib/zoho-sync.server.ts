@@ -637,8 +637,16 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         // (small concurrency) so we can read Points Given / Total Points.
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
+        let budgetHit = false;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
-          if (outOfTime()) { truncated = true; break; }
+          if (outOfTime()) {
+            truncated = true;
+            budgetHit = true;
+            errors.push(
+              `time budget (8 min) reached while loading invoice details — ${freshList.length - i} invoice(s) on page ${invPage} not imported; run again to continue`,
+            );
+            break;
+          }
           const chunk = freshList.slice(i, i + CONCURRENCY);
 
           const details = await Promise.all(
