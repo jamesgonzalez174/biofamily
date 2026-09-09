@@ -414,6 +414,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       page = nextPageNum;
       if (outOfTime()) {
         truncated = true;
+        errors.push(
+          `time budget (8 min) reached during contact sync — stopped after ${fetched} contacts; run again to continue`,
+        );
         break;
       }
 
@@ -604,7 +607,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let consecutiveFullyLockedPages = 0;
 
     while (syncPointsInvoices || syncAllInvoices) {
-      if (outOfTime()) { truncated = true; break; }
+      if (outOfTime()) {
+        truncated = true;
+        errors.push(
+          `time budget (8 min) reached during invoice sync — stopped after ${invoicesUpserted} invoices (page ${invPage}); run again to continue`,
+        );
+        break;
+      }
       const cur = await fetchInvoicePage(invPage);
 
       if (!cur) break;
@@ -629,7 +638,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
-          if (outOfTime()) { truncated = true; break; }
+          if (outOfTime()) {
+            truncated = true;
+            errors.push(
+              `time budget (8 min) reached while loading invoice details — ${freshList.length - i} invoice(s) on page ${invPage} not imported; run again to continue`,
+            );
+            break;
+          }
           const chunk = freshList.slice(i, i + CONCURRENCY);
 
           const details = await Promise.all(
@@ -787,6 +802,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
+      // Out of time: stop paginating (the budget message is already recorded).
+      if (outOfTime()) { truncated = true; break; }
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
