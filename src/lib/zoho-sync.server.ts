@@ -607,7 +607,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let consecutiveFullyLockedPages = 0;
 
     while (syncPointsInvoices || syncAllInvoices) {
-      if (outOfTime()) { truncated = true; break; }
+      if (outOfTime()) {
+        truncated = true;
+        errors.push(
+          `time budget (8 min) reached during invoice sync — stopped after ${invoicesUpserted} invoices (page ${invPage}); run again to continue`,
+        );
+        break;
+      }
       const cur = await fetchInvoicePage(invPage);
 
       if (!cur) break;
