@@ -452,7 +452,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         // No server-side custom-field filter — Zoho's cf_* filter names vary
         // per org and often return empty results. We fetch all invoices and
         // check Points Given via each invoice's detail payload below.
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&sort_column=last_modified_time&sort_order=D`;
+        // Sort newest-invoice-date first so we can stop paginating as soon as
+        // we pass the configured invoice_sync_start_date.
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&sort_column=date&sort_order=D`;
+        zohoCalls++;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
