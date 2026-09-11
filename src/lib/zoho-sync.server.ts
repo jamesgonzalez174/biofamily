@@ -612,6 +612,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
     let consecutiveFullyLockedPages = 0;
+    let reachedStartDate = false;
 
     while (syncPointsInvoices || syncAllInvoices) {
       if (outOfTime() || outOfCalls()) {
@@ -633,6 +634,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             })
           : cur.invoices;
         const pastStartDate = invoiceStartDate !== null && inWindow.length < cur.invoices.length;
+        if (pastStartDate) reachedStartDate = true;
 
         // Skip invoices we've already locked/distributed — no need to call Zoho
         // detail for them. Since we sort newest-first, stop paginating once we
@@ -815,8 +817,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
-      // Out of time: stop paginating; truncation is conveyed by `truncated`.
-      if (outOfTime()) { truncated = true; break; }
+      // Everything beyond this page predates the sync start date.
+      if (reachedStartDate) break;
+      // Out of time / calls: stop paginating; conveyed by `truncated`.
+      if (outOfTime() || outOfCalls()) { truncated = true; break; }
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
