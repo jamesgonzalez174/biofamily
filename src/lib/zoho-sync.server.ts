@@ -182,8 +182,14 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   // Wall-clock budget. The serverless worker kills long invocations, which used
   // to leave the run row open forever ("stuck"). Stop cleanly before that.
   const startedMs = Date.now();
-  const TIME_BUDGET_MS = 8 * 60_000;
+  // Keep well under the serverless worker's invocation limits. Runs that took
+  // 7–9 minutes were being killed mid-flight, leaving "stuck" runs behind.
+  const TIME_BUDGET_MS = 3 * 60_000;
   const outOfTime = () => Date.now() - startedMs > TIME_BUDGET_MS;
+  // Hard cap on outbound Zoho calls per run (workers also cap subrequests).
+  let zohoCalls = 0;
+  const CALL_BUDGET = 600;
+  const outOfCalls = () => zohoCalls >= CALL_BUDGET;
 
 
   const startedAt = new Date().toISOString();
