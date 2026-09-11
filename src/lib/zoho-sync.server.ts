@@ -614,7 +614,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let consecutiveFullyLockedPages = 0;
 
     while (syncPointsInvoices || syncAllInvoices) {
-      if (outOfTime()) {
+      if (outOfTime() || outOfCalls()) {
         truncated = true;
         break;
       }
@@ -623,11 +623,23 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
+        // The list is sorted by invoice date, newest first. Anything older than
+        // the configured start date can never qualify, so stop here instead of
+        // paging (and detail-fetching) through years of history.
+        const inWindow = invoiceStartDate
+          ? cur.invoices.filter((inv: any) => {
+              const d = inv.date ? String(inv.date).slice(0, 10) : null;
+              return d !== null && d >= invoiceStartDate;
+            })
+          : cur.invoices;
+        const pastStartDate = invoiceStartDate !== null && inWindow.length < cur.invoices.length;
+
         // Skip invoices we've already locked/distributed — no need to call Zoho
         // detail for them. Since we sort newest-first, stop paginating once we
         // hit two consecutive pages where every invoice is already locked.
-        const freshList = cur.invoices.filter((inv: any) => !lockedZohoIds.has(String(inv.invoice_id)));
+        const freshList = inWindow.filter((inv: any) => !lockedZohoIds.has(String(inv.invoice_id)));
         const pageFullyLocked = freshList.length === 0;
+        if (pageFullyLocked && pastStartDate) break;
         if (pageFullyLocked) {
           consecutiveFullyLockedPages += 1;
           if (consecutiveFullyLockedPages >= 2) break;
