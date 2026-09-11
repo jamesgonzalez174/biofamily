@@ -491,6 +491,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       let lastError = "unknown error";
       for (let attempt = 0; attempt < 4; attempt++) {
         const url = `${apiBase}/invoices/${invoiceId}?organization_id=${orgId}`;
+        zohoCalls++;
         let res: Response;
         try {
           res = await fetch(url, {
