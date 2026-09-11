@@ -182,8 +182,14 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
   // Wall-clock budget. The serverless worker kills long invocations, which used
   // to leave the run row open forever ("stuck"). Stop cleanly before that.
   const startedMs = Date.now();
-  const TIME_BUDGET_MS = 8 * 60_000;
+  // Keep well under the serverless worker's invocation limits. Runs that took
+  // 7–9 minutes were being killed mid-flight, leaving "stuck" runs behind.
+  const TIME_BUDGET_MS = 3 * 60_000;
   const outOfTime = () => Date.now() - startedMs > TIME_BUDGET_MS;
+  // Hard cap on outbound Zoho calls per run (workers also cap subrequests).
+  let zohoCalls = 0;
+  const CALL_BUDGET = 600;
+  const outOfCalls = () => zohoCalls >= CALL_BUDGET;
 
 
   const startedAt = new Date().toISOString();
@@ -446,7 +452,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         // No server-side custom-field filter — Zoho's cf_* filter names vary
         // per org and often return empty results. We fetch all invoices and
         // check Points Given via each invoice's detail payload below.
-        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&sort_column=last_modified_time&sort_order=D`;
+        // Sort newest-invoice-date first so we can stop paginating as soon as
+        // we pass the configured invoice_sync_start_date.
+        const url = `${apiBase}/invoices?organization_id=${orgId}&page=${pg}&per_page=200&sort_column=date&sort_order=D`;
+        zohoCalls++;
         const res = await fetch(url, {
           headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
         });
@@ -482,6 +491,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       let lastError = "unknown error";
       for (let attempt = 0; attempt < 4; attempt++) {
         const url = `${apiBase}/invoices/${invoiceId}?organization_id=${orgId}`;
+        zohoCalls++;
         let res: Response;
         try {
           res = await fetch(url, {
@@ -602,9 +612,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
     let consecutiveFullyLockedPages = 0;
+    let reachedStartDate = false;
 
     while (syncPointsInvoices || syncAllInvoices) {
-      if (outOfTime()) {
+      if (outOfTime() || outOfCalls()) {
         truncated = true;
         break;
       }
@@ -613,11 +624,24 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       if (!cur) break;
       if (cur.stop) { errors.push(cur.stop); break; }
       if (cur.invoices.length > 0) {
+        // The list is sorted by invoice date, newest first. Anything older than
+        // the configured start date can never qualify, so stop here instead of
+        // paging (and detail-fetching) through years of history.
+        const inWindow = invoiceStartDate
+          ? cur.invoices.filter((inv: any) => {
+              const d = inv.date ? String(inv.date).slice(0, 10) : null;
+              return d !== null && d >= invoiceStartDate;
+            })
+          : cur.invoices;
+        const pastStartDate = invoiceStartDate !== null && inWindow.length < cur.invoices.length;
+        if (pastStartDate) reachedStartDate = true;
+
         // Skip invoices we've already locked/distributed — no need to call Zoho
         // detail for them. Since we sort newest-first, stop paginating once we
         // hit two consecutive pages where every invoice is already locked.
-        const freshList = cur.invoices.filter((inv: any) => !lockedZohoIds.has(String(inv.invoice_id)));
+        const freshList = inWindow.filter((inv: any) => !lockedZohoIds.has(String(inv.invoice_id)));
         const pageFullyLocked = freshList.length === 0;
+        if (pageFullyLocked && pastStartDate) break;
         if (pageFullyLocked) {
           consecutiveFullyLockedPages += 1;
           if (consecutiveFullyLockedPages >= 2) break;
@@ -632,7 +656,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
-          if (outOfTime()) {
+          if (outOfTime() || outOfCalls()) {
             truncated = true;
             break;
           }
@@ -793,8 +817,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
-      // Out of time: stop paginating; truncation is conveyed by `truncated`.
-      if (outOfTime()) { truncated = true; break; }
+      // Everything beyond this page predates the sync start date.
+      if (reachedStartDate) break;
+      // Out of time / calls: stop paginating; conveyed by `truncated`.
+      if (outOfTime() || outOfCalls()) { truncated = true; break; }
       if (!cur.hasMore) break;
       invPage += 1;
       if (invPage > 200) {
