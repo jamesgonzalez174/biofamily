@@ -793,7 +793,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         }
       }
 
-      // Out of time: stop paginating (the budget message is already recorded).
+      // Out of time: stop paginating; truncation is conveyed by `truncated`.
       if (outOfTime()) { truncated = true; break; }
       if (!cur.hasMore) break;
       invPage += 1;
