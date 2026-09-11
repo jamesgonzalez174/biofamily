@@ -654,7 +654,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const hydrated: any[] = [];
         const CONCURRENCY = 10;
         for (let i = 0; i < freshList.length; i += CONCURRENCY) {
-          if (outOfTime()) {
+          if (outOfTime() || outOfCalls()) {
             truncated = true;
             break;
           }
