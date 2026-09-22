@@ -17,7 +17,7 @@ function Catalog() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const redeem = useServerFn(redeemPrize);
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
