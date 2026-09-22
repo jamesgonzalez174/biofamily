@@ -145,7 +145,7 @@ function Catalog() {
       )}
 
       {selected && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm" onClick={() => !busy && setSelected(null)}>
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm" onClick={() => !busy && setSelectedId(null)}>
           <div className="my-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-glow" onClick={(e) => e.stopPropagation()}>
             <div className="relative aspect-[16/9] w-full bg-muted">
               {selected.image_url ? (
@@ -153,13 +153,15 @@ function Catalog() {
               ) : (
                 <div className="grid h-full place-items-center"><Gift className="h-20 w-20 text-muted-foreground" /></div>
               )}
-              <button onClick={() => !busy && setSelected(null)} aria-label="Close prize details" className="absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"><X className="h-4 w-4" /></button>
+              <button onClick={() => !busy && setSelectedId(null)} aria-label="Close prize details" className="absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"><X className="h-4 w-4" /></button>
             </div>
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-semibold">{selected.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{selected.stock} in stock</p>
+                  <p className={`mt-1 text-sm ${selected.stock <= 0 ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                    {selected.stock <= 0 ? "Out of stock" : `${selected.stock} in stock`}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground">
                   <Sparkles className="h-4 w-4" />{selected.point_cost.toLocaleString()} pts
@@ -167,10 +169,11 @@ function Catalog() {
               </div>
               {selected.description && <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selected.description}</p>}
               <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-                {balance < selected.point_cost
-                  ? `You need ${(selected.point_cost - balance).toLocaleString()} more points to redeem this prize.`
-                  : "Points are deducted immediately when you redeem. If your order is cancelled, points are refunded automatically."}
-
+                {selected.stock <= 0
+                  ? "This prize is out of stock and cannot be redeemed right now."
+                  : balance < selected.point_cost
+                    ? `You need ${(selected.point_cost - balance).toLocaleString()} more points to redeem this prize.`
+                    : "Points are deducted immediately when you redeem. If your order is cancelled, points are refunded automatically."}
               </div>
               {balance >= selected.point_cost && selected.stock > 0 && (
                 <div className="mt-5 space-y-3">
@@ -196,9 +199,9 @@ function Catalog() {
                 </div>
               )}
               <div className="mt-6 flex gap-2">
-                <button onClick={() => setSelected(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Close</button>
+                <button onClick={() => setSelectedId(null)} disabled={busy} className="flex-1 rounded-xl border border-border bg-background py-2.5 text-sm font-medium hover:bg-muted">Close</button>
                 <button onClick={confirm} disabled={busy || balance < selected.point_cost || selected.stock <= 0} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-60">
-                  {busy ? "Redeeming…" : balance < selected.point_cost ? "Not enough points" : "Redeem"}
+                  {busy ? "Redeeming…" : selected.stock <= 0 ? "Out of stock" : balance < selected.point_cost ? "Not enough points" : "Redeem"}
                 </button>
               </div>
             </div>
