@@ -41,14 +41,23 @@ function Catalog() {
 
   const balance = profile?.points_balance ?? 0;
 
+  // Always read the prize from the live query cache so stock shown in the
+  // modal is never a stale snapshot (e.g. another user took the last one).
+  const selected = selectedId ? (prizes ?? []).find((p) => p.id === selectedId) ?? null : null;
+
   const openPrize = (p: any) => {
-    setSelected(p);
+    setSelectedId(p.id);
     setAddress("");
     setPhone(profile?.phone ?? "");
   };
 
   const confirm = async () => {
     if (!selected) return;
+    if (selected.stock <= 0) {
+      toast.error("This prize is out of stock");
+      qc.invalidateQueries({ queryKey: ["prizes"] });
+      return;
+    }
     if (!address.trim() || address.trim().length < 5) {
       toast.error("Please enter a shipping address");
       return;
@@ -65,9 +74,12 @@ function Catalog() {
       qc.invalidateQueries({ queryKey: ["prizes"] });
       qc.invalidateQueries({ queryKey: ["redemptions"] });
       qc.invalidateQueries({ queryKey: ["ledger"] });
-      setSelected(null);
+      setSelectedId(null);
     } catch (e: any) {
-      toast.error(e?.message ?? "Redemption failed");
+      const msg = e?.message ?? "Redemption failed";
+      toast.error(msg);
+      // If the server says it's out of stock, refresh the list immediately.
+      if (/out of stock/i.test(msg)) qc.invalidateQueries({ queryKey: ["prizes"] });
     } finally {
       setBusy(false);
     }
