@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { updateRedemptionStatus } from "@/lib/redemption.functions";
 import { logAdminAction } from "@/lib/admin.functions";
 import { toCSV, downloadCSV } from "@/lib/csv";
+import { downloadFulfillmentPdf } from "@/lib/fulfillment-pdf";
 
 export const Route = createFileRoute("/_authenticated/admin/fulfillment")({
   component: Fulfillment,
@@ -81,28 +82,40 @@ function Fulfillment() {
     }
   };
 
-  const exportCSV = async () => {
-    // Export reflects the current filter (status + date range) the admin sees.
+  // Export reflects the current filter (status + date range) the admin sees.
+  const fetchExportRows = async () => {
     const { data: all } = await buildQuery(true);
     const userIds = Array.from(new Set((all ?? []).map((r) => r.user_id)));
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, email, phone").in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
     const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
-    const rows = (all ?? []).map((r) => {
+    return (all ?? []).map((r) => {
       const p = pmap.get(r.user_id);
       return {
         created_at: r.created_at,
         customer_name: p?.full_name ?? "",
         customer_email: p?.email ?? "",
+        customer_phone: p?.phone ?? "",
         prize_name: r.prize_name,
         points_spent: r.points_spent,
         status: r.status,
+        shipping_address: r.shipping_address ?? "",
+        contact_phone: r.contact_phone ?? "",
         tracking_info: r.tracking_info ?? "",
         notes: r.notes ?? "",
         redemption_id: r.id,
         user_id: r.user_id,
       };
     });
+  };
+
+  const exportCSV = async () => {
+    const rows = await fetchExportRows();
     downloadCSV(`fulfillment-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rows));
+  };
+
+  const exportPDF = async () => {
+    const rows = await fetchExportRows();
+    downloadFulfillmentPdf(rows, `fulfillment-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
