@@ -125,9 +125,14 @@ function Fulfillment() {
           <h1 className="text-3xl font-semibold tracking-tight">Fulfillment</h1>
           <p className="text-sm text-muted-foreground">Points are deducted at redemption. Setting status to <strong>cancelled</strong> refunds them automatically.</p>
         </div>
-        <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
-          <Download className="h-4 w-4" /> Download CSV
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
+            <Download className="h-4 w-4" /> Download CSV
+          </button>
+          <button onClick={exportPDF} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium shadow-soft hover:bg-muted">
+            <Download className="h-4 w-4" /> Download PDF
+          </button>
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1 shadow-soft">
