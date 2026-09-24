@@ -53,6 +53,7 @@ export const updateRedemptionStatus = createServerFn({ method: "POST" })
     const becomingCancelled = data.status === "cancelled" && !wasCancelled;
 
     // Points were already deducted at redemption time. Nothing to do on claim.
+    if (becomingCancelled && wasClaimed) throw new Error("Cannot cancel a claimed redemption");
 
     // Atomic cancel: locks row, refunds points, restores stock, writes ledger,
     // and updates status — all in one DB transaction. Safe against double-clicks.
