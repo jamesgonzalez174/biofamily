@@ -169,7 +169,7 @@ function Fulfillment() {
                 </div>
               </div>
               <select value={r.status} onChange={(e) => update(r.id, { status: e.target.value })} className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm">
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {STATUSES.map((s) => <option key={s} value={s} disabled={s === "cancelled" && r.status === "claimed"}>{s}</option>)}
               </select>
             </div>
             {(r.shipping_address || r.contact_phone) && (
