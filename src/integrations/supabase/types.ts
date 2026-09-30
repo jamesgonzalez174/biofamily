@@ -916,6 +916,13 @@ export type Database = {
         Args: { _invoice_id: string }
         Returns: Json
       }
+      get_member_settings: {
+        Args: never
+        Returns: {
+          points_expire_at: string
+          tickets_enabled: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

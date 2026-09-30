@@ -10,12 +10,8 @@ export function PointsExpiryBanner() {
   const { data: settings } = useQuery({
     queryKey: ["settings-expiry"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("settings")
-        .select("points_expire_at")
-        .eq("id", 1)
-        .single();
-      return data;
+      const { data } = await (supabase as any).rpc("get_member_settings");
+      return (data as any[] | null)?.[0] ?? null;
     },
   });
 

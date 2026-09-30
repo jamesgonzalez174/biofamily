@@ -53,7 +53,7 @@ function Dashboard() {
   });
   const { data: settings } = useQuery({
     queryKey: ["settings", "tickets"],
-    queryFn: async () => (await supabase.from("settings").select("*").eq("id", 1).maybeSingle()).data,
+    queryFn: async () => (((await (supabase as any).rpc("get_member_settings")).data as any[] | null)?.[0] ?? null),
   });
 
   const balance = profile?.points_balance ?? 0;
