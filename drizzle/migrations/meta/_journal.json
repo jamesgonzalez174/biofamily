@@ -15,6 +15,13 @@
       "when": 1790258614384,
       "tag": "0001_block_cancel_claimed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790777579627,
+      "tag": "0002_restrict_settings_reads",
+      "breakpoints": true
     }
   ]
 }
