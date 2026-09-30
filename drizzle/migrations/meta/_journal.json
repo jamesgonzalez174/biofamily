@@ -22,6 +22,13 @@
       "when": 1790777579627,
       "tag": "0002_restrict_settings_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790777930082,
+      "tag": "0003_hourly_points_expiration",
+      "breakpoints": true
     }
   ]
 }

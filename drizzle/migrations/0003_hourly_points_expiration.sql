@@ -1,0 +1,1 @@
+SELECT cron.schedule('points-expiration-hourly', '1 * * * *', $$SELECT public.run_points_expiration();$$);
