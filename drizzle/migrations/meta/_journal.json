@@ -29,6 +29,13 @@
       "when": 1790777930082,
       "tag": "0003_hourly_points_expiration",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790806852506,
+      "tag": "0004_restrict_status_image_reads",
+      "breakpoints": true
     }
   ]
 }
