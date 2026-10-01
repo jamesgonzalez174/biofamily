@@ -43,6 +43,13 @@
       "when": 1790870742789,
       "tag": "0005_invoice_points_distributed_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790883501948,
+      "tag": "0006_invoice_tickets_from_zoho",
+      "breakpoints": true
     }
   ]
 }

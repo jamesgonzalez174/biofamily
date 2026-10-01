@@ -152,12 +152,14 @@ export type Database = {
           points_given: boolean
           raw: Json | null
           status: string | null
+          tickets_distributed_at: string | null
           total: number | null
           total_points: number | null
           total_tickets: number
           updated_at: string
           zoho_contact_id: string | null
           zoho_invoice_id: string
+          zoho_tickets: number
         }
         Insert: {
           balance?: number | null
@@ -173,12 +175,14 @@ export type Database = {
           points_given?: boolean
           raw?: Json | null
           status?: string | null
+          tickets_distributed_at?: string | null
           total?: number | null
           total_points?: number | null
           total_tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id: string
+          zoho_tickets?: number
         }
         Update: {
           balance?: number | null
@@ -194,12 +198,14 @@ export type Database = {
           points_given?: boolean
           raw?: Json | null
           status?: string | null
+          tickets_distributed_at?: string | null
           total?: number | null
           total_points?: number | null
           total_tickets?: number
           updated_at?: string
           zoho_contact_id?: string | null
           zoho_invoice_id?: string
+          zoho_tickets?: number
         }
         Relationships: [
           {
@@ -913,6 +919,10 @@ export type Database = {
             }
           }
       distribute_invoice_points_once: {
+        Args: { _invoice_id: string }
+        Returns: Json
+      }
+      distribute_invoice_tickets_once: {
         Args: { _invoice_id: string }
         Returns: Json
       }
