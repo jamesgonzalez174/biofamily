@@ -13,6 +13,8 @@ export type InvoiceDetail = {
   status: string | null;
   points: number;
   pointsPerMember: number;
+  tickets: number;
+  ticketsPerMember: number;
   memberCount: number;
   error?: string;
 };
@@ -68,7 +70,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
     // Pull all invoices linked to this pharmacy, plus any matching by number.
     const { data: linked } = await supabaseAdmin
       .from("invoices")
-      .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
+.select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points, zoho_tickets")
       .eq("pharmacy_id", data.pharmacyId);
 
     // Normalize aggressively so "FAC01 -004607", "fac01-004607" and
@@ -86,7 +88,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
       if (missing.length > 0) {
         const { data: byNums } = await supabaseAdmin
           .from("invoices")
-          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points")
+          .select("invoice_number, zoho_invoice_id, invoice_date, due_date, total, balance, currency_code, status, points_given, total_points, zoho_tickets")
           .in("invoice_number", missing);
         for (const row of byNums ?? []) {
           const num = (row as any).invoice_number ? String((row as any).invoice_number) : null;
@@ -115,11 +117,14 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
           status: null,
           points: 0,
           pointsPerMember: 0,
+          tickets: 0,
+          ticketsPerMember: 0,
           memberCount,
           error: "not synced yet",
         };
       }
       const points = row.points_given && row.total_points ? Math.max(0, Math.floor(Number(row.total_points))) : 0;
+      const tickets = row.zoho_tickets ? Math.max(0, Math.floor(Number(row.zoho_tickets))) : 0;
       return {
         number: String(row.invoice_number ?? num),
         invoiceId: row.zoho_invoice_id ? String(row.zoho_invoice_id) : null,
@@ -131,6 +136,8 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
         status: row.status ?? null,
         points,
         pointsPerMember: memberCount > 0 ? Math.floor(points / memberCount) : 0,
+        tickets,
+        ticketsPerMember: memberCount > 0 && tickets > 0 ? Math.max(1, Math.floor(tickets / memberCount)) : 0,
         memberCount,
       };
     };
