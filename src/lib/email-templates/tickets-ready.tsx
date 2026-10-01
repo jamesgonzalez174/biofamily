@@ -107,6 +107,23 @@ const label = {
   letterSpacing: '0.06em', margin: '0 0 4px',
 }
 const big = { color: '#4c1d95', fontSize: '32px', fontWeight: 700, margin: '0' }
+const tableBox = {
+  border: '1px solid #e5e7eb',
+  borderRadius: '12px',
+  padding: '12px 16px',
+  margin: '16px 0',
+}
+const tableRow = { borderBottom: '1px solid #f3f4f6', padding: '6px 0' }
+const totalRow = { padding: '8px 0 0' }
+const cellLeft = {
+  color: '#374151', fontSize: '14px', margin: '0', display: 'inline-block', width: '60%',
+}
+const cellRight = {
+  color: '#374151', fontSize: '14px', margin: '0', display: 'inline-block',
+  width: '40%', textAlign: 'right' as const,
+}
+const cellLeftBold = { ...cellLeft, fontWeight: 700, color: '#111827' }
+const cellRightBold = { ...cellRight, fontWeight: 700, color: '#111827' }
 const button = {
   backgroundColor: '#6d28d9', color: '#ffffff', padding: '12px 22px',
   borderRadius: '10px', textDecoration: 'none', display: 'inline-block',
