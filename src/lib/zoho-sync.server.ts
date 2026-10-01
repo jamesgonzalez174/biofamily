@@ -611,6 +611,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let invPage = 1;
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
+    const ticketPharmacies = new Set<string>();
     let consecutiveFullyLockedPages = 0;
     let reachedStartDate = false;
 
@@ -796,10 +797,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             }
             if (dist?.distributed) {
               invoicesDistributed += 1;
-              if (inv.pharmacy_id) {
-                const n = await notifyTicketsCredited({ pharmacyId: inv.pharmacy_id });
-                notifiedCount += n.sent;
-              }
+              if (inv.pharmacy_id) ticketPharmacies.add(inv.pharmacy_id);
             }
 
           }
@@ -821,6 +819,13 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     }
     upserted += invoicesUpserted;
     void invoicesDistributed;
+
+    // Send "tickets ready" only after every invoice is distributed, so the
+    // email shows each member's final ticket total for this sync.
+    for (const pharmacyId of ticketPharmacies) {
+      const n = await notifyTicketsCredited({ pharmacyId });
+      notifiedCount += n.sent;
+    }
 
     const result: SyncResult = { ok: errors.length === 0, fetched, upserted, pages: page, truncated, errors: errors.slice(0, 10), notifiedCount };
 
