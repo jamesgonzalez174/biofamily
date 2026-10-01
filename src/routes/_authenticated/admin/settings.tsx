@@ -740,7 +740,7 @@ function SyncCustomers() {
       } else if (res.errors.length) {
         toast.warning(`Synced ${res.upserted} (with ${res.errors.length} errors)`);
       } else {
-        toast.success(`Synced ${res.upserted} invoices with points from Zoho`);
+        toast.success(`Synced ${res.upserted} invoices with tickets from Zoho`);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
@@ -764,7 +764,7 @@ function SyncCustomers() {
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-          {busy ? "Syncing…" : "Sync invoices with points"}
+          {busy ? "Syncing…" : "Sync invoices with tickets"}
         </button>
       </div>
     </div>
