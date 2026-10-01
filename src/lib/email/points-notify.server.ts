@@ -70,6 +70,7 @@ export async function notifyInvoicePointsCredited(params: {
  */
 export async function notifyTicketsCredited(params: {
   pharmacyId: string
+  invoices?: { invoiceNumber: string; tickets: number }[]
 }): Promise<{ sent: number; skipped: number; failed: number }> {
   let sent = 0, skipped = 0, failed = 0
   try {
@@ -116,6 +117,7 @@ export async function notifyTicketsCredited(params: {
           name: p.full_name ?? undefined,
           tickets: Number(p.tickets ?? 0),
           raffleDate: 'December 18',
+          invoices: params.invoices && params.invoices.length > 0 ? params.invoices : undefined,
         },
       })
       if (res.ok) sent++
