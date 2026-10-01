@@ -611,6 +611,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let invPage = 1;
     let invoicesUpserted = 0;
     let invoicesDistributed = 0;
+    const ticketPharmacies = new Set<string>();
     let consecutiveFullyLockedPages = 0;
     let reachedStartDate = false;
 
