@@ -20,7 +20,9 @@ function formatMoney(total: number | null, currency: string | null): string {
 
 function formatDate(d: string | null): string {
   if (!d) return "—";
-  const dt = new Date(d);
+  // Plain calendar dates (YYYY-MM-DD) must not shift with the viewer's timezone.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  const dt = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(d);
   if (Number.isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
