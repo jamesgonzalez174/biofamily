@@ -6,16 +6,23 @@ import type { TemplateEntry } from './registry'
 const SITE_NAME = 'BIOMED FAMILY'
 const SITE_URL = 'https://myprizepoint.com'
 
+interface InvoiceContribution {
+  invoiceNumber: string
+  tickets: number
+}
+
 interface TicketsReadyProps {
   name?: string
   tickets?: number
   raffleDate?: string
+  invoices?: InvoiceContribution[]
 }
 
 const TicketsReadyEmail = ({
   name,
   tickets,
   raffleDate = 'December 18',
+  invoices,
 }: TicketsReadyProps) => (
   <Html lang="en" dir="ltr">
     <Head />
