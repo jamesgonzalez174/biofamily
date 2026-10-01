@@ -832,7 +832,10 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     // Send "tickets ready" only after every invoice is distributed, so the
     // email shows each member's final ticket total for this sync.
     for (const pharmacyId of ticketPharmacies) {
-      const n = await notifyTicketsCredited({ pharmacyId });
+      const n = await notifyTicketsCredited({
+        pharmacyId,
+        invoices: ticketContributions.get(pharmacyId),
+      });
       notifiedCount += n.sent;
     }
 
