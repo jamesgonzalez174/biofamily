@@ -50,76 +50,75 @@ function drawTicket(
   },
 ) {
   const { x, y, w, h } = opts;
-  const stubW = 96;
+  const stubW = 64;
 
   // card
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(...PRIMARY);
-  doc.setLineWidth(1);
-  doc.roundedRect(x, y, w, h, 8, 8, "FD");
+  doc.setLineWidth(0.8);
+  doc.roundedRect(x, y, w, h, 5, 5, "FD");
 
   // stub
   doc.setFillColor(...DEEP);
-  doc.roundedRect(x, y, stubW, h, 8, 8, "F");
-  doc.setFillColor(...DEEP);
-  doc.rect(x + stubW - 10, y, 10, h, "F");
+  doc.roundedRect(x, y, stubW, h, 5, 5, "F");
+  doc.rect(x + stubW - 6, y, 6, h, "F");
 
   // perforation
   doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(0.8);
-  doc.setLineDashPattern([2, 3], 0);
-  doc.line(x + stubW, y + 8, x + stubW, y + h - 8);
+  doc.setLineWidth(0.6);
+  doc.setLineDashPattern([1.5, 2.5], 0);
+  doc.line(x + stubW, y + 4, x + stubW, y + h - 4);
   doc.setLineDashPattern([], 0);
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("TICKET", x + stubW / 2, y + 24, { align: "center" });
-  doc.setFontSize(24);
-  doc.text(String(opts.ticketNo), x + stubW / 2, y + 50, { align: "center" });
+  doc.setFontSize(6);
+  doc.text("TICKET", x + stubW / 2, y + 13, { align: "center" });
+  doc.setFontSize(16);
+  doc.text(String(opts.ticketNo), x + stubW / 2, y + 30, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(`of ${opts.ticketTotal}`, x + stubW / 2, y + 64, { align: "center" });
+  doc.setFontSize(6);
+  doc.text(`of ${opts.ticketTotal}`, x + stubW / 2, y + 38, { align: "center" });
 
   // body
-  const bx = x + stubW + 16;
+  const bx = x + stubW + 10;
   doc.setTextColor(...PRIMARY);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text(`${BRAND}  ·  CHRISTMAS RAFFLE`, bx, y + 20);
+  doc.setFontSize(6);
+  doc.text(`${BRAND}  ·  CHRISTMAS RAFFLE`, bx, y + 12);
 
   doc.setTextColor(...INK);
-  doc.setFontSize(15);
-  const nameW = w - stubW - 150;
+  doc.setFontSize(10);
+  const nameW = w - stubW - 110;
   const first = doc.splitTextToSize(opts.first.toUpperCase(), nameW)[0];
   const last = doc.splitTextToSize((opts.last || "—").toUpperCase(), nameW)[0];
-  doc.text(first, bx, y + 42);
+  doc.text(first, bx, y + 24);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(last, bx, y + 58);
+  doc.setFontSize(8);
+  doc.text(last, bx, y + 33);
 
   doc.setTextColor(...MUTED);
-  doc.setFontSize(8);
-  doc.text(opts.pharmacy ? `Pharmacy: ${opts.pharmacy}` : "Pharmacy: —", bx, y + 74);
+  doc.setFontSize(6);
+  doc.text(opts.pharmacy ? `Pharmacy: ${opts.pharmacy}` : "Pharmacy: —", bx, y + 40);
 
   // right rail
-  const rx = x + w - 16;
+  const rx = x + w - 10;
   doc.setTextColor(...ACCENT);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("DRAW DATE", rx, y + 20, { align: "right" });
+  doc.setFontSize(6);
+  doc.text("DRAW DATE", rx, y + 12, { align: "right" });
   doc.setTextColor(...INK);
-  doc.setFontSize(11);
-  doc.text(opts.raffleDate, rx, y + 34, { align: "right" });
+  doc.setFontSize(8);
+  doc.text(opts.raffleDate, rx, y + 21, { align: "right" });
 
   doc.setFont("courier", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...DEEP);
-  doc.text(opts.serialCode, rx, y + 58, { align: "right" });
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
+  doc.setTextColor(...DEEP);
+  doc.text(opts.serialCode, rx, y + 32, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.5);
   doc.setTextColor(...MUTED);
-  doc.text("Serial · non-transferable", rx, y + 72, { align: "right" });
+  doc.text("Serial · non-transferable", rx, y + 39.5, { align: "right" });
 }
 
 export async function downloadTicketsPdf(
@@ -130,7 +129,7 @@ export async function downloadTicketsPdf(
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 36;
+  const margin = 28;
   const generated = new Date().toLocaleString();
 
   const rows = holders
@@ -175,9 +174,9 @@ export async function downloadTicketsPdf(
 
   // ---- Ticket sheets ----
   const cardW = pageW - margin * 2;
-  const cardH = 92;
-  const gap = 14;
-  const headerH = 46;
+  const cardH = 44;
+  const gap = 6;
+  const headerH = 30;
   const perPage = Math.floor((pageH - margin * 2 - headerH + gap) / (cardH + gap));
 
   let slot = perPage; // force a new page on first ticket
@@ -186,14 +185,14 @@ export async function downloadTicketsPdf(
   const newSheet = (holderLabel: string) => {
     doc.addPage();
     doc.setFillColor(...DEEP);
-    doc.rect(0, 0, pageW, 34, "F");
+    doc.rect(0, 0, pageW, 30, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(`${BRAND} · RAFFLE TICKETS`, margin, 22);
-    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(holderLabel, pageW - margin, 22, { align: "right" });
+    doc.text(`${BRAND} · RAFFLE TICKETS`, margin, 19);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(holderLabel, pageW - margin, 19, { align: "right" });
     slot = 0;
   };
 
