@@ -36,6 +36,13 @@
       "when": 1790806852506,
       "tag": "0004_restrict_status_image_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790870742789,
+      "tag": "0005_invoice_points_distributed_idx",
+      "breakpoints": true
     }
   ]
 }

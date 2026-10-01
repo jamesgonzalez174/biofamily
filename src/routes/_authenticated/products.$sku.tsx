@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, ErrorComponentProps } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles, Package, CheckCircle2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -6,10 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/products/$sku")({
   component: ProductDetail,
-  errorComponent: ({ error }) => (
+  errorComponent: ({ error }: ErrorComponentProps) => (
     <AppShell>
       <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm">
-        {error.message}
+        {error instanceof Error ? error.message : "Unexpected error"}
       </div>
     </AppShell>
   ),
