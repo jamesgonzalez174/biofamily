@@ -589,7 +589,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       const { data: lockedRows } = await supabaseAdmin
         .from("invoices")
         .select("zoho_invoice_id")
-        .not("points_distributed_at", "is", null);
+        .not("tickets_distributed_at", "is", null);
       for (const r of lockedRows ?? []) {
         const z = (r as any).zoho_invoice_id;
         if (z) lockedZohoIds.add(String(z));
@@ -614,7 +614,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
     let consecutiveFullyLockedPages = 0;
     let reachedStartDate = false;
 
-    while (syncPointsInvoices || syncAllInvoices) {
+    while (true) {
       if (outOfTime() || outOfCalls()) {
         truncated = true;
         break;
@@ -683,17 +683,12 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const invDate = inv.date ? String(inv.date).slice(0, 10) : null;
             if (invoiceStartDate && (!invDate || invDate < invoiceStartDate)) return null;
             const zohoContactId = inv.customer_id ? String(inv.customer_id) : null;
-            const pointsGiven = readInvCFBool(inv, "cf_points_given", "Points Given", "points_given") === true;
-            const totalPointsRaw = readInvCFNum(inv, "cf_points", "cf_total_points", "Points", "Total Points", "points", "total_points");
-            const totalPoints = totalPointsRaw !== null ? Math.max(0, Math.floor(totalPointsRaw)) : 0;
-            const hasPoints = pointsGiven && totalPoints > 0;
-            // Points invoices honor the "sync invoices with points" toggle.
-            // Everything else only syncs when "all invoices (totals only)" is on.
-            if (hasPoints) {
-              if (!syncPointsInvoices) return null;
-            } else if (!syncAllInvoices) {
-              return null;
-            }
+            // Bio-Points are retired: invoices now carry a "Tickets" custom field.
+            const ticketsRaw = readInvCFNum(inv, "cf_tickets", "Tickets", "tickets");
+            const zohoTickets = ticketsRaw !== null ? Math.max(0, Math.round(ticketsRaw)) : 0;
+            const hasTickets = zohoTickets > 0;
+            // Ticket invoices always sync; others only when "all invoices" is on.
+            if (!hasTickets && !syncAllInvoices) return null;
             return {
               zoho_invoice_id: String(inv.invoice_id),
               invoice_number: inv.invoice_number ?? null,
@@ -705,8 +700,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
               balance: typeof inv.balance === "number" ? inv.balance : Number(inv.balance ?? 0),
               currency_code: inv.currency_code ?? null,
               status: inv.status ?? null,
-              points_given: hasPoints,
-              total_points: hasPoints ? totalPoints : 0,
+              zoho_tickets: zohoTickets,
               raw: inv,
               last_synced_at: nowIso,
             };
@@ -726,7 +720,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         const existingByNumber = new Map<string, any>();
         const { data: existingByZohoRows } = await supabaseAdmin
           .from("invoices")
-          .select("id, zoho_invoice_id, invoice_number, points_distributed_at")
+          .select("id, zoho_invoice_id, invoice_number, tickets_distributed_at")
           .in("zoho_invoice_id", zohoIds);
         for (const existing of existingByZohoRows ?? []) {
           existingByZoho.set(String((existing as any).zoho_invoice_id), existing);
@@ -736,7 +730,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         if (invoiceNumbers.length > 0) {
           const { data: existingByNumberRows } = await supabaseAdmin
             .from("invoices")
-            .select("id, zoho_invoice_id, invoice_number, points_distributed_at")
+            .select("id, zoho_invoice_id, invoice_number, tickets_distributed_at")
             .in("invoice_number", Array.from(new Set(invoiceNumbers)));
           for (const existing of existingByNumberRows ?? []) {
             existingByZoho.set(String((existing as any).zoho_invoice_id), existing);
@@ -758,7 +752,7 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
           seenZoho.add(row.zoho_invoice_id);
           if (numKey) seenNums.add(numKey);
           const existing = existingByZoho.get(row.zoho_invoice_id) ?? (numKey ? existingByNumber.get(numKey) : null);
-          if (existing?.points_distributed_at) continue;
+          if (existing?.tickets_distributed_at) continue;
           if (existing?.id) updateRows.push({ id: String(existing.id), row });
           else insertRows.push(row);
         }
@@ -785,30 +779,26 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
         // Distribute points only for invoices flagged points_given=true that
         // haven't yet been distributed. Idempotent via points_distributed_at.
         const eligibleZoho = rows
-          .filter((r) => r.points_given && (r.total_points ?? 0) > 0 && r.pharmacy_id)
+          .filter((r) => r.zoho_tickets > 0 && r.pharmacy_id)
           .map((r) => r.zoho_invoice_id);
         if (eligibleZoho.length > 0) {
           const { data: pending } = await supabaseAdmin
             .from("invoices")
-            .select("id, zoho_invoice_id, invoice_number, pharmacy_id, total_points")
+            .select("id, zoho_invoice_id, invoice_number, pharmacy_id")
             .in("zoho_invoice_id", eligibleZoho)
-            .is("points_distributed_at", null);
+            .is("tickets_distributed_at", null);
           for (const inv of (pending ?? []) as any[]) {
             const { data: dist, error: distErr } = await (supabaseAdmin as any)
-              .rpc("distribute_invoice_points_once", { _invoice_id: inv.id });
+              .rpc("distribute_invoice_tickets_once", { _invoice_id: inv.id });
             if (distErr) {
-              errors.push(`invoice ${inv.invoice_number ?? inv.zoho_invoice_id} distribution: ${distErr.message}`);
+              errors.push(`invoice ${inv.invoice_number ?? inv.zoho_invoice_id} tickets: ${distErr.message}`);
               continue;
             }
             if (dist?.distributed) {
-              notifiedCount += Number(dist.credited ?? 0);
               invoicesDistributed += 1;
-              await notifyInvoicePointsCredited({
-                zohoInvoiceId: inv.zoho_invoice_id,
-                invoiceNumber: inv.invoice_number,
-              });
-              if (Number(dist?.tickets ?? 0) > 0 && inv.pharmacy_id) {
-                await notifyTicketsCredited({ pharmacyId: inv.pharmacy_id });
+              if (inv.pharmacy_id) {
+                const n = await notifyTicketsCredited({ pharmacyId: inv.pharmacy_id });
+                notifiedCount += n.sent;
               }
             }
 
