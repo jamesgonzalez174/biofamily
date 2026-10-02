@@ -689,8 +689,9 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const ticketsRaw = readInvCFNum(inv, "cf_tickets", "Tickets", "tickets");
             const zohoTickets = ticketsRaw !== null ? Math.max(0, Math.round(ticketsRaw)) : 0;
             const hasTickets = zohoTickets > 0;
-            // Ticket invoices always sync; others only when "all invoices" is on.
-            if (!hasTickets && !syncAllInvoices) return null;
+            // Ticket invoices sync only when the "sync invoices with tickets"
+            // toggle is on; other invoices only when "all invoices" is on.
+            if (hasTickets ? !syncPointsInvoices : !syncAllInvoices) return null;
             return {
               zoho_invoice_id: String(inv.invoice_id),
               invoice_number: inv.invoice_number ?? null,
