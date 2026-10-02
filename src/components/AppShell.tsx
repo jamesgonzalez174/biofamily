@@ -25,6 +25,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
         { to: "/admin/import", label: "Bulk import", icon: Upload },
         { to: "/admin/emails", label: "Emails", icon: Mail },
         { to: "/admin/audit", label: "Audit log", icon: ScrollText },
+        { to: "/admin/ticket-audit", label: "Ticket audit", icon: ScrollText },
         { to: "/admin/settings", label: "Settings", icon: ShieldCheck },
         { to: "/admin/zoho-connect", label: "Zoho Connect", icon: Eye },
       ]

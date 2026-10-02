@@ -40,6 +40,7 @@ import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenticated/admin/prizes'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
+import { Route as AuthenticatedAdminTicketAuditRouteImport } from './routes/_authenticated/admin/ticket-audit'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
 import { Route as AuthenticatedProductsSkuRouteImport } from './routes/_authenticated/products.$sku'
@@ -216,6 +217,12 @@ const AuthenticatedAdminSkusRoute = AuthenticatedAdminSkusRouteImport.update({
   path: '/skus',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminTicketAuditRoute =
+  AuthenticatedAdminTicketAuditRouteImport.update({
+    id: '/ticket-audit',
+    path: '/ticket-audit',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -302,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -343,6 +351,7 @@ export interface FileRoutesByTo {
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -387,6 +396,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/_authenticated/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/_authenticated/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -431,6 +441,7 @@ export interface FileRouteTypes {
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
+    | '/admin/ticket-audit'
     | '/admin/users'
     | '/admin/zoho-connect'
     | '/products/$sku'
@@ -472,6 +483,7 @@ export interface FileRouteTypes {
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
+    | '/admin/ticket-audit'
     | '/admin/users'
     | '/admin/zoho-connect'
     | '/products/$sku'
@@ -515,6 +527,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/prizes'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/skus'
+    | '/_authenticated/admin/ticket-audit'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/zoho-connect'
     | '/_authenticated/products/$sku'
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSkusRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/ticket-audit': {
+      id: '/_authenticated/admin/ticket-audit'
+      path: '/ticket-audit'
+      fullPath: '/admin/ticket-audit'
+      preLoaderRoute: typeof AuthenticatedAdminTicketAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/users'
@@ -855,6 +875,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPrizesRoute: typeof AuthenticatedAdminPrizesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSkusRoute: typeof AuthenticatedAdminSkusRoute
+  AuthenticatedAdminTicketAuditRoute: typeof AuthenticatedAdminTicketAuditRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminZohoConnectRoute: typeof AuthenticatedAdminZohoConnectRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -870,6 +891,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPrizesRoute: AuthenticatedAdminPrizesRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSkusRoute: AuthenticatedAdminSkusRoute,
+  AuthenticatedAdminTicketAuditRoute: AuthenticatedAdminTicketAuditRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminZohoConnectRoute: AuthenticatedAdminZohoConnectRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
