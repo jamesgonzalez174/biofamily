@@ -9,85 +9,52 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SupportRouteImport } from './routes/support'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport } from './routes/[.well-known]/assetlinks[.]json'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated/catalog'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
-import { Route as AuthenticatedPharmaciesRouteImport } from './routes/_authenticated/pharmacies'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as AuthenticatedPharmaciesRouteImport } from './routes/_authenticated/pharmacies'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated/catalog'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport } from './routes/[.well-known]/assetlinks[.]json'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
-import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
-import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin/emails'
-import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_authenticated/admin/fulfillment'
-import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin/import'
-import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_authenticated/admin/pharmacies'
-import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenticated/admin/prizes'
-import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
-import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
-import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
-import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
-import { Route as AuthenticatedProductsSkuRouteImport } from './routes/_authenticated/products.$sku'
-import { Route as ApiPublicZohoWebhookRouteImport } from './routes/api/public/zoho-webhook'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
-import { Route as ApiPublicHooksDailyZohoSyncRouteImport } from './routes/api/public/hooks/daily-zoho-sync'
-import { Route as ApiPublicHooksPointsExpiryRemindersRouteImport } from './routes/api/public/hooks/points-expiry-reminders'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as ApiPublicZohoWebhookRouteImport } from './routes/api/public/zoho-webhook'
+import { Route as AuthenticatedProductsSkuRouteImport } from './routes/_authenticated/products.$sku'
+import { Route as AuthenticatedAdminZohoConnectRouteImport } from './routes/_authenticated/admin/zoho-connect'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminTicketAuditRouteImport } from './routes/_authenticated/admin/ticket-audit'
+import { Route as AuthenticatedAdminSkusRouteImport } from './routes/_authenticated/admin/skus'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminPrizesRouteImport } from './routes/_authenticated/admin/prizes'
+import { Route as AuthenticatedAdminPharmaciesRouteImport } from './routes/_authenticated/admin/pharmacies'
+import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin/import'
+import { Route as AuthenticatedAdminFulfillmentRouteImport } from './routes/_authenticated/admin/fulfillment'
+import { Route as AuthenticatedAdminEmailsRouteImport } from './routes/_authenticated/admin/emails'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin/analytics'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksPointsExpiryRemindersRouteImport } from './routes/api/public/hooks/points-expiry-reminders'
+import { Route as ApiPublicHooksDailyZohoSyncRouteImport } from './routes/api/public/hooks/daily-zoho-sync'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -95,15 +62,79 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SupportRoute = SupportRouteImport.update({
-  id: '/support',
-  path: '/support',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPharmaciesRoute = AuthenticatedPharmaciesRouteImport.update({
+  id: '/pharmacies',
+  path: '/pharmacies',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCatalogRoute = AuthenticatedCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
 const Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute =
@@ -112,51 +143,10 @@ const Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute =
     path: '/.well-known/assetlinks.json',
     getParentRoute: () => rootRouteImport,
   } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCatalogRoute = AuthenticatedCatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedPharmaciesRoute = AuthenticatedPharmaciesRouteImport.update({
-  id: '/pharmacies',
-  path: '/pharmacies',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -164,39 +154,48 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminAnalyticsRoute =
-  AuthenticatedAdminAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicZohoWebhookRoute = ApiPublicZohoWebhookRouteImport.update({
+  id: '/api/public/zoho-webhook',
+  path: '/api/public/zoho-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProductsSkuRoute =
+  AuthenticatedProductsSkuRouteImport.update({
+    id: '/$sku',
+    path: '/$sku',
+    getParentRoute: () => AuthenticatedProductsRoute,
+  } as any)
+const AuthenticatedAdminZohoConnectRoute =
+  AuthenticatedAdminZohoConnectRouteImport.update({
+    id: '/zoho-connect',
+    path: '/zoho-connect',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminEmailsRoute =
-  AuthenticatedAdminEmailsRouteImport.update({
-    id: '/emails',
-    path: '/emails',
+const AuthenticatedAdminTicketAuditRoute =
+  AuthenticatedAdminTicketAuditRouteImport.update({
+    id: '/ticket-audit',
+    path: '/ticket-audit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminFulfillmentRoute =
-  AuthenticatedAdminFulfillmentRouteImport.update({
-    id: '/fulfillment',
-    path: '/fulfillment',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminImportRoute =
-  AuthenticatedAdminImportRouteImport.update({
-    id: '/import',
-    path: '/import',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminPharmaciesRoute =
-  AuthenticatedAdminPharmaciesRouteImport.update({
-    id: '/pharmacies',
-    path: '/pharmacies',
+const AuthenticatedAdminSkusRoute = AuthenticatedAdminSkusRouteImport.update({
+  id: '/skus',
+  path: '/skus',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminPrizesRoute =
@@ -205,70 +204,78 @@ const AuthenticatedAdminPrizesRoute =
     path: '/prizes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminSettingsRoute =
-  AuthenticatedAdminSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
+const AuthenticatedAdminPharmaciesRoute =
+  AuthenticatedAdminPharmaciesRouteImport.update({
+    id: '/pharmacies',
+    path: '/pharmacies',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminSkusRoute = AuthenticatedAdminSkusRouteImport.update({
-  id: '/skus',
-  path: '/skus',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminZohoConnectRoute =
-  AuthenticatedAdminZohoConnectRouteImport.update({
-    id: '/zoho-connect',
-    path: '/zoho-connect',
+const AuthenticatedAdminImportRoute =
+  AuthenticatedAdminImportRouteImport.update({
+    id: '/import',
+    path: '/import',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedProductsSkuRoute =
-  AuthenticatedProductsSkuRouteImport.update({
-    id: '/$sku',
-    path: '/$sku',
-    getParentRoute: () => AuthenticatedProductsRoute,
+const AuthenticatedAdminFulfillmentRoute =
+  AuthenticatedAdminFulfillmentRouteImport.update({
+    id: '/fulfillment',
+    path: '/fulfillment',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const ApiPublicZohoWebhookRoute = ApiPublicZohoWebhookRouteImport.update({
-  id: '/api/public/zoho-webhook',
-  path: '/api/public/zoho-webhook',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAdminEmailsRoute =
+  AuthenticatedAdminEmailsRouteImport.update({
+    id: '/emails',
+    path: '/emails',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
-  id: '/lovable/email/events',
-  path: '/lovable/email/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksDailyZohoSyncRoute =
-  ApiPublicHooksDailyZohoSyncRouteImport.update({
-    id: '/api/public/hooks/daily-zoho-sync',
-    path: '/api/public/hooks/daily-zoho-sync',
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksPointsExpiryRemindersRoute =
-  ApiPublicHooksPointsExpiryRemindersRouteImport.update({
-    id: '/api/public/hooks/points-expiry-reminders',
-    path: '/api/public/hooks/points-expiry-reminders',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailTransactionalPreviewRoute =
   LovableEmailTransactionalPreviewRouteImport.update({
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksPointsExpiryRemindersRoute =
+  ApiPublicHooksPointsExpiryRemindersRouteImport.update({
+    id: '/api/public/hooks/points-expiry-reminders',
+    path: '/api/public/hooks/points-expiry-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksDailyZohoSyncRoute =
+  ApiPublicHooksDailyZohoSyncRouteImport.update({
+    id: '/api/public/hooks/daily-zoho-sync',
+    path: '/api/public/hooks/daily-zoho-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -302,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -343,6 +351,7 @@ export interface FileRoutesByTo {
   '/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -387,6 +396,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/prizes': typeof AuthenticatedAdminPrizesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/skus': typeof AuthenticatedAdminSkusRoute
+  '/_authenticated/admin/ticket-audit': typeof AuthenticatedAdminTicketAuditRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/zoho-connect': typeof AuthenticatedAdminZohoConnectRoute
   '/_authenticated/products/$sku': typeof AuthenticatedProductsSkuRoute
@@ -431,6 +441,7 @@ export interface FileRouteTypes {
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
+    | '/admin/ticket-audit'
     | '/admin/users'
     | '/admin/zoho-connect'
     | '/products/$sku'
@@ -472,6 +483,7 @@ export interface FileRouteTypes {
     | '/admin/prizes'
     | '/admin/settings'
     | '/admin/skus'
+    | '/admin/ticket-audit'
     | '/admin/users'
     | '/admin/zoho-connect'
     | '/products/$sku'
@@ -515,6 +527,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/prizes'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/skus'
+    | '/_authenticated/admin/ticket-audit'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/zoho-connect'
     | '/_authenticated/products/$sku'
@@ -555,60 +568,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -618,60 +582,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/support': {
-      id: '/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof SupportRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/assetlinks.json': {
-      id: '/.well-known/assetlinks.json'
-      path: '/.well-known/assetlinks.json'
-      fullPath: '/.well-known/assetlinks.json'
-      preLoaderRoute: typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/catalog': {
-      id: '/_authenticated/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof AuthenticatedCatalogRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/history': {
-      id: '/_authenticated/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/products': {
+      id: '/_authenticated/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthenticatedProductsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/pharmacies': {
@@ -681,25 +652,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPharmaciesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/products': {
-      id: '/_authenticated/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof AuthenticatedProductsRouteImport
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/catalog': {
+      id: '/_authenticated/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof AuthenticatedCatalogRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+    '/.well-known/assetlinks.json': {
+      id: '/.well-known/assetlinks.json'
+      path: '/.well-known/assetlinks.json'
+      fullPath: '/.well-known/assetlinks.json'
+      preLoaderRoute: typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -709,67 +708,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/analytics': {
-      id: '/_authenticated/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/audit': {
-      id: '/_authenticated/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/api/public/zoho-webhook': {
+      id: '/api/public/zoho-webhook'
+      path: '/api/public/zoho-webhook'
+      fullPath: '/api/public/zoho-webhook'
+      preLoaderRoute: typeof ApiPublicZohoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/emails': {
-      id: '/_authenticated/admin/emails'
-      path: '/emails'
-      fullPath: '/admin/emails'
-      preLoaderRoute: typeof AuthenticatedAdminEmailsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/_authenticated/products/$sku': {
+      id: '/_authenticated/products/$sku'
+      path: '/$sku'
+      fullPath: '/products/$sku'
+      preLoaderRoute: typeof AuthenticatedProductsSkuRouteImport
+      parentRoute: typeof AuthenticatedProductsRoute
     }
-    '/_authenticated/admin/fulfillment': {
-      id: '/_authenticated/admin/fulfillment'
-      path: '/fulfillment'
-      fullPath: '/admin/fulfillment'
-      preLoaderRoute: typeof AuthenticatedAdminFulfillmentRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/import': {
-      id: '/_authenticated/admin/import'
-      path: '/import'
-      fullPath: '/admin/import'
-      preLoaderRoute: typeof AuthenticatedAdminImportRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/pharmacies': {
-      id: '/_authenticated/admin/pharmacies'
-      path: '/pharmacies'
-      fullPath: '/admin/pharmacies'
-      preLoaderRoute: typeof AuthenticatedAdminPharmaciesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/prizes': {
-      id: '/_authenticated/admin/prizes'
-      path: '/prizes'
-      fullPath: '/admin/prizes'
-      preLoaderRoute: typeof AuthenticatedAdminPrizesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/settings': {
-      id: '/_authenticated/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/skus': {
-      id: '/_authenticated/admin/skus'
-      path: '/skus'
-      fullPath: '/admin/skus'
-      preLoaderRoute: typeof AuthenticatedAdminSkusRouteImport
+    '/_authenticated/admin/zoho-connect': {
+      id: '/_authenticated/admin/zoho-connect'
+      path: '/zoho-connect'
+      fullPath: '/admin/zoho-connect'
+      preLoaderRoute: typeof AuthenticatedAdminZohoConnectRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/users': {
@@ -779,53 +743,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/zoho-connect': {
-      id: '/_authenticated/admin/zoho-connect'
-      path: '/zoho-connect'
-      fullPath: '/admin/zoho-connect'
-      preLoaderRoute: typeof AuthenticatedAdminZohoConnectRouteImport
+    '/_authenticated/admin/ticket-audit': {
+      id: '/_authenticated/admin/ticket-audit'
+      path: '/ticket-audit'
+      fullPath: '/admin/ticket-audit'
+      preLoaderRoute: typeof AuthenticatedAdminTicketAuditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/products/$sku': {
-      id: '/_authenticated/products/$sku'
-      path: '/$sku'
-      fullPath: '/products/$sku'
-      preLoaderRoute: typeof AuthenticatedProductsSkuRouteImport
-      parentRoute: typeof AuthenticatedProductsRoute
+    '/_authenticated/admin/skus': {
+      id: '/_authenticated/admin/skus'
+      path: '/skus'
+      fullPath: '/admin/skus'
+      preLoaderRoute: typeof AuthenticatedAdminSkusRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/api/public/zoho-webhook': {
-      id: '/api/public/zoho-webhook'
-      path: '/api/public/zoho-webhook'
-      fullPath: '/api/public/zoho-webhook'
-      preLoaderRoute: typeof ApiPublicZohoWebhookRouteImport
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/prizes': {
+      id: '/_authenticated/admin/prizes'
+      path: '/prizes'
+      fullPath: '/admin/prizes'
+      preLoaderRoute: typeof AuthenticatedAdminPrizesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/pharmacies': {
+      id: '/_authenticated/admin/pharmacies'
+      path: '/pharmacies'
+      fullPath: '/admin/pharmacies'
+      preLoaderRoute: typeof AuthenticatedAdminPharmaciesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/import': {
+      id: '/_authenticated/admin/import'
+      path: '/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AuthenticatedAdminImportRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/fulfillment': {
+      id: '/_authenticated/admin/fulfillment'
+      path: '/fulfillment'
+      fullPath: '/admin/fulfillment'
+      preLoaderRoute: typeof AuthenticatedAdminFulfillmentRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/emails': {
+      id: '/_authenticated/admin/emails'
+      path: '/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AuthenticatedAdminEmailsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/events': {
-      id: '/lovable/email/events'
-      path: '/lovable/email/events'
-      fullPath: '/lovable/email/events'
-      preLoaderRoute: typeof LovableEmailEventsRouteImport
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/daily-zoho-sync': {
-      id: '/api/public/hooks/daily-zoho-sync'
-      path: '/api/public/hooks/daily-zoho-sync'
-      fullPath: '/api/public/hooks/daily-zoho-sync'
-      preLoaderRoute: typeof ApiPublicHooksDailyZohoSyncRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/points-expiry-reminders': {
-      id: '/api/public/hooks/points-expiry-reminders'
-      path: '/api/public/hooks/points-expiry-reminders'
-      fullPath: '/api/public/hooks/points-expiry-reminders'
-      preLoaderRoute: typeof ApiPublicHooksPointsExpiryRemindersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/webhook': {
@@ -835,11 +841,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/points-expiry-reminders': {
+      id: '/api/public/hooks/points-expiry-reminders'
+      path: '/api/public/hooks/points-expiry-reminders'
+      fullPath: '/api/public/hooks/points-expiry-reminders'
+      preLoaderRoute: typeof ApiPublicHooksPointsExpiryRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/daily-zoho-sync': {
+      id: '/api/public/hooks/daily-zoho-sync'
+      path: '/api/public/hooks/daily-zoho-sync'
+      fullPath: '/api/public/hooks/daily-zoho-sync'
+      preLoaderRoute: typeof ApiPublicHooksDailyZohoSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -855,6 +875,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPrizesRoute: typeof AuthenticatedAdminPrizesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSkusRoute: typeof AuthenticatedAdminSkusRoute
+  AuthenticatedAdminTicketAuditRoute: typeof AuthenticatedAdminTicketAuditRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminZohoConnectRoute: typeof AuthenticatedAdminZohoConnectRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -870,6 +891,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPrizesRoute: AuthenticatedAdminPrizesRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSkusRoute: AuthenticatedAdminSkusRoute,
+  AuthenticatedAdminTicketAuditRoute: AuthenticatedAdminTicketAuditRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminZohoConnectRoute: AuthenticatedAdminZohoConnectRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

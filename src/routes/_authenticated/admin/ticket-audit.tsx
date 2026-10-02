@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Ticket, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,7 +149,7 @@ function TicketAuditPage() {
                 const mismatch = r.members.length > 0 && sum !== r.credited;
                 const isOpen = !!open[r.invoiceId];
                 return (
-                  <>
+                  <Fragment key={r.invoiceId}>
                     <tr key={r.invoiceId} className="cursor-pointer border-t border-border hover:bg-muted/30" onClick={() => setOpen((o) => ({ ...o, [r.invoiceId]: !isOpen }))}>
                       <td className="p-3">{isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</td>
                       <td className="p-3 font-medium">{r.number}<div className="text-xs text-muted-foreground">{r.date ?? ""} · Zoho {r.zohoId}</div></td>
@@ -178,7 +178,7 @@ function TicketAuditPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
