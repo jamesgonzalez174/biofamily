@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { useState } from "react";
 import { MapPin, Check, Lock } from "lucide-react";
 import { toast } from "sonner";

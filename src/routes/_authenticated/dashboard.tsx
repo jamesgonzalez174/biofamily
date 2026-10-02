@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { useQuery } from "@tanstack/react-query";
 import { Sparkles, TrendingUp, Gift, ArrowRight, Ticket, Award, Package, History, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { AlertTriangle, Clock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
