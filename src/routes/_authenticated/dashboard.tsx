@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { useQuery } from "@tanstack/react-query";
 import { Sparkles, TrendingUp, Gift, ArrowRight, Ticket, Award, Package, History, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -25,15 +26,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const { user } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: profile } = useQuery(profileQuery(user?.id));
 
   const { data: ledger } = useQuery({
     queryKey: ["ledger", user?.id],
@@ -51,10 +44,7 @@ function Dashboard() {
       return data ?? [];
     },
   });
-  const { data: settings } = useQuery({
-    queryKey: ["settings", "tickets"],
-    queryFn: async () => (((await (supabase as any).rpc("get_member_settings")).data as any[] | null)?.[0] ?? null),
-  });
+  const { data: settings } = useQuery(memberSettingsQuery);
 
   const balance = profile?.points_balance ?? 0;
   const lifetime = profile?.lifetime_points ?? 0;

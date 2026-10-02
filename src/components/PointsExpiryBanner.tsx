@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { AlertTriangle, Clock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,26 +8,8 @@ import { useAuth } from "@/lib/auth-context";
 export function PointsExpiryBanner() {
   const { user } = useAuth();
 
-  const { data: settings } = useQuery({
-    queryKey: ["settings-expiry"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).rpc("get_member_settings");
-      return (data as any[] | null)?.[0] ?? null;
-    },
-  });
-
-  const { data: profile } = useQuery({
-    queryKey: ["profile-balance", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("points_balance")
-        .eq("id", user!.id)
-        .single();
-      return data;
-    },
-  });
+  const { data: settings } = useQuery(memberSettingsQuery);
+  const { data: profile } = useQuery(profileQuery(user?.id));
 
   const expireAt = (settings as any)?.points_expire_at;
   const balance = profile?.points_balance ?? 0;

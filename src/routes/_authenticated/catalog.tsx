@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -30,14 +31,7 @@ function Catalog() {
     },
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("points_balance, phone").eq("id", user!.id).single();
-      return data;
-    },
-  });
+  const { data: profile } = useQuery(profileQuery(user?.id));
 
   const balance = profile?.points_balance ?? 0;
 

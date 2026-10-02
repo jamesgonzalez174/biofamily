@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 import { useState } from "react";
 import { MapPin, Check, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -14,34 +15,19 @@ export function PharmacyBanner() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
-      return data;
-    },
-  });
+  // Profile comes with the member's own pharmacy attached (one shared request).
+  const { data: profile } = useQuery(profileQuery(user?.id));
+  const own = profile?.pharmacy ?? null;
 
+  // The full pharmacy list is only needed when choosing a pharmacy.
+  const needsList = picking || (!!profile && !profile.pharmacy_id);
   const { data: pharmacies } = useQuery({
     queryKey: ["pharmacies-active"],
+    enabled: needsList,
+    staleTime: 10 * 60_000,
     queryFn: async () => {
       const { data } = await supabase.from("pharmacy_directory").select("id, name, address").order("name");
       return data ?? [];
-    },
-  });
-
-  // Financial details (invoice references) are only readable for the user's own pharmacy.
-  const { data: own } = useQuery({
-    queryKey: ["pharmacy-own", profile?.pharmacy_id],
-    enabled: !!profile?.pharmacy_id,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("pharmacies")
-        .select("id, name, address, invoice_references")
-        .eq("id", profile!.pharmacy_id!)
-        .maybeSingle();
-      return data;
     },
   });
 

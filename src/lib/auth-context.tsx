@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { profileQuery, memberSettingsQuery } from "@/lib/member-queries";
 
 type Role = "admin" | "user";
 
@@ -20,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
   useEffect(() => {
     let mounted = true;
@@ -37,7 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       if (s?.user) {
         // defer to avoid deadlocks inside the auth callback
-        setTimeout(() => fetchRoles(s.user.id), 0);
+        setTimeout(() => {
+          fetchRoles(s.user.id);
+          // Start loading shared member data before pages mount.
+          qc.prefetchQuery(profileQuery(s.user.id));
+          qc.prefetchQuery(memberSettingsQuery);
+        }, 0);
       } else {
         setRoles([]);
       }
