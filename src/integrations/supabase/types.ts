@@ -615,6 +615,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          is_backfill: boolean
+          member_count: number
+          pharmacy_id: string | null
+          tickets: number
+          user_id: string
+          zoho_tickets: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          is_backfill?: boolean
+          member_count: number
+          pharmacy_id?: string | null
+          tickets: number
+          user_id: string
+          zoho_tickets: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          is_backfill?: boolean
+          member_count?: number
+          pharmacy_id?: string | null
+          tickets?: number
+          user_id?: string
+          zoho_tickets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_ledger_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_ledger_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_pharmacy_access: {
         Row: {
           created_at: string
