@@ -140,7 +140,7 @@ export const getPharmacyInvoiceDetails = createServerFn({ method: "GET" })
         points,
         pointsPerMember: memberCount > 0 ? Math.floor(points / memberCount) : 0,
         tickets,
-        ticketsPerMember: memberCount > 0 && tickets > 0 ? Math.max(1, Math.floor(tickets / memberCount)) : 0,
+        ticketsPerMember: memberCount > 0 && tickets > 0 ? Math.max(1, Math.round(tickets / memberCount)) : 0,
         memberCount,
       };
     };
