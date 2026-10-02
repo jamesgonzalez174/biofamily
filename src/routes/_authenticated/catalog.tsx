@@ -30,14 +30,7 @@ function Catalog() {
     },
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("points_balance, phone").eq("id", user!.id).single();
-      return data;
-    },
-  });
+  const { data: profile } = useQuery(profileQuery(user?.id));
 
   const balance = profile?.points_balance ?? 0;
 
