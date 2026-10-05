@@ -602,7 +602,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       .select("sync_points_invoices, sync_all_invoices, invoice_sync_start_date")
       .eq("id", 1)
       .maybeSingle();
-    const syncPointsInvoices = (syncSettings as any)?.sync_points_invoices !== false;
+    // sync_points_invoices no longer gates anything: Bio Points are retired
+    // and ticket invoices always import (distribution checks tickets_enabled).
     const syncAllInvoices = (syncSettings as any)?.sync_all_invoices === true;
     // Only sync invoices dated on/after this date (tickets era starts September).
     const startDateRaw = (syncSettings as any)?.invoice_sync_start_date as string | null;
