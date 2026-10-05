@@ -602,7 +602,8 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
       .select("sync_points_invoices, sync_all_invoices, invoice_sync_start_date")
       .eq("id", 1)
       .maybeSingle();
-    const syncPointsInvoices = (syncSettings as any)?.sync_points_invoices !== false;
+    // sync_points_invoices no longer gates anything: Bio Points are retired
+    // and ticket invoices always import (distribution checks tickets_enabled).
     const syncAllInvoices = (syncSettings as any)?.sync_all_invoices === true;
     // Only sync invoices dated on/after this date (tickets era starts September).
     const startDateRaw = (syncSettings as any)?.invoice_sync_start_date as string | null;
@@ -689,9 +690,11 @@ export async function runZohoSync(opts: { notify?: boolean; source?: string; tri
             const ticketsRaw = readInvCFNum(inv, "cf_tickets", "Tickets", "tickets");
             const zohoTickets = ticketsRaw !== null ? Math.max(0, Math.round(ticketsRaw)) : 0;
             const hasTickets = zohoTickets > 0;
-            // Ticket invoices sync only when the "sync invoices with tickets"
-            // toggle is on; other invoices only when "all invoices" is on.
-            if (hasTickets ? !syncPointsInvoices : !syncAllInvoices) return null;
+            // Ticket invoices always import — Bio Points are retired, so the
+            // points toggle must not gate them. Ticket distribution itself is
+            // gated by tickets_enabled inside distribute_invoice_tickets_once.
+            // Non-ticket invoices import only when "all invoices" is on.
+            if (!hasTickets && !syncAllInvoices) return null;
             return {
               zoho_invoice_id: String(inv.invoice_id),
               invoice_number: inv.invoice_number ?? null,
