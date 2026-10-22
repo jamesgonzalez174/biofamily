@@ -877,6 +877,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_member_tickets: {
+        Args: {
+          _delta: number
+          _reason: string
+          _request_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       admin_list_pharmacies: {
         Args: { _limit?: number; _offset?: number; _search?: string }
         Returns: {

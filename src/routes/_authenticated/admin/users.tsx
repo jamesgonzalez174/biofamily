@@ -10,8 +10,18 @@ import { listUsers, adjustPoints, setUserRole, deleteUser, getUserPharmacyAccess
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
+import { Button } from "@/components/ui/button";
+import { adjustTickets } from "@/lib/ticket-adjustment.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
+  head: () => ({ meta: [
+    { title: "Users — PrizePoint Admin" },
+    { name: "description", content: "Manage PrizePoint members, ticket balances and pharmacy access." },
+    { property: "og:title", content: "Users — PrizePoint Admin" },
+    { property: "og:description", content: "Manage PrizePoint members, ticket balances and pharmacy access." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: z.object({ pharmacy: z.string().uuid().optional() }),
   component: UsersPage,
 });
@@ -23,6 +33,11 @@ function UsersPage() {
   const navigate = Route.useNavigate();
   const fetchUsers = useServerFn(listUsers);
   const adjust = useServerFn(adjustPoints);
+  const adjustMemberTickets = useServerFn(adjustTickets);
+  const [ticketFor, setTicketFor] = useState<{ id: string; name: string; balance: number; requestId: string } | null>(null);
+  const [ticketDelta, setTicketDelta] = useState(0);
+  const [ticketReason, setTicketReason] = useState("");
+  const [ticketSaving, setTicketSaving] = useState(false);
   const setRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteUser);
   const getAccess = useServerFn(getUserPharmacyAccess);
@@ -97,6 +112,19 @@ function UsersPage() {
       setAccessIds(new Set(res.pharmacyIds ?? []));
     } catch (e: any) { toast.error(e.message); }
     finally { setAccessLoading(false); }
+  };
+
+  const submitTickets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketFor || ticketSaving) return;
+    setTicketSaving(true);
+    try {
+      await adjustMemberTickets({ data: { targetUserId: ticketFor.id, delta: ticketDelta, reason: ticketReason, requestId: ticketFor.requestId } });
+      toast.success("Tickets adjusted");
+      setTicketFor(null);
+      await Promise.all(["admin-users", "profile", "admin-audit", "pharmacies"].map((key) => qc.invalidateQueries({ queryKey: [key] })));
+    } catch (e: any) { toast.error(e?.message ?? "Could not adjust tickets"); }
+    finally { setTicketSaving(false); }
   };
 
   const toggleAccess = (pid: string) => {
@@ -234,6 +262,10 @@ function UsersPage() {
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                       <button onClick={() => setAdj({ id: u.id, name: u.full_name || u.email })} className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted">Adjust</button>
+                      <Button variant="outline" size="icon" title="Adjust tickets" aria-label={`Adjust tickets for ${u.full_name || u.email}`} className="h-7 w-7" onClick={() => {
+                        setTicketDelta(0); setTicketReason("");
+                        setTicketFor({ id: u.id, name: u.full_name || u.email, balance: Number(u.tickets ?? 0), requestId: crypto.randomUUID() });
+                      }}><Ticket /></Button>
                       <button onClick={() => openAccess(u.id, u.full_name || u.email)} title="Pharmacy access" className="relative rounded-lg border border-border p-1.5 hover:bg-muted">
                         <MapPin className="h-3.5 w-3.5" />
                         {u.access_count > 0 && (
@@ -289,6 +321,32 @@ function UsersPage() {
               <button onClick={submitAdjust} className="flex-1 rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-95">Apply</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {ticketFor && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm">
+          <form role="dialog" aria-modal="true" aria-labelledby="ticket-adjust-title" onSubmit={submitTickets} className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-soft">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="ticket-adjust-title" className="text-xl font-semibold">Adjust tickets</h2>
+              <Button type="button" variant="ghost" size="icon" aria-label="Close ticket adjustment" disabled={ticketSaving} onClick={() => setTicketFor(null)}><X /></Button>
+            </div>
+            <p className="mt-1 break-words text-sm text-muted-foreground">{ticketFor.name}</p>
+            <div className="mt-4 flex justify-between text-sm"><span>Current tickets</span><strong>{ticketFor.balance.toLocaleString()}</strong></div>
+            <label htmlFor="ticket-delta" className="mt-4 block text-sm font-medium">Ticket adjustment</label>
+            <div className="mt-2 flex items-center gap-2">
+              <Button type="button" variant="outline" size="icon" aria-label="Remove one ticket" disabled={ticketSaving} onClick={() => setTicketDelta((n) => n - 1)}><Minus /></Button>
+              <input id="ticket-delta" type="number" step="1" required disabled={ticketSaving} value={ticketDelta} onChange={(e) => setTicketDelta(Number(e.target.value))} className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-center tabular-nums" />
+              <Button type="button" variant="outline" size="icon" aria-label="Add one ticket" disabled={ticketSaving} onClick={() => setTicketDelta((n) => n + 1)}><Plus /></Button>
+            </div>
+            <div className="mt-3 flex justify-between text-sm"><span>New balance</span><strong className={ticketFor.balance + ticketDelta < 0 ? "text-destructive" : "text-foreground"}>{(ticketFor.balance + ticketDelta).toLocaleString()}</strong></div>
+            <label htmlFor="ticket-reason" className="mt-4 block text-sm font-medium">Reason</label>
+            <input id="ticket-reason" required maxLength={200} disabled={ticketSaving} value={ticketReason} onChange={(e) => setTicketReason(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            <div className="mt-6 flex justify-end gap-2">
+              <Button type="button" variant="outline" disabled={ticketSaving} onClick={() => setTicketFor(null)}>Cancel</Button>
+              <Button type="submit" disabled={ticketSaving || !Number.isInteger(ticketDelta) || ticketDelta === 0 || !ticketReason.trim() || ticketFor.balance + ticketDelta < 0}>{ticketSaving ? "Saving…" : "Apply adjustment"}</Button>
+            </div>
+          </form>
         </div>
       )}
 

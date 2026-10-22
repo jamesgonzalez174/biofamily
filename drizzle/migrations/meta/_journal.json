@@ -57,6 +57,13 @@
       "when": 1790954523322,
       "tag": "0007_ticket_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792699110420,
+      "tag": "0008_manual_ticket_adjustments",
+      "breakpoints": true
     }
   ]
 }
