@@ -7,4 +7,4 @@
 - [ ] Owner must add https://myprizepoint.com/~oauth/callback to the Google client's Authorized redirect URIs; verify sign-in afterward.
 
 # Security maintenance
-- [ ] Update the PDF dependency's sanitizer to the patched version and verify the scan.
+- [x] Update the PDF dependency's sanitizer to the patched version and verify the scan.
