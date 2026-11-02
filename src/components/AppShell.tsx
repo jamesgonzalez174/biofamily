@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PointsNotifier } from "@/components/PointsNotifier";
+import { ReferralPrompt } from "@/components/ReferralPrompt";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
@@ -105,6 +106,7 @@ export function AppShell({ children, admin = false }: { children: ReactNode; adm
   return (
     <div className="min-h-dvh bg-background">
       <PointsNotifier />
+      {!admin && <ReferralPrompt />}
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-card/50 pl-safe backdrop-blur md:block">
         <SidebarInner />
