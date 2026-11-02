@@ -264,6 +264,8 @@ function PrivacyPolicyPage() {
           <Link to="/support" className="hover:text-foreground hover:underline">Support</Link>
           <span aria-hidden>·</span>
           <Link to="/privacy-policy" className="hover:text-foreground hover:underline">Privacy Policy</Link>
+          <span aria-hidden>·</span>
+          <Link to="/cookies-policy" className="hover:text-foreground hover:underline">Cookies Policy</Link>
         </footer>
       </main>
     </div>
