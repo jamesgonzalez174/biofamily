@@ -28,10 +28,11 @@ function AdminHome() {
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("prizes").select("*", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("redemptions").select("*", { count: "exact", head: true }),
-        supabase.from("points_ledger").select("delta"),
+        supabase.rpc("admin_points_totals"),
       ]);
-      const issued = (ledger.data ?? []).filter((l) => l.delta > 0).reduce((a, b) => a + b.delta, 0);
-      const spent = (ledger.data ?? []).filter((l) => l.delta < 0).reduce((a, b) => a + Math.abs(b.delta), 0);
+      const row = (ledger.data as { issued: number; spent: number }[] | null)?.[0];
+      const issued = Number(row?.issued ?? 0);
+      const spent = Number(row?.spent ?? 0);
       return {
         users: users.count ?? 0,
         prizes: prizes.count ?? 0,
