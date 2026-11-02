@@ -71,6 +71,13 @@
       "when": 1793634747146,
       "tag": "0009_signup_referral_source",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793634988615,
+      "tag": "0010_signup_referral_from_metadata",
+      "breakpoints": true
     }
   ]
 }
