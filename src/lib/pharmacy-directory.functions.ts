@@ -20,3 +20,14 @@ export const listPharmacyOptions = createServerFn({ method: "GET" }).handler(
     };
   },
 );
+
+export type SalesRepOption = { id: string; name: string };
+
+/** Public list of active sales rep names for the signup "how did you hear about us" picker. */
+export const listSalesRepOptions = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ reps: SalesRepOption[] }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin.from("sales_reps").select("id, name").eq("is_active", true).order("name");
+    return { reps: (data ?? []).map((r) => ({ id: String(r.id), name: String(r.name) })) };
+  },
+);
