@@ -84,17 +84,17 @@ function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { full_name: fullName, phone: phone.trim() },
+        data: {
+          full_name: fullName, phone: phone.trim(),
+          referral_source: source,
+          sales_rep_id: source === "sales_rep" ? salesRepId : null,
+        },
         emailRedirectTo: emailRedirect,
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
-    if (data.user) {
-      await supabase.from("profiles").update({
-        ...(pharmacyId ? { pharmacy_id: pharmacyId } : {}),
-        referral_source: source,
-        sales_rep_id: source === "sales_rep" ? salesRepId : null,
-      }).eq("id", data.user.id);
+    if (pharmacyId && data.user) {
+      await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
     setLoading(false);
     toast.success("Welcome! Your account is ready.");
