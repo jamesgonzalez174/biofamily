@@ -84,10 +84,10 @@ function SupportPage() {
                   </div>
                   <p className="mt-1">
                     <a
-                      href="mailto:support@myprizepoint.com"
+                      href="mailto:jamesgonzalez174@gmail.com"
                       className="text-primary hover:underline"
                     >
-                      support@myprizepoint.com
+                      jamesgonzalez174@gmail.com
                     </a>
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
