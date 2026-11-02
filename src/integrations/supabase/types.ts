@@ -365,6 +365,8 @@ export type Database = {
           pharmacy_id: string | null
           phone: string | null
           points_balance: number
+          referral_source: string | null
+          sales_rep_id: string | null
           tickets: number
           tier: string
           updated_at: string
@@ -379,6 +381,8 @@ export type Database = {
           pharmacy_id?: string | null
           phone?: string | null
           points_balance?: number
+          referral_source?: string | null
+          sales_rep_id?: string | null
           tickets?: number
           tier?: string
           updated_at?: string
@@ -393,6 +397,8 @@ export type Database = {
           pharmacy_id?: string | null
           phone?: string | null
           points_balance?: number
+          referral_source?: string | null
+          sales_rep_id?: string | null
           tickets?: number
           tier?: string
           updated_at?: string
@@ -403,6 +409,13 @@ export type Database = {
             columns: ["pharmacy_id"]
             isOneToOne: false
             referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
             referencedColumns: ["id"]
           },
         ]
@@ -459,6 +472,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_reps: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       settings: {
         Row: {
