@@ -937,6 +937,13 @@ export type Database = {
           zoho_contact_id: string
         }[]
       }
+      admin_points_totals: {
+        Args: never
+        Returns: {
+          issued: number
+          spent: number
+        }[]
+      }
       cancel_redemption: {
         Args: { _red_id: string }
         Returns: {
