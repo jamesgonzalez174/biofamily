@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthScene } from "@/components/AuthScene";
 import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
-import { listPharmacyOptions } from "@/lib/pharmacy-directory.functions";
+import { listPharmacyOptions, listSalesRepOptions } from "@/lib/pharmacy-directory.functions";
 
 
 function safeNext(n: unknown): string | null {
@@ -56,11 +56,17 @@ function SignupPage() {
   const [pharmacySearch, setPharmacySearch] = useState("");
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState("");
+  const [salesRepId, setSalesRepId] = useState("");
+  const [reps, setReps] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     listPharmacyOptions()
       .then((res) => setPharmacies((res?.pharmacies ?? []) as Pharmacy[]))
       .catch(() => setPharmacies([]));
+    listSalesRepOptions()
+      .then((res) => setReps(res?.reps ?? []))
+      .catch(() => setReps([]));
   }, []);
 
   const submit = async (e: React.FormEvent) => {
@@ -68,6 +74,8 @@ function SignupPage() {
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 7) return toast.error("A valid phone number is required.");
+    if (!source) return toast.error("Please tell us how you found out about the app.");
+    if (source === "sales_rep" && !salesRepId) return toast.error("Please select your sales rep.");
     setLoading(true);
 
     const emailRedirect = nextSafe
@@ -81,8 +89,12 @@ function SignupPage() {
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
-    if (pharmacyId && data.user) {
-      await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
+    if (data.user) {
+      await supabase.from("profiles").update({
+        ...(pharmacyId ? { pharmacy_id: pharmacyId } : {}),
+        referral_source: source,
+        sales_rep_id: source === "sales_rep" ? salesRepId : null,
+      }).eq("id", data.user.id);
     }
     setLoading(false);
     toast.success("Welcome! Your account is ready.");
@@ -152,6 +164,37 @@ function SignupPage() {
               </label>
             );
           })()}
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium">How did you find out about the app?</span>
+            <select
+              value={source}
+              onChange={(e) => { setSource(e.target.value); if (e.target.value !== "sales_rep") setSalesRepId(""); }}
+              required
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+            >
+              <option value="">Select an option</option>
+              <option value="email">Email</option>
+              <option value="sales_rep">Sales rep</option>
+              <option value="social_media">Social media</option>
+              <option value="friend">Friend or colleague</option>
+              <option value="pharmacy">At my pharmacy</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          {source === "sales_rep" && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Sales rep</span>
+              <select
+                value={salesRepId}
+                onChange={(e) => setSalesRepId(e.target.value)}
+                required
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+              >
+                <option value="">{reps.length ? "Select your sales rep" : "No sales reps available yet"}</option>
+                {reps.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </label>
+          )}
           <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60">
             {loading ? "Creating…" : "Create account"}
           </button>
