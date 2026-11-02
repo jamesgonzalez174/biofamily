@@ -1,3 +1,7 @@
+# Referral pop-up
+- [x] Once a member answers, never show the pop-up again (confirmed save + local marker + durable read).
+- [ ] Verify with a real member sign-in (needs owner approval to sign in as a member).
+
 # Ticket adjustments
 - [x] Add secure, recorded manual ticket adjustments.
 - [x] Add controls to admin Users and verify saving and reading back.

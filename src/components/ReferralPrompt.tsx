@@ -5,6 +5,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { listSalesRepOptions } from "@/lib/pharmacy-directory.functions";
 
+const markerKey = (userId: string) => `referral-answered:${userId}`;
+
+/** Local "already answered" flag so the pop-up never comes back for a member who saved. */
+function readMarker(userId?: string) {
+  if (!userId || typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(markerKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeMarker(userId?: string) {
+  if (!userId) return;
+  try {
+    window.localStorage.setItem(markerKey(userId), "1");
+  } catch {
+    /* storage unavailable — the database answer still hides the pop-up */
+  }
+}
+
 /** Asks signed-in members who haven't answered yet how they found the app. */
 export function ReferralPrompt() {
   const { user } = useAuth();
@@ -14,16 +35,21 @@ export function ReferralPrompt() {
   const [reps, setReps] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [answered, setAnswered] = useState(false);
+
+  useEffect(() => {
+    if (readMarker(user?.id)) setAnswered(true);
+  }, [user?.id]);
 
   const { data } = useQuery({
     queryKey: ["referral-source", user?.id],
-    enabled: !!user?.id,
+    enabled: !!user?.id && !answered,
     queryFn: async () => {
       const { data } = await supabase.from("profiles").select("referral_source").eq("id", user!.id).maybeSingle();
       return data;
     },
   });
-  const needs = !!data && !data.referral_source && !dismissed;
+  const needs = !!data && !data.referral_source && !dismissed && !answered;
 
   useEffect(() => {
     if (needs) listSalesRepOptions().then((r) => setReps(r?.reps ?? [])).catch(() => setReps([]));
@@ -35,13 +61,19 @@ export function ReferralPrompt() {
     if (!source) return toast.error("Please pick an option.");
     if (source === "sales_rep" && !repId) return toast.error("Please select your sales rep.");
     setSaving(true);
-    const { error } = await supabase.from("profiles")
+    const { data: row, error } = await supabase
+      .from("profiles")
       .update({ referral_source: source, sales_rep_id: source === "sales_rep" ? repId : null })
-      .eq("id", user!.id);
+      .eq("id", user!.id)
+      .select("referral_source")
+      .maybeSingle();
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Thanks for letting us know!");
+    if (!row?.referral_source) return toast.error("We couldn't save your answer. Please try again.");
+    writeMarker(user!.id);
+    setAnswered(true);
     qc.invalidateQueries({ queryKey: ["referral-source", user!.id] });
+    toast.success("Thanks for letting us know!");
   };
 
   const cls = "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2";
