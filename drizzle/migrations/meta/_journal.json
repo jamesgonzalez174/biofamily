@@ -78,6 +78,13 @@
       "when": 1793634988615,
       "tag": "0010_signup_referral_from_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793649994228,
+      "tag": "0011_admin_points_totals",
+      "breakpoints": true
     }
   ]
 }
