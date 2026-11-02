@@ -100,8 +100,8 @@ function SupportPage() {
                     <strong>Phone</strong>
                   </div>
                   <p className="mt-1">
-                    <a href="tel:+14085551234" className="text-primary hover:underline">
-                      (408) 555-1234
+                    <a href="tel:501-6118656" className="text-primary hover:underline">
+                      501-6118656
                     </a>
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
