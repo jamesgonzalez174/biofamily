@@ -145,7 +145,7 @@ function SupportPage() {
                 />
                 <FAQ
                   question="How do I delete my account?"
-                  answer="Email us at support@myprizepoint.com from the address associated with your account and request deletion. Once we verify your identity, we will delete your profile information and personal identifiers. Any unredeemed points will be forfeited and deleted accounts cannot be recovered."
+                  answer="Email us at jamesgonzalez174@gmail.com from the address associated with your account and request deletion. Once we verify your identity, we will delete your profile information and personal identifiers. Any unredeemed points will be forfeited and deleted accounts cannot be recovered."
                 />
               </div>
             </Section>
