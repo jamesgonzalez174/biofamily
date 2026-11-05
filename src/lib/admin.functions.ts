@@ -242,8 +242,9 @@ export const deleteUser = createServerFn({ method: "POST" })
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
-    const [profilesRes, rolesRes, pharmaciesRes, accessRes] = await Promise.all([
+    // Admin check runs in parallel with the reads; nothing is returned unless it passes.
+    const [, profilesRes, rolesRes, pharmaciesRes, accessRes] = await Promise.all([
+      assertAdmin(context.userId),
       supabaseAdmin
         .from("profiles")
         .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at")
