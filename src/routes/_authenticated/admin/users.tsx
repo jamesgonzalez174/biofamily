@@ -23,6 +23,10 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
     { name: "twitter:card", content: "summary" },
   ] }),
   validateSearch: z.object({ pharmacy: z.string().uuid().optional() }),
+  loader: ({ context }) => {
+    // Start fetching during navigation / link hover instead of after the page mounts.
+    void context.queryClient.prefetchQuery({ queryKey: ["admin-users"], queryFn: () => listUsers({}), staleTime: 60_000 });
+  },
   component: UsersPage,
 });
 
@@ -56,7 +60,7 @@ function UsersPage() {
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers({}),
     enabled: !!user && !authLoading,
-    staleTime: 30_000,
+    staleTime: 60_000,
     placeholderData: (prev) => prev,
   });
   const allUsers = (data as any)?.users as any[] | undefined;
