@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toCSV, downloadCSV } from "@/lib/csv";
 import { Button } from "@/components/ui/button";
 import { adjustTickets } from "@/lib/ticket-adjustment.functions";
+import { tierFor } from "@/lib/tiers";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({ meta: [
@@ -157,7 +158,7 @@ function UsersPage() {
       email: u.email,
       phone: u.phone ?? "",
       pharmacy: u.pharmacy_id ? pmap.get(u.pharmacy_id) ?? "" : "",
-      tier: u.tier,
+      tier: tierFor(Number(u.lifetime_points ?? 0)).current.name,
       points_balance: u.points_balance,
       lifetime_points: u.lifetime_points,
       roles: (u.roles ?? []).join("|"),
@@ -250,7 +251,7 @@ function UsersPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="p-3">{u.tier}</td>
+                  <td className="p-3">{tierFor(Number(u.lifetime_points ?? 0)).current.name}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">{u.lifetime_points.toLocaleString()}</td>
                   <td className="p-3 tabular-nums">
