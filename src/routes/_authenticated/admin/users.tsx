@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Shield, ShieldOff, Plus, Minus, X, Download, Trash2, ScrollText, MapPin, Ticket } from "lucide-react";
 import { z } from "zod";
@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/button";
 import { adjustTickets } from "@/lib/ticket-adjustment.functions";
 import { tierFor } from "@/lib/tiers";
 
+const PAGE_SIZE = 50;
+const usersQueryKey = (page: number, search: string, pharmacy?: string) =>
+  ["admin-users", { page, search, pharmacy: pharmacy ?? null }] as const;
+
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({ meta: [
     { title: "Users — PrizePoint Admin" },
@@ -24,9 +28,15 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
     { name: "twitter:card", content: "summary" },
   ] }),
   validateSearch: z.object({ pharmacy: z.string().uuid().optional() }),
-  loader: ({ context }) => {
+  loaderDeps: ({ search }) => ({ pharmacy: search.pharmacy }),
+  loader: ({ context, deps }) => {
+    void context.queryClient.prefetchQuery({
+      queryKey: usersQueryKey(1, "", deps.pharmacy),
+      queryFn: () => listUsers({ data: { page: 1, pageSize: PAGE_SIZE, search: "", pharmacyId: deps.pharmacy } }),
+      staleTime: 60_000,
+    });
     // Start fetching during navigation / link hover instead of after the page mounts.
-    void context.queryClient.prefetchQuery({ queryKey: ["admin-users"], queryFn: () => listUsers({}), staleTime: 60_000 });
+
   },
   component: UsersPage,
 });
@@ -57,20 +67,30 @@ function UsersPage() {
   const [accessSearch, setAccessSearch] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: () => fetchUsers({}),
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+  useEffect(() => { setPage(1); }, [pharmacy]);
+  const queryKey = usersQueryKey(page, search, pharmacy);
+  const { data, isLoading, isError, error, isFetching } = useQuery({
+    queryKey,
+    queryFn: () => fetchUsers({ data: { page, pageSize: PAGE_SIZE, search, pharmacyId: pharmacy } }),
     enabled: !!user && !authLoading,
     staleTime: 60_000,
     placeholderData: (prev) => prev,
   });
-  const allUsers = (data as any)?.users as any[] | undefined;
+  const users = (data as any)?.users as any[] | undefined;
+  const total = (data as any)?.total as number | undefined;
+  const fetchAllMatching = async () => {
+    const res = await fetchUsers({ data: { page: 1, pageSize: PAGE_SIZE, search, pharmacyId: pharmacy, all: true } });
+    return res.users as any[];
+  };
   const pharmacies = (data as any)?.pharmacies as { id: string; name: string }[] | undefined;
 
-  const users = useMemo(
-    () => (pharmacy ? (allUsers ?? []).filter((u: any) => u.pharmacy_id === pharmacy) : allUsers),
-    [allUsers, pharmacy],
-  );
   const currentPharmacy = pharmacies?.find((p) => p.id === pharmacy);
   const pharmacyNames = useMemo(() => new Map((pharmacies ?? []).map((p) => [p.id, p.name])), [pharmacies]);
   const [editingPharmacyFor, setEditingPharmacyFor] = useState<string | null>(null);
@@ -101,7 +121,7 @@ function UsersPage() {
       return;
     }
     toast.success("Pharmacy updated");
-    qc.setQueryData(["admin-users"], (old: any) =>
+    qc.setQueryData(queryKey, (old: any) =>
       old?.users
         ? { ...old, users: old.users.map((x: any) => (x.id === userId ? { ...x, pharmacy_id: pharmacyId || null } : x)) }
         : old,
@@ -161,9 +181,11 @@ function UsersPage() {
     finally { setAccessSaving(false); }
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
+    let all: any[];
+    try { all = await fetchAllMatching(); } catch (e: any) { return toast.error(e?.message ?? "Export failed"); }
     const pmap = new Map((pharmacies ?? []).map((p) => [p.id, p.name]));
-    const rows = (users ?? []).map((u: any) => ({
+    const rows = all.map((u: any) => ({
       full_name: u.full_name ?? "",
       email: u.email,
       phone: u.phone ?? "",
@@ -178,8 +200,10 @@ function UsersPage() {
   };
 
   const exportTicketsPDF = async () => {
+    let all: any[];
+    try { all = await fetchAllMatching(); } catch (e: any) { return toast.error(e?.message ?? "Export failed"); }
     const pmap = new Map((pharmacies ?? []).map((p) => [p.id, p.name]));
-    const holders = (users ?? []).map((u: any) => ({
+    const holders = all.map((u: any) => ({
       id: u.id as string,
       full_name: u.full_name,
       email: u.email,
@@ -227,12 +251,23 @@ function UsersPage() {
 
       {currentPharmacy && (
         <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
-          <span>Filtered to <span className="font-semibold">{currentPharmacy.name}</span> — {users?.length ?? 0} member{users?.length === 1 ? "" : "s"}</span>
+          <span>Filtered to <span className="font-semibold">{currentPharmacy.name}</span> — {total ?? 0} member{total === 1 ? "" : "s"}</span>
           <button onClick={() => navigate({ search: {} })} className="text-xs font-medium text-primary hover:underline">Clear filter</button>
         </div>
       )}
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      <div className="mt-6">
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search by name, email or phone…"
+          aria-label="Search users"
+          className="w-full max-w-sm rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="p-3">User</th><th className="p-3">Pharmacy</th><th className="p-3">Tier</th><th className="p-3">Balance</th><th className="p-3">Lifetime</th><th className="p-3">Tickets</th><th className="p-3">Role</th><th className="p-3 text-right">Actions</th></tr>
@@ -330,6 +365,21 @@ function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      {(() => {
+        const t = total ?? 0;
+        const from = t === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+        const to = Math.min(page * PAGE_SIZE, t);
+        return (
+          <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+            <span>Showing {from}–{to} of {t}{isFetching ? " · loading…" : ""}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={to >= t} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
+        );
+      })()}
 
       {adj && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setAdj(null)}>
