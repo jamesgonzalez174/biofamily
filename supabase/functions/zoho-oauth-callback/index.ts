@@ -55,6 +55,22 @@ Deno.serve(async (req) => {
     return popupResponse({ ok: false, error: "server_misconfigured" });
   }
 
+  // Validate the one-time state before exchanging the code or touching connection rows.
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const state = url.searchParams.get("state");
+  if (!state) return popupResponse({ ok: false, error: "invalid_state" });
+  const { data: stateRow } = await supabase
+    .from("zoho_oauth_states").select("state, user_id, created_at").eq("state", state).maybeSingle();
+  if (!stateRow) return popupResponse({ ok: false, error: "invalid_state" });
+  await supabase.from("zoho_oauth_states").delete().eq("state", state);
+  if (Date.now() - new Date(stateRow.created_at).getTime() > 10 * 60 * 1000) {
+    return popupResponse({ ok: false, error: "state_expired" });
+  }
+  const { data: adminRole } = await supabase
+    .from("user_roles").select("role").eq("user_id", stateRow.user_id).eq("role", "admin").maybeSingle();
+  if (!adminRole) return popupResponse({ ok: false, error: "forbidden" });
+  const connectedBy: string = stateRow.user_id;
+
   const region = regionFromLocation(location, accountsServer);
   const redirectUri = `${supabaseUrl}/functions/v1/zoho-oauth-callback`;
 
@@ -94,17 +110,6 @@ Deno.serve(async (req) => {
   }
   const org = orgs[0];
 
-  // State carries the connecting user id
-  let connectedBy: string | null = null;
-  try {
-    const state = url.searchParams.get("state");
-    if (state) {
-      const decoded = JSON.parse(atob(state));
-      if (typeof decoded?.user_id === "string") connectedBy = decoded.user_id;
-    }
-  } catch { /* ignore */ }
-
-  const supabase = createClient(supabaseUrl, serviceKey);
   // Single-tenant: keep only one connection row. Delete any existing rows for other orgs.
   await supabase.from("zoho_connections").delete().neq("zoho_org_id", String(org.organization_id));
 
