@@ -72,6 +72,8 @@ function UsersPage() {
     [allUsers, pharmacy],
   );
   const currentPharmacy = pharmacies?.find((p) => p.id === pharmacy);
+  const pharmacyNames = useMemo(() => new Map((pharmacies ?? []).map((p) => [p.id, p.name])), [pharmacies]);
+  const [editingPharmacyFor, setEditingPharmacyFor] = useState<string | null>(null);
 
 
   const toggleAdmin = async (id: string, isAdmin: boolean) => {
@@ -93,9 +95,17 @@ function UsersPage() {
 
   const changePharmacy = async (userId: string, pharmacyId: string) => {
     const { error } = await supabase.from("profiles").update({ pharmacy_id: pharmacyId || null }).eq("id", userId);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      return;
+    }
     toast.success("Pharmacy updated");
-    qc.invalidateQueries({ queryKey: ["admin-users"] });
+    qc.setQueryData(["admin-users"], (old: any) =>
+      old?.users
+        ? { ...old, users: old.users.map((x: any) => (x.id === userId ? { ...x, pharmacy_id: pharmacyId || null } : x)) }
+        : old,
+    );
   };
 
   const submitAdjust = async () => {
@@ -240,16 +250,32 @@ function UsersPage() {
                     </div>
                   </td>
                   <td className="p-3 align-top">
-                    <select
-                      value={u.pharmacy_id ?? ""}
-                      onChange={(e) => changePharmacy(u.id, e.target.value)}
-                      className="w-full min-w-[160px] max-w-[220px] truncate rounded-lg border border-input bg-background px-2 py-1 text-xs"
-                    >
-                      <option value="">— None —</option>
-                      {(pharmacies ?? []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                    {editingPharmacyFor === u.id ? (
+                      <select
+                        autoFocus
+                        value={u.pharmacy_id ?? ""}
+                        onChange={async (e) => {
+                          await changePharmacy(u.id, e.target.value);
+                          setEditingPharmacyFor(null);
+                        }}
+                        onBlur={() => setEditingPharmacyFor(null)}
+                        className="w-full min-w-[160px] max-w-[220px] truncate rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                      >
+                        <option value="">— None —</option>
+                        {(pharmacies ?? []).map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingPharmacyFor(u.id)}
+                        className="block w-full min-w-[160px] max-w-[220px] truncate rounded-lg border border-input bg-background px-2 py-1 text-left text-xs"
+                        title="Change pharmacy"
+                      >
+                        {u.pharmacy_id ? pharmacyNames.get(u.pharmacy_id) ?? "— None —" : "— None —"}
+                      </button>
+                    )}
                   </td>
                   <td className="p-3">{tierFor(Number(u.lifetime_points ?? 0)).current.name}</td>
                   <td className="p-3 tabular-nums">{u.points_balance.toLocaleString()}</td>
