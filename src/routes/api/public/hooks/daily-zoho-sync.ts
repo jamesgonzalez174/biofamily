@@ -1,3 +1,4 @@
+import { safeEqual } from "@/lib/safe-compare.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { runZohoSync } from "@/lib/zoho-sync.server";
 
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-zoho-sync")({
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
           "";
         const expected = process.env.CRON_SECRET;
-        if (!expected || !provided || provided !== expected) {
+        if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },

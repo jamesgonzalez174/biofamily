@@ -315,7 +315,7 @@ export async function processZohoContact(
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("id, full_name")
-    .ilike("email", email)
+    .eq("email", email.toLowerCase())
     .maybeSingle();
 
   if (profile && fullName && fullName !== profile.full_name) {

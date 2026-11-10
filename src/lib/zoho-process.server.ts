@@ -78,7 +78,7 @@ export async function processZohoPayload(
   let { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("id, points_balance, lifetime_points, pharmacy_id, full_name, phone")
-    .ilike("email", email)
+    .eq("email", email.toLowerCase())
     .maybeSingle();
 
   if (profile) {
