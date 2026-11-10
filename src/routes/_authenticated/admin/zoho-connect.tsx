@@ -6,7 +6,7 @@ import { CheckCircle2, XCircle, Loader2, Link2, Unlink, AlertTriangle } from "lu
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { getZohoConnection, disconnectZoho } from "@/lib/zoho.functions";
+import { getZohoConnection, disconnectZoho, createZohoOAuthState } from "@/lib/zoho.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/zoho-connect")({
@@ -19,6 +19,7 @@ function ZohoConnectPage() {
   const qc = useQueryClient();
   const getConn = useServerFn(getZohoConnection);
   const disconnect = useServerFn(disconnectZoho);
+  const createState = useServerFn(createZohoOAuthState);
   const [connecting, setConnecting] = useState(false);
 
   const { data: conn, isLoading } = useQuery({
@@ -66,9 +67,7 @@ function ZohoConnectPage() {
       if (error || !data?.clientId) {
         throw new Error(error?.message || "Could not load Zoho client id");
       }
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id ?? "";
-      const state = btoa(JSON.stringify({ user_id: userId, nonce: crypto.randomUUID() }));
+      const { state } = await createState();
       const redirectUri = typeof data.redirectUri === "string"
         ? data.redirectUri
         : `${SUPABASE_URL}/functions/v1/zoho-oauth-callback`;
