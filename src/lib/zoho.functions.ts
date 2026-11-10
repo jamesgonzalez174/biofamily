@@ -369,3 +369,16 @@ export const diagnoseZohoBooks = createServerFn({ method: "POST" })
       };
     }
   });
+
+/** Admin-only: issue a one-time OAuth state value for the Zoho connect flow. */
+export const createZohoOAuthState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const state = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    const { error } = await supabaseAdmin.from("zoho_oauth_states").insert({ state, user_id: context.userId });
+    if (error) throw new Error("Could not start Zoho connection");
+    return { state };
+  });

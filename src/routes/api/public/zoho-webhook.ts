@@ -1,3 +1,4 @@
+import { safeEqual } from "@/lib/safe-compare.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { processZohoContact } from "@/lib/zoho-contact.server";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/api/public/zoho-webhook")({
           url.searchParams.get("secret") ||
           "";
         const expected = process.env.ZOHO_WEBHOOK_SECRET;
-        if (!expected || !provided || provided !== expected) {
+        if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },
