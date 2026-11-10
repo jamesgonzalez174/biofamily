@@ -239,36 +239,81 @@ export const deleteUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const listUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    // Admin check runs in parallel with the reads; nothing is returned unless it passes.
-    const [, profilesRes, rolesRes, pharmaciesRes, accessRes] = await Promise.all([
-      assertAdmin(context.userId),
-      supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at")
-        .order("created_at", { ascending: false }),
-      supabaseAdmin.from("user_roles").select("user_id, role"),
-      supabaseAdmin.from("pharmacies").select("id, name").order("name"),
-      supabaseAdmin.from("user_pharmacy_access").select("user_id, pharmacy_id"),
+const listUsersInput = z.object({
+  page: z.number().int().min(1).max(100000).default(1),
+  pageSize: z.number().int().min(1).max(200).default(50),
+  search: z.string().max(100).default(""),
+  pharmacyId: z.string().uuid().optional(),
+  all: z.boolean().default(false),
+});
+
+const PROFILE_COLS = "id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at";
+
+function profilesQuery(search: string, pharmacyId?: string) {
+  let q = supabaseAdmin.from("profiles").select(PROFILE_COLS, { count: "exact" });
+  if (pharmacyId) q = q.eq("pharmacy_id", pharmacyId);
+  // Strip characters that have meaning in PostgREST filter syntax.
+  const term = search.replace(/[,()*%\\]/g, " ").trim();
+  if (term) q = q.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+  return q.order("created_at", { ascending: false }).order("id", { ascending: true });
+}
+
+async function rolesAndAccessFor(ids: string[]) {
+  const roleMap = new Map<string, string[]>();
+  const accessMap = new Map<string, number>();
+  for (let i = 0; i < ids.length; i += 500) {
+    const chunk = ids.slice(i, i + 500);
+    const [rolesRes, accessRes] = await Promise.all([
+      supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", chunk),
+      supabaseAdmin.from("user_pharmacy_access").select("user_id").in("user_id", chunk),
     ]);
-    const roleMap = new Map<string, string[]>();
     (rolesRes.data ?? []).forEach((r) => {
       const arr = roleMap.get(r.user_id) ?? [];
       arr.push(r.role);
       roleMap.set(r.user_id, arr);
     });
-    const accessMap = new Map<string, number>();
-    (accessRes.data ?? []).forEach((r: any) => {
-      accessMap.set(r.user_id, (accessMap.get(r.user_id) ?? 0) + 1);
-    });
-    const users = (profilesRes.data ?? []).map((p) => ({
+    (accessRes.data ?? []).forEach((r: any) => accessMap.set(r.user_id, (accessMap.get(r.user_id) ?? 0) + 1));
+  }
+  return { roleMap, accessMap };
+}
+
+export const listUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => listUsersInput.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    const { page, pageSize, search, pharmacyId, all } = data;
+    const fetchProfiles = async () => {
+      if (!all) {
+        const from = (page - 1) * pageSize;
+        const res = await profilesQuery(search, pharmacyId).range(from, from + pageSize - 1);
+        if (res.error) throw new Error(res.error.message);
+        return { rows: res.data ?? [], total: res.count ?? 0 };
+      }
+      // Export mode: page through every matching profile in batches of 1,000.
+      const rows: any[] = [];
+      let total = 0;
+      for (let from = 0; ; from += 1000) {
+        const res = await profilesQuery(search, pharmacyId).range(from, from + 999);
+        if (res.error) throw new Error(res.error.message);
+        total = res.count ?? total;
+        rows.push(...(res.data ?? []));
+        if ((res.data ?? []).length < 1000) break;
+      }
+      return { rows, total };
+    };
+    // Admin check runs in parallel with the reads; nothing is returned unless it passes.
+    const [, profiles, pharmaciesRes] = await Promise.all([
+      assertAdmin(context.userId),
+      fetchProfiles(),
+      supabaseAdmin.from("pharmacies").select("id, name").order("name"),
+    ]);
+    const { roleMap, accessMap } = await rolesAndAccessFor(profiles.rows.map((p) => p.id));
+    const users = profiles.rows.map((p) => ({
       ...p,
       roles: roleMap.get(p.id) ?? [],
       access_count: accessMap.get(p.id) ?? 0,
     }));
-    return { users, pharmacies: pharmaciesRes.data ?? [] };
+    return { users, total: profiles.total, page, pageSize, pharmacies: pharmaciesRes.data ?? [] };
   });
 
 export const sendTestExpiryReminder = createServerFn({ method: "POST" })
