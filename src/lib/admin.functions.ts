@@ -68,7 +68,7 @@ export const adjustPoints = createServerFn({ method: "POST" })
           templateData: {
             name: profile.full_name ?? undefined,
             points: data.delta,
-            reason: data.reason,
+            reason: "Points added to your account",
             newBalance,
           },
         });
@@ -198,7 +198,7 @@ export const addPharmacyPoints = createServerFn({ method: "POST" })
             templateData: {
               name: (m as any).full_name ?? undefined,
               points: delta,
-              reason: data.reason,
+              reason: "Points added to your account",
               newBalance,
             },
           });
@@ -535,7 +535,7 @@ export const bulkImportPoints = createServerFn({ method: "POST" })
               templateData: {
                 name: profile.full_name ?? undefined,
                 points: appliedDelta,
-                reason: row.reason,
+                reason: "Points added to your account",
                 newBalance,
               },
             });
