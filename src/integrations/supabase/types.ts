@@ -366,6 +366,7 @@ export type Database = {
           phone: string | null
           points_balance: number
           referral_source: string | null
+          requested_pharmacy_id: string | null
           sales_rep_id: string | null
           tickets: number
           tier: string
@@ -382,6 +383,7 @@ export type Database = {
           phone?: string | null
           points_balance?: number
           referral_source?: string | null
+          requested_pharmacy_id?: string | null
           sales_rep_id?: string | null
           tickets?: number
           tier?: string
@@ -398,6 +400,7 @@ export type Database = {
           phone?: string | null
           points_balance?: number
           referral_source?: string | null
+          requested_pharmacy_id?: string | null
           sales_rep_id?: string | null
           tickets?: number
           tier?: string
@@ -407,6 +410,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_pharmacy_id_fkey"
             columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_requested_pharmacy_id_fkey"
+            columns: ["requested_pharmacy_id"]
             isOneToOne: false
             referencedRelation: "pharmacies"
             referencedColumns: ["id"]
@@ -961,6 +971,10 @@ export type Database = {
           issued: number
           spent: number
         }[]
+      }
+      admin_set_member_pharmacy: {
+        Args: { _pharmacy_id: string; _user_id: string }
+        Returns: undefined
       }
       cancel_redemption: {
         Args: { _red_id: string }

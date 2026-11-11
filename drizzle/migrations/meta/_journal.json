@@ -99,6 +99,13 @@
       "when": 1794430637543,
       "tag": "0013_drop_client_redemption_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794431015639,
+      "tag": "0014_pharmacy_join_approval",
+      "breakpoints": true
     }
   ]
 }
