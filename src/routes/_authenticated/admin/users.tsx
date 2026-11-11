@@ -114,7 +114,7 @@ function UsersPage() {
   };
 
   const changePharmacy = async (userId: string, pharmacyId: string) => {
-    const { error } = await supabase.from("profiles").update({ pharmacy_id: pharmacyId || null }).eq("id", userId);
+    const { error } = await supabase.rpc("admin_set_member_pharmacy", { _user_id: userId, _pharmacy_id: (pharmacyId || null) as any });
     if (error) {
       toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["admin-users"] });
@@ -123,7 +123,7 @@ function UsersPage() {
     toast.success("Pharmacy updated");
     qc.setQueryData(queryKey, (old: any) =>
       old?.users
-        ? { ...old, users: old.users.map((x: any) => (x.id === userId ? { ...x, pharmacy_id: pharmacyId || null } : x)) }
+        ? { ...old, users: old.users.map((x: any) => (x.id === userId ? { ...x, pharmacy_id: pharmacyId || null, requested_pharmacy_id: null } : x)) }
         : old,
     );
   };
@@ -310,6 +310,12 @@ function UsersPage() {
                       >
                         {u.pharmacy_id ? pharmacyNames.get(u.pharmacy_id) ?? "— None —" : "— None —"}
                       </button>
+                    )}
+                    {!u.pharmacy_id && u.requested_pharmacy_id && (
+                      <div className="mt-1 flex max-w-[220px] items-center gap-1 text-xs">
+                        <span className="truncate text-muted-foreground" title="Requested pharmacy">Requested: {pharmacyNames.get(u.requested_pharmacy_id) ?? "Unknown"}</span>
+                        <button type="button" onClick={() => changePharmacy(u.id, u.requested_pharmacy_id)} className="shrink-0 rounded bg-primary px-2 py-0.5 font-semibold text-primary-foreground">Approve</button>
+                      </div>
                     )}
                   </td>
                   <td className="p-3">{tierFor(Number(u.lifetime_points ?? 0)).current.name}</td>

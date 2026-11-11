@@ -94,7 +94,7 @@ function SignupPage() {
     });
     if (error) { setLoading(false); return toast.error(error.message); }
     if (pharmacyId && data.user) {
-      await supabase.from("profiles").update({ pharmacy_id: pharmacyId }).eq("id", data.user.id);
+      await supabase.from("profiles").update({ requested_pharmacy_id: pharmacyId }).eq("id", data.user.id);
     }
     setLoading(false);
     toast.success("Welcome! Your account is ready.");
