@@ -1,12 +1,11 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthScene } from "@/components/AuthScene";
 import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
-import { listPharmacyOptions, listSalesRepOptions } from "@/lib/pharmacy-directory.functions";
 
 
 function safeNext(n: unknown): string | null {
@@ -52,50 +51,28 @@ function SignupPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [pharmacyId, setPharmacyId] = useState("");
-  const [pharmacySearch, setPharmacySearch] = useState("");
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState("");
-  const [salesRepId, setSalesRepId] = useState("");
-  const [reps, setReps] = useState<{ id: string; name: string }[]>([]);
-
-  useEffect(() => {
-    listPharmacyOptions()
-      .then((res) => setPharmacies((res?.pharmacies ?? []) as Pharmacy[]))
-      .catch(() => setPharmacies([]));
-    listSalesRepOptions()
-      .then((res) => setReps(res?.reps ?? []))
-      .catch(() => setReps([]));
-  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) return toast.error("Password must be at least 6 characters.");
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 7) return toast.error("A valid phone number is required.");
-    if (!source) return toast.error("Please tell us how you found out about the app.");
-    if (source === "sales_rep" && !salesRepId) return toast.error("Please select your sales rep.");
     setLoading(true);
 
     const emailRedirect = nextSafe
       ? `${window.location.origin}${nextSafe}`
       : getAuthEmailRedirectUrl();
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: {
           full_name: fullName, phone: phone.trim(),
-          referral_source: source,
-          sales_rep_id: source === "sales_rep" ? salesRepId : null,
         },
         emailRedirectTo: emailRedirect,
       },
     });
     if (error) { setLoading(false); return toast.error(error.message); }
-    if (pharmacyId && data.user) {
-      await supabase.from("profiles").update({ requested_pharmacy_id: pharmacyId }).eq("id", data.user.id);
-    }
     setLoading(false);
     toast.success("Welcome! Your account is ready.");
     if (nextSafe) { window.location.href = nextSafe; return; }
@@ -127,74 +104,12 @@ function SignupPage() {
       </Link>
       <div className="auth-glass auth-pop-sm rounded-2xl p-8">
         <h1 className="auth-pop text-2xl font-semibold tracking-tight">Create account</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Start earning points on every purchase.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Start earning points on every purchase. You'll choose your pharmacy after signing in.</p>
         <form onSubmit={submit} className="auth-pop-sm mt-6 space-y-4">
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />
           <Field label="Phone number" type="tel" value={phone} onChange={setPhone} required pattern="[\d\s()+\-]{7,}" title="Enter at least 7 digits" placeholder="e.g. +1 809 555 0100" />
           <Field label="Password" type="password" value={password} onChange={setPassword} required />
-          {pharmacies.length > 0 && (() => {
-            const q = pharmacySearch.trim().toLowerCase();
-            const filtered = q
-              ? pharmacies.filter((p) => p.name.toLowerCase().includes(q) || (p.address ?? "").toLowerCase().includes(q))
-              : pharmacies;
-            return (
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Pharmacy</span>
-                <input
-                  type="text"
-                  value={pharmacySearch}
-                  onChange={(e) => setPharmacySearch(e.target.value)}
-                  placeholder="Search pharmacies by name or address…"
-                  className="mb-2 w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-                />
-                <select
-                  value={pharmacyId}
-                  onChange={(e) => setPharmacyId(e.target.value)}
-                  size={Math.min(6, Math.max(3, filtered.length + 1))}
-                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
-                >
-                  <option value="">Select your pharmacy (optional)</option>
-                  {filtered.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}{p.address ? ` — ${p.address}` : ""}</option>
-                  ))}
-                  {filtered.length === 0 && <option value="" disabled>No matches</option>}
-                </select>
-                <span className="mt-1 block text-xs text-muted-foreground">You can change this later from your dashboard.</span>
-              </label>
-            );
-          })()}
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">How did you find out about the app?</span>
-            <select
-              value={source}
-              onChange={(e) => { setSource(e.target.value); if (e.target.value !== "sales_rep") setSalesRepId(""); }}
-              required
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-            >
-              <option value="">Select an option</option>
-              <option value="email">Email</option>
-              <option value="sales_rep">Sales rep</option>
-              <option value="social_media">Social media</option>
-              <option value="friend">Friend or colleague</option>
-              <option value="pharmacy">At my pharmacy</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          {source === "sales_rep" && (
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Sales rep</span>
-              <select
-                value={salesRepId}
-                onChange={(e) => setSalesRepId(e.target.value)}
-                required
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2"
-              >
-                <option value="">{reps.length ? "Select your sales rep" : "No sales reps available yet"}</option>
-                {reps.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </label>
-          )}
           <button disabled={loading} className="w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 hover:-translate-y-0.5 disabled:opacity-60">
             {loading ? "Creating…" : "Create account"}
           </button>
