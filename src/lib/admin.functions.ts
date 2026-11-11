@@ -247,7 +247,7 @@ const listUsersInput = z.object({
   all: z.boolean().default(false),
 });
 
-const PROFILE_COLS = "id, full_name, email, phone, pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at";
+const PROFILE_COLS = "id, full_name, email, phone, pharmacy_id, requested_pharmacy_id, tier, points_balance, lifetime_points, tickets, created_at";
 
 function profilesQuery(search: string, pharmacyId?: string) {
   let q = supabaseAdmin.from("profiles").select(PROFILE_COLS, { count: "exact" });

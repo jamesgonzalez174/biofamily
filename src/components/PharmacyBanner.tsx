@@ -38,10 +38,10 @@ export function PharmacyBanner() {
   const save = async () => {
     if (!user || !selected) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ pharmacy_id: selected }).eq("id", user.id);
+    const { error } = await supabase.from("profiles").update({ requested_pharmacy_id: selected }).eq("id", user.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Pharmacy updated");
+    toast.success("Request sent — an admin will confirm your pharmacy");
     setPicking(false);
     setSelected("");
     qc.invalidateQueries({ queryKey: ["profile"] });
@@ -50,6 +50,17 @@ export function PharmacyBanner() {
   if (!profile) return null;
 
   // No pharmacy yet — prompt prominently
+  const requested = (profile as any).requested_pharmacy_id as string | null;
+  if (!profile.pharmacy_id && requested) {
+    const name = pharmacies?.find((p) => p.id === requested)?.name;
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-soft">
+        <MapPin className="h-4 w-4 text-primary" />
+        <span>Your pharmacy request{name ? <> for <span className="font-semibold">{name}</span></> : null} is waiting for admin approval. Points and tickets start once it's approved.</span>
+      </div>
+    );
+  }
+
   if (!profile.pharmacy_id) {
     return (
       <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 to-primary-glow/10 p-5 shadow-soft">
