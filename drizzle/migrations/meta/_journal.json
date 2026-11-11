@@ -92,6 +92,13 @@
       "when": 1794321474552,
       "tag": "0012_security_lockdown",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794430637543,
+      "tag": "0013_drop_client_redemption_insert",
+      "breakpoints": true
     }
   ]
 }
