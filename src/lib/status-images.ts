@@ -15,7 +15,7 @@ export function statusObjectPath(imageUrl: string): string {
  * The `statuses` bucket is private, so status images must be read through
  * short-lived signed URLs (signed-in users only).
  */
-export async function signStatusUrls(imageUrls: string[], expiresIn = 3600) {
+export async function signStatusUrls(imageUrls: string[], expiresIn = 300) {
   const paths = imageUrls.map(statusObjectPath).filter(Boolean);
   const map = new Map<string, string>();
   if (paths.length === 0) return map;
@@ -27,7 +27,7 @@ export async function signStatusUrls(imageUrls: string[], expiresIn = 3600) {
 }
 
 /** Resolve one stored status URL to a signed URL (falls back to the original). */
-export async function signStatusUrl(imageUrl: string, expiresIn = 3600) {
+export async function signStatusUrl(imageUrl: string, expiresIn = 300) {
   const path = statusObjectPath(imageUrl);
   if (!path) return imageUrl;
   const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn);

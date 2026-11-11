@@ -252,11 +252,13 @@ export const backfillInvoicePoints = createServerFn({ method: "POST" })
     const invNumber = data.invoiceNumber;
     if (!invNumber) throw new Error("invoiceNumber is required for reprocess mode");
 
-    const { data: existing } = await supabaseAdmin
-      .from("invoices")
-      .select("id, zoho_invoice_id, invoice_number, pharmacy_id, total_points, points_given, points_distributed_at")
-      .or(`invoice_number.eq.${invNumber},zoho_invoice_id.eq.${invNumber}`)
-      .maybeSingle();
+    const INV_COLS = "id, zoho_invoice_id, invoice_number, pharmacy_id, total_points, points_given, points_distributed_at";
+    let { data: existing } = await supabaseAdmin
+      .from("invoices").select(INV_COLS).eq("invoice_number", invNumber).maybeSingle();
+    if (!existing) {
+      ({ data: existing } = await supabaseAdmin
+        .from("invoices").select(INV_COLS).eq("zoho_invoice_id", invNumber).maybeSingle());
+    }
     if (!existing) throw new Error(`Invoice ${invNumber} not found in cache. Run a Zoho sync first.`);
 
     // Re-fetch from Zoho for fresh custom-field values.
