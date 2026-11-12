@@ -9,7 +9,7 @@ export const profileQuery = (userId: string | undefined) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*, pharmacy:pharmacies(id, name, address, invoice_references)")
+        .select("*, pharmacy:pharmacies!profiles_pharmacy_id_fkey(id, name, address, invoice_references)")
         .eq("id", userId!)
         .single();
       if (error) throw error;
